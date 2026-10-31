@@ -1,14 +1,17 @@
 :root {
   color-scheme: light;
-  --text: #1c1917;
-  --muted: #44403c;
-  --bg: #f6f3ee;
-  --card: #fffdf9;
-  --line: #d6d3d1;
-  --accent: #0b3d2e;
-  --accent-text: #ffffff;
+  --ink: #010101;
+  --muted: #333333;
+  --hint: #555555;
+  --bg: #f8f9fb;
+  --card: #ffffff;
+  --line: #e7ebf0;
+  --field: #c5ced9;
+  --red: #ee0014;
+  --red-hover: #cc0012;
+  --blue: #056cb8;
   --danger: #9f1239;
-  --focus: #0b3d2e;
+  --font: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 * {
@@ -18,42 +21,69 @@
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--text);
-  font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", serif;
-  line-height: 1.5;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
 }
 
-.wrap {
-  width: min(40rem, calc(100% - 2rem));
-  margin: 0 auto;
-  padding: 2rem 0 3rem;
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
 }
 
-.kicker {
-  margin: 0 0 0.5rem;
-  font-family: system-ui, sans-serif;
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--accent);
+.topbar-inner,
+.hero-inner,
+.form-section {
+  width: min(720px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.topbar-inner {
+  padding: 16px 0;
+}
+
+.brand {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  line-height: 1.2;
+}
+
+.hero {
+  padding: 64px 0 12px;
 }
 
 h1 {
-  margin: 0 0 1rem;
-  font-size: clamp(2rem, 7vw, 3.1rem);
-  line-height: 1.12;
+  margin: 0;
+  color: var(--ink);
+  font-size: 48px;
+  font-weight: 500;
+  letter-spacing: -1.5px;
+  line-height: 1.2;
 }
 
-h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.5rem;
-  line-height: 1.25;
+h1::after {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 2px;
+  margin-top: 18px;
+  background: var(--red);
 }
 
 .lede {
-  margin: 0 0 1.5rem;
-  font-size: 1.125rem;
+  max-width: 36rem;
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 18px;
+  letter-spacing: -0.2px;
+  line-height: 1.6;
 }
 
 .cta,
@@ -61,17 +91,39 @@ button[type="submit"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   min-height: 48px;
-  padding: 0.8rem 1.15rem;
+  padding: 16px 22px;
   border: 0;
-  border-radius: 0.4rem;
-  background: var(--accent);
-  color: var(--accent-text);
-  font-family: system-ui, sans-serif;
-  font-size: 1.05rem;
-  font-weight: 700;
+  border-radius: 2px;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
   text-decoration: none;
+  text-transform: uppercase;
   cursor: pointer;
+}
+
+.cta {
+  margin-top: 28px;
+}
+
+.cta::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid #fff;
+  border-right: 1.5px solid #fff;
+  transform: rotate(45deg);
+}
+
+.cta:hover,
+button[type="submit"]:hover {
+  background: var(--red-hover);
 }
 
 button[type="submit"] {
@@ -80,44 +132,60 @@ button[type="submit"] {
 
 button[type="submit"]:disabled {
   cursor: wait;
-  opacity: 0.75;
+  opacity: 0.72;
+}
+
+.form-section {
+  padding: 28px 0 80px;
 }
 
 .form-card {
-  margin-top: 2.5rem;
-  padding: 1.25rem;
+  margin: 0;
+  padding: 36px 32px 28px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 0.6rem;
-  scroll-margin-top: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.03);
+  scroll-margin-top: 80px;
+}
+
+h2 {
+  margin: 0 0 24px;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
 }
 
 .field {
-  margin: 0 0 1.1rem;
+  margin: 0 0 18px;
 }
 
 label {
   display: block;
-  margin-bottom: 0.35rem;
-  font-family: system-ui, sans-serif;
-  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .req {
-  font-weight: 600;
-  color: var(--muted);
+  color: var(--hint);
+  font-weight: 500;
 }
 
 input[type="text"],
 input[type="email"],
 textarea {
   width: 100%;
-  padding: 0.7rem 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: 0.35rem;
+  padding: 12px;
+  border: 1px solid var(--field);
+  border-radius: 2px;
   background: #fff;
-  color: var(--text);
-  font: 1rem/1.4 system-ui, sans-serif;
+  color: var(--ink);
+  font: 16px/1.4 var(--font);
 }
 
 textarea {
@@ -127,30 +195,34 @@ textarea {
 
 .hint,
 .fine-print {
-  margin: 0.35rem 0 0;
-  color: var(--muted);
-  font-family: system-ui, sans-serif;
-  font-size: 0.95rem;
+  margin: 6px 0 0;
+  color: var(--hint);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.fine-print {
+  margin-top: 14px;
 }
 
 .error {
-  margin: 0.35rem 0 0;
+  margin: 6px 0 0;
   color: var(--danger);
-  font-family: system-ui, sans-serif;
-  font-size: 0.95rem;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .check {
   display: flex;
-  gap: 0.7rem;
+  gap: 12px;
   align-items: flex-start;
 }
 
 .check input {
-  width: 1.25rem;
-  height: 1.25rem;
-  margin-top: 0.2rem;
-  accent-color: var(--accent);
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+  accent-color: var(--blue);
 }
 
 .check label {
@@ -158,15 +230,19 @@ textarea {
 }
 
 .status {
-  margin: 0 0 1rem;
-  padding: 0.75rem 0.8rem;
-  background: #ecfdf3;
-  border-radius: 0.35rem;
-  font-family: system-ui, sans-serif;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  background: #f4f7fb;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  border-radius: 2px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .form-error {
-  margin: 0 0 1rem;
+  margin-bottom: 16px;
 }
 
 [aria-invalid="true"] {
@@ -174,10 +250,47 @@ textarea {
 }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 3px solid var(--blue);
   outline-offset: 2px;
 }
 
 #opt-out:target {
-  border-color: var(--accent);
+  border-color: var(--blue);
+}
+
+@media (max-width: 480px) {
+  .topbar-inner,
+  .hero-inner,
+  .form-section {
+    width: min(720px, calc(100% - 32px));
+  }
+
+  .hero {
+    padding: 36px 0 8px;
+  }
+
+  h1 {
+    font-size: 32px;
+    letter-spacing: -1px;
+  }
+
+  .lede {
+    font-size: 16px;
+  }
+
+  .cta {
+    width: 100%;
+  }
+
+  .form-section {
+    padding-bottom: 48px;
+  }
+
+  .form-card {
+    padding: 24px 16px 20px;
+  }
+
+  h2 {
+    font-size: 24px;
+  }
 }
