@@ -20,14 +20,16 @@ const cfg = (env) => ({
 export const allowedOrigins = (env) => (env.ALLOWED_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean);
 
 export function corsHeaders(env, origin) {
-  const list = allowedOrigins(env);
+  // Exact-match echo only; never '*', never a fallback origin. Unknown/missing Origin gets no ACAO header.
+  const h = { Vary: 'Origin' };
+  if (!(origin && allowedOrigins(env).includes(origin))) return h;
   return {
-    'Access-Control-Allow-Origin': origin && list.includes(origin) ? origin : list[0] || '',
+    ...h,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization,Content-Type,X-CSRF-Token',
     'Access-Control-Max-Age': '86400',
-    Vary: 'Origin',
   };
 }
 
@@ -39,9 +41,12 @@ function json(ctx, body, status = 200, extra = {}) {
 const INVALID = (ctx) => json(ctx, { error: 'invalid credentials' }, 401);
 const UNAUTH = (ctx) => json(ctx, { error: 'unauthorized' }, 401);
 
-const setCookie = (token, maxAge) =>
-  `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
-const clearCookie = () => `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
+// Frontend (pages.dev) and API (workers.dev) are different sites, so the cookie is third-party:
+// SameSite=None is required, and Partitioned (CHIPS) keeps it working in Chrome with 3P cookies blocked.
+// CSRF protection therefore comes from the per-session X-CSRF-Token + strict Origin allowlist.
+const ATTRS = 'Path=/; HttpOnly; Secure; SameSite=None; Partitioned';
+const setCookie = (token, maxAge) => `${COOKIE}=${token}; ${ATTRS}; Max-Age=${maxAge}`;
+const clearCookie = () => `${COOKIE}=; ${ATTRS}; Max-Age=0`;
 function readCookie(req) {
   const m = (req.headers.get('Cookie') || '').match(/(?:^|;\s*)__Host-sid=([A-Za-z0-9_-]+)/);
   return m ? m[1] : null;

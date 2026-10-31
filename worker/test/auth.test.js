@@ -70,7 +70,8 @@ describe('login', () => {
     const { cookie, res } = await fullLogin(u);
     const sc = res.headers.get('Set-Cookie');
     expect(sc).toMatch(/^__Host-sid=/);
-    for (const attr of ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/']) expect(sc).toContain(attr);
+    expect(sc).not.toMatch(/Domain=/i);
+    for (const attr of ['HttpOnly', 'Secure', 'SameSite=None', 'Partitioned', 'Path=/']) expect(sc).toContain(attr);
     const raw = cookie.split('=')[1];
     const rows = (await env.DB.prepare("SELECT id_hash FROM sessions WHERE stage = 'session'").all()).results;
     expect(rows.some((r) => r.id_hash === raw)).toBe(false);
@@ -213,5 +214,57 @@ describe('opt-outs, purge, legacy', () => {
     expect((await SELF.fetch(BASE + '/records')).status).toBe(401);
     const r = await SELF.fetch(BASE + '/records', { headers: { Authorization: 'Bearer test-legacy-token' } });
     expect(r.status).toBe(200);
+  });
+});
+
+describe('credentialed CORS', () => {
+  it('echoes the exact allowlisted origin with credentials and Vary: Origin', async () => {
+    const u = await makeUser();
+    const r = await post('/auth/login', { email: u.email, password: u.password });
+    expect(r.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+    expect(r.headers.get('Access-Control-Allow-Credentials')).toBe('true');
+    expect(r.headers.get('Vary')).toContain('Origin');
+    const other = await post('/auth/login', { email: u.email, password: u.password }, { Origin: 'https://privacy-dashboard-bt.pages.dev' });
+    expect(other.headers.get('Access-Control-Allow-Origin')).toBe('https://privacy-dashboard-bt.pages.dev');
+  });
+
+  it('preflight allows X-CSRF-Token for allowlisted origins and is refused otherwise', async () => {
+    const pre = (origin) => SELF.fetch(BASE + '/optouts', { method: 'OPTIONS', headers: {
+      Origin: origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type,x-csrf-token' } });
+    const ok = await pre(ORIGIN);
+    expect(ok.status).toBe(204);
+    expect(ok.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+    expect(ok.headers.get('Access-Control-Allow-Credentials')).toBe('true');
+    expect(ok.headers.get('Access-Control-Allow-Headers')).toMatch(/X-CSRF-Token/i);
+    const bad = await pre('https://evil.example');
+    expect(bad.status).toBe(403);
+    expect(bad.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
+  it('never returns a wildcard origin', async () => {
+    const r = await get('/me', { Origin: undefined });
+    expect(r.headers.get('Access-Control-Allow-Origin')).not.toBe('*');
+  });
+
+  it('rejects a non-allowlisted origin even with a valid cookie and CSRF token (GET and POST)', async () => {
+    const u = await makeUser();
+    const { cookie, csrf } = await fullLogin(u);
+    const evil = { Cookie: cookie, 'X-CSRF-Token': csrf, Origin: 'https://evil.example' };
+    const g = await get('/optouts', evil);
+    expect(g.status).toBe(403);
+    expect(g.headers.get('Access-Control-Allow-Origin')).toBeNull();
+    expect((await post('/optouts', { broker_id: 'x' }, evil)).status).toBe(403);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM optout_requests').first()).n).toBe(0);
+  });
+
+  it('GET routes do not change application state', async () => {
+    const u = await makeUser();
+    const { cookie } = await fullLogin(u);
+    const count = async () => (await env.DB.prepare(
+      "SELECT (SELECT COUNT(*) FROM optout_requests) + (SELECT COUNT(*) FROM confirmations) + (SELECT COUNT(*) FROM users WHERE totp_pending_enc IS NOT NULL) AS n").first()).n;
+    const before = await count();
+    for (const p of ['/me', '/optouts', '/auth/logout', '/auth/refresh', '/auth/totp/enroll', '/optouts/00000000-0000-0000-0000-000000000000/confirmations']) await get(p, { Cookie: cookie });
+    expect(await count()).toBe(before);
+    expect((await get('/me', { Cookie: cookie })).status).toBe(200); // GET /auth/logout did not log out
   });
 });
