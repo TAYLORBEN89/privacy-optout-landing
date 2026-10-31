@@ -1,20 +1,39 @@
 name = "privacy-dashboard-api"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]   # otplib uses node:crypto HMAC
 # account_id: not tracked; set CLOUDFLARE_ACCOUNT_ID in the environment
 
 [vars]
 # Comma-separated list of exact origins allowed by CORS (no trailing slashes).
 ALLOWED_ORIGIN = "https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
+SESSION_IDLE_SECONDS = "43200"        # 12h idle
+SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (decision pending)
+PREAUTH_SECONDS = "300"
+PII_RETENTION_DAYS = "30"             # after confirmation (decision pending)
+PII_HARD_MAX_DAYS = "90"
+AUDIT_RETENTION_DAYS = "180"
 
 [[kv_namespaces]]
 binding = "RECORDS"
-# KV namespace privacy-dashboard-api-RECORDS
+# KV namespace privacy-dashboard-api-RECORDS (also holds rl:* rate-limit counters)
 id = "00000000000000000000000000000000"
+
+# TODO(owner): LOCAL-ONLY placeholder. No remote D1 exists yet. Before any deploy, run
+# `npx wrangler d1 create privacy-dashboard` and replace database_id with the real one.
+[[d1_databases]]
+binding = "DB"
+database_name = "privacy-dashboard"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expired sessions, old audit rows
 
 # PLACEHOLDER route on your zone. Uncomment when ready.
 # routes = [
 #   { pattern = "privacy-api.example.com", custom_domain = true }
 # ]
 
-# Secret (not stored here): API_TOKEN — set with `npx wrangler secret put API_TOKEN`
+# Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY (base64 32 bytes)
+# Local dev values go in .dev.vars (gitignored).

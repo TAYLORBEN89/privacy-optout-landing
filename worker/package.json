@@ -1,3 +1,20 @@
-{ "name": "privacy-dashboard-worker", "private": true, "type": "module",
-  "scripts": { "dev": "wrangler dev", "deploy": "wrangler deploy", "check": "wrangler deploy --dry-run --outdir dist" },
-  "devDependencies": { "wrangler": "^3.90.0" } }
+{
+  "name": "privacy-dashboard-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "check": "wrangler deploy --dry-run --outdir dist",
+    "test": "vitest run",
+    "check:sql": "bash scripts/check-no-sql-concat.sh",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.71",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.86.0"
+  },
+  "dependencies": {
+    "otplib": "^12.0.1"
+  }
+}
