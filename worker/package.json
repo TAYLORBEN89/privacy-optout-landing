@@ -1,0 +1,3 @@
+{ "name": "privacy-dashboard-worker", "private": true, "type": "module",
+  "scripts": { "dev": "wrangler dev", "deploy": "wrangler deploy", "check": "wrangler deploy --dry-run --outdir dist" },
+  "devDependencies": { "wrangler": "^3.90.0" } }

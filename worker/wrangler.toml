@@ -1,0 +1,20 @@
+name = "privacy-dashboard-api"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+# account_id: not tracked; set CLOUDFLARE_ACCOUNT_ID in the environment
+
+[vars]
+# Comma-separated list of exact origins allowed by CORS (no trailing slashes).
+ALLOWED_ORIGIN = "https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
+
+[[kv_namespaces]]
+binding = "RECORDS"
+# KV namespace privacy-dashboard-api-RECORDS
+id = "00000000000000000000000000000000"
+
+# PLACEHOLDER route on your zone. Uncomment when ready.
+# routes = [
+#   { pattern = "privacy-api.example.com", custom_domain = true }
+# ]
+
+# Secret (not stored here): API_TOKEN — set with `npx wrangler secret put API_TOKEN`
