@@ -36,7 +36,7 @@ describe("about us values", () => {
     ).toBeTruthy();
     expect(
       screen.getByText(
-        "DROP Texas is an independent, free service run by Benjamin Taylor, an individual in Texas. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.",
+        "DROP Texas is run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.",
       ),
     ).toBeTruthy();
     expect(document.querySelectorAll(".values-icon")).toHaveLength(5);
