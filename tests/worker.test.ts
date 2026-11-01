@@ -124,6 +124,43 @@ describe("POST /api/signup", () => {
     expect(lines.join("\n")).toContain("signup_accepted");
   });
 
+  it("accepts an empty phone and stores a valid one only as E.164", async () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+
+    const missing = await handleRequest(post(valid), assets());
+    expect(missing.status).toBe(200);
+
+    const empty = await handleRequest(post({ ...valid, phone: "" }), assets());
+    expect(empty.status).toBe(200);
+
+    const blank = await handleRequest(post({ ...valid, phone: null }), assets());
+    expect(blank.status).toBe(200);
+
+    const accepted = await handleRequest(post({ ...valid, phone: "1 (512) 555-0100" }), assets());
+    expect(accepted.status).toBe(200);
+    const acceptedBody = JSON.stringify(await accepted.json());
+    expect(acceptedBody).not.toContain("512");
+    expect(lines.join("\n")).not.toContain("5125550100");
+    expect(lines.join("\n")).not.toContain("+15125550100");
+  });
+
+  it("rejects a phone number that is not a US number", async () => {
+    const response = await handleRequest(post({ ...valid, phone: "123" }), assets());
+    expect(response.status).toBe(400);
+    const payload = (await response.json()) as {
+      ok: false;
+      errors: { phone?: { code: string; message: string } };
+    };
+    expect(payload.errors.phone).toEqual({
+      code: "invalid",
+      message: "Enter a valid US phone number.",
+    });
+    expect(JSON.stringify(payload)).not.toContain("123");
+  });
+
   it("redirects www to the apex before API forwarding or assets", async () => {
     let forwarded = false;
     let usedAsset = false;
