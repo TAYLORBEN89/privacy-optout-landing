@@ -8,6 +8,8 @@
   "upload_source_maps": true,
   // Static assets are the Vite build. /api/* is handled by the Worker first.
   // No D1/KV binding yet — persistence is owned by a separate backend.
+  // Intended public site: https://droptexas.com
+  // Do not add a route or custom domain here, and do not deploy this preview.
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

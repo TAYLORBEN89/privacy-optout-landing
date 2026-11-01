@@ -1,6 +1,8 @@
 # Privacy opt-out landing
 
-v1 landing page for DropTexas's free privacy opt-out service for Texans. The page is a Vite + React app. Cloudflare Workers serves the built files as static assets and handles `POST /api/signup`.
+v1 landing page for DROP Texas, a free privacy opt-out service for Texans. The intended public site is https://droptexas.com. The page is a Vite + React app. Cloudflare Workers serves the built files as static assets and handles `POST /api/signup`.
+
+DROP Texas is an independent service. It is not affiliated with or endorsed by the State of Texas, the State of California, or the California Privacy Protection Agency. Do not deploy this preview.
 
 This version checks the form and returns success. It does not save the submission. A later backend owns D1/KV. See `worker/storage.ts`.
 

@@ -84,7 +84,7 @@ export function SignupForm() {
       onFocus={markStarted}
       onSubmit={onSubmit}
     >
-      <h2>Tell us where to send the opt-out</h2>
+      <h2 id="form-heading">Send your request</h2>
       {success ? (
         <p className="status" role="status" tabIndex={-1} ref={statusRef}>
           Thanks. Your details passed the check. Saving requests is not turned on yet, so
