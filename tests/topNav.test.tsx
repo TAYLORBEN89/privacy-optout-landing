@@ -58,6 +58,12 @@ describe("explore list", () => {
     expect(tileTitle).toContain("line-height: 1.2");
     expect(tileTitle).toContain("text-box-trim: trim-start");
     expect(tileTitle).toContain("text-box-edge: cap alphabetic");
+    expect(css).toContain(".nav-tiles .icon-overview");
+    expect(css).toContain(".nav-tiles .icon-personal-information {\n  transform: translateY(-8.25px);");
+    expect(css).toContain(".nav-tiles .icon-data-brokers {\n  transform: translateY(-8px);");
+    expect(css).toContain(".nav-tiles .icon-tdpsa {\n  transform: translateY(-4.5px);");
+    expect(css).toContain(".nav-tiles .icon-share {\n  transform: translateY(-3px);");
+    expect(css).not.toContain(".feature-card .icon-overview");
     expect(css).toContain(".explore {\n  width: 100%;");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(css).toContain(".nav-tiles a:focus-visible");
