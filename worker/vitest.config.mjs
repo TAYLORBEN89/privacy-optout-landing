@@ -14,6 +14,8 @@ export default defineWorkersConfig(async () => {
             // Throwaway test-only values; everything runs in local Miniflare storage.
             bindings: {
               TEST_MIGRATIONS: migrations,
+              // Dev/test origin list (production wrangler.toml has no localhost).
+              ALLOWED_ORIGIN: 'https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev,http://localhost:5173',
               API_TOKEN: 'test-legacy-token',
               TOTP_ENC_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
               PII_ENC_KEY: 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
