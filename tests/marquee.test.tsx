@@ -33,5 +33,10 @@ describe("broker marquee", () => {
     expect(reduced).toContain(".marquee-track");
     expect(reduced).toContain("animation: none");
     expect(reduced).not.toContain("flex-wrap: wrap");
+    const rule = css.slice(css.indexOf(".marquee-section {"), css.indexOf(".marquee-label"));
+    expect(rule).toContain("width: 100vw");
+    expect(rule).toContain("margin-left: calc(50% - 50vw)");
+    expect(rule).toContain("margin-right: calc(50% - 50vw)");
+    expect(css).not.toContain(".content .marquee-section");
   });
 });
