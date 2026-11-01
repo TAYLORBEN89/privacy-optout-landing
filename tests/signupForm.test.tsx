@@ -44,7 +44,7 @@ describe("signup form copy", () => {
     expect(document.body.textContent).not.toContain("A checked box means the Texas Data Privacy and Security Act");
     expect(document.body.textContent).not.toContain("Leave it unchecked if you live somewhere else.");
     expect(document.body.textContent).not.toContain("You can still submit.");
-    expect(document.body.textContent).toContain("This preview checks your details and does not store them yet.");
+    expect(document.body.textContent).toContain("This is a preview. Nothing you enter is saved yet.");
     const state = screen.getByLabelText(/State/) as HTMLSelectElement;
     expect(state.value).toBe("TX");
     expect(state.querySelectorAll("option")).toHaveLength(51);

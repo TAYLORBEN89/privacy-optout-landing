@@ -6,8 +6,7 @@ import type { SignupInput } from "../shared/signup";
  */
 export const STORAGE_LIVE = false;
 
-export const STORAGE_PREVIEW_NOTE =
-  "This preview checks your details and does not store them yet.";
+export const STORAGE_PREVIEW_NOTE = "This is a preview. Nothing you enter is saved yet.";
 
 export const STORAGE_LIVE_NOTE =
   "Your information is stored securely and auto-deleted per our retention policy";
