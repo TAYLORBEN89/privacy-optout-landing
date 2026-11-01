@@ -22,6 +22,13 @@ describe("sign-in redirect", () => {
     expect(screen.queryByRole("link", { name: /Google|Microsoft/ })).toBeNull();
   });
 
+  it("keeps a form step in the encoded return path", () => {
+    window.history.pushState({}, "", `/signin?return_to=${encodeURIComponent("/start#step-3")}`);
+    const goTo = vi.fn();
+    render(<SignInPage goTo={goTo} />);
+    expect(goTo).toHaveBeenCalledWith("https://accounts.droptexas.com/signin?return_to=%2Fstart%23step-3");
+  });
+
   it("replaces an unsafe return_to with /start", () => {
     window.history.pushState({}, "", "/signin?return_to=//evil.example");
     const goTo = vi.fn();

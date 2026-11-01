@@ -147,7 +147,19 @@ export async function deleteAccount(
   }, fetchImpl);
 }
 
-export function stepUpPath(provider: string): string {
+export const ACCOUNT_PROVIDERS = ["google", "microsoft"] as const;
+
+export type AccountProvider = (typeof ACCOUNT_PROVIDERS)[number];
+
+export function isAccountProvider(provider: string): provider is AccountProvider {
+  return provider === "google" || provider === "microsoft";
+}
+
+function unsupportedProvider(): ApiErr {
+  return { ok: false, status: 404, stepUp: false };
+}
+
+export function stepUpPath(provider: AccountProvider): string {
   return apiUrl(`/api/auth/${provider}/stepup`);
 }
 
@@ -156,9 +168,35 @@ export async function startProviderStepUp(
   csrfToken: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ApiOk<StepUpStart> | ApiErr> {
+  if (!isAccountProvider(provider)) return unsupportedProvider();
   return apiRequest(stepUpPath(provider), {
     method: "POST",
     headers: csrfHeaders(csrfToken),
     body: JSON.stringify({ return_to: "/account" }),
+  }, fetchImpl);
+}
+
+export async function linkIdentity(
+  provider: string,
+  csrfToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ApiOk<{ url?: string }> | ApiErr> {
+  if (!isAccountProvider(provider)) return unsupportedProvider();
+  return apiRequest(`/api/account/identities/${provider}/link`, {
+    method: "POST",
+    headers: csrfHeaders(csrfToken),
+    body: JSON.stringify({ return_to: "/account" }),
+  }, fetchImpl);
+}
+
+export async function unlinkIdentity(
+  provider: string,
+  csrfToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ApiOk<{ ok?: boolean }> | ApiErr> {
+  if (!isAccountProvider(provider)) return unsupportedProvider();
+  return apiRequest(`/api/account/identities/${provider}`, {
+    method: "DELETE",
+    headers: csrfHeaders(csrfToken),
   }, fetchImpl);
 }

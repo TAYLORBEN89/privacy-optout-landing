@@ -174,12 +174,49 @@ describe("POST /api/signup", () => {
     expect(kept.status).toBe(302);
     expect(kept.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Faccount");
 
+    const step = await handleRequest(
+      new Request(`https://droptexas.com/signin?return_to=${encodeURIComponent("/start#step-4")}`),
+      assets(),
+    );
+    expect(step.status).toBe(302);
+    expect(step.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart%23step-4");
+
     const dropped = await handleRequest(
       new Request("https://droptexas.com/signin?return_to=//evil.example"),
       assets(),
     );
     expect(dropped.status).toBe(302);
     expect(dropped.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+  });
+
+  it("forwards /api/auth/complete and every other API path instead of the SPA shell", async () => {
+    const paths = [
+      "/api/auth/complete?code=abc",
+      "/api/me",
+      "/api/account/profile",
+      "/api/account/export",
+      "/api/account/identities/google/link",
+      "/api/auth/microsoft/stepup",
+      "/api/optouts/signup",
+    ];
+    for (const path of paths) {
+      let usedAsset = false;
+      let forwarded = false;
+      const response = await handleRequest(new Request(`https://droptexas.com${path}`), {
+        fetchAsset: async () => {
+          usedAsset = true;
+          return new Response("<!doctype html>", { headers: { "content-type": "text/html" } });
+        },
+        forwardApi: () => {
+          forwarded = true;
+          return Promise.resolve(new Response(null, { status: 204 }));
+        },
+      });
+      expect(usedAsset, path).toBe(false);
+      expect(forwarded, path).toBe(true);
+      expect(response.status, path).toBe(204);
+      expect(response.headers.get("content-type") ?? "", path).not.toContain("text/html");
+    }
   });
 
   it("forwards /api/auth/complete and does not serve the SPA shell", async () => {

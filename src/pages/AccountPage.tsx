@@ -2,15 +2,18 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   deleteAccount,
   exportAccount,
+  ACCOUNT_PROVIDERS,
   fetchAccountProfile,
   fetchOptOuts,
   fetchSessions,
   formatUnix,
+  linkIdentity,
   optOutLabel,
   patchDisplayName,
   revokeSession,
   startPasswordStepUp,
   startProviderStepUp,
+  unlinkIdentity,
   type AccountProfile,
   type AccountSession,
   type OptOutRecord,
@@ -93,6 +96,7 @@ export function AccountView({
   sessions,
   stepUpProviders,
   offerPassword,
+  linkedProviders,
   editing,
   draft,
   profileError,
@@ -115,12 +119,15 @@ export function AccountView({
   onCancelDelete,
   onStepUp,
   onPasswordStepUp,
+  onLink,
+  onUnlink,
 }: {
   profile: AccountProfile;
   optouts: OptOutRecord[];
   sessions: AccountSession[];
   stepUpProviders: string[];
   offerPassword: boolean;
+  linkedProviders: string[];
   editing: boolean;
   draft: string;
   profileError: boolean;
@@ -143,6 +150,8 @@ export function AccountView({
   onCancelDelete: () => void;
   onStepUp: (provider: string) => void;
   onPasswordStepUp: (password: string, code: string) => void;
+  onLink: (provider: string) => void;
+  onUnlink: (provider: string) => void;
 }) {
   return (
     <article className="panel account-page">
@@ -178,6 +187,24 @@ export function AccountView({
           </p>
         )}
         {saveError ? <p role="alert">Could not save your display name.</p> : null}
+      </section>
+
+      <section className="account-section" aria-labelledby="identities-heading">
+        <h2 id="identities-heading">Sign-in methods</h2>
+        <ul className="identity-list">
+          {ACCOUNT_PROVIDERS.map((provider) => {
+            const linked = linkedProviders.includes(provider);
+            const label = providerLabel(provider);
+            return (
+              <li key={provider}>
+                <span>{label}</span>
+                <button type="button" className="quiet-button" onClick={() => (linked ? onUnlink(provider) : onLink(provider))}>
+                  {linked ? `Unlink ${label}` : `Link ${label}`}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       <section className="account-section" aria-labelledby="history-heading">
@@ -330,6 +357,11 @@ export function AccountPage({
   const [stepUp, setStepUp] = useState(false);
   const [stepUpError, setStepUpError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [linkedProviders, setLinkedProviders] = useState<string[]>(() =>
+    (me?.providers ?? [])
+      .map((item) => item.provider.trim().toLowerCase())
+      .filter((provider) => provider === "google" || provider === "microsoft"),
+  );
 
   const csrfToken = me?.csrf_token ?? null;
   const choices = stepUpChoices(me?.providers, Boolean(me?.user.has_password));
@@ -471,6 +503,40 @@ export function AccountPage({
     setStepUp(false);
   }
 
+  async function onLink(provider: string) {
+    setActionError(null);
+    if (!csrfToken) {
+      setActionError("Sign in again to continue.");
+      return;
+    }
+    const result = await linkIdentity(provider, csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setActionError("Could not link that sign-in.");
+      return;
+    }
+    if (typeof result.data?.url !== "string" || result.data.url.length === 0) {
+      setActionError("Could not link that sign-in.");
+      return;
+    }
+    goTo(result.data.url);
+  }
+
+  async function onUnlink(provider: string) {
+    setActionError(null);
+    if (!csrfToken) {
+      setActionError("Sign in again to continue.");
+      return;
+    }
+    const result = await unlinkIdentity(provider, csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setActionError("Could not unlink that sign-in.");
+      return;
+    }
+    setLinkedProviders((current) => current.filter((item) => item !== provider));
+  }
+
   if (action === "loading") return <p className="panel">Checking sign-in…</p>;
   if (action === "redirect") return <p className="panel">Sending you to sign in…</p>;
   if (action === "unavailable") {
@@ -489,6 +555,7 @@ export function AccountPage({
       sessions={sessions}
       stepUpProviders={choices.providers}
       offerPassword={choices.offerPassword}
+      linkedProviders={linkedProviders}
       editing={editing}
       draft={draft}
       profileError={profileError}
@@ -514,6 +581,8 @@ export function AccountPage({
       onCancelDelete={() => setConfirmDelete(false)}
       onStepUp={(provider) => void onStepUp(provider)}
       onPasswordStepUp={(password, code) => void onPasswordStepUp(password, code)}
+      onLink={(provider) => void onLink(provider)}
+      onUnlink={(provider) => void onUnlink(provider)}
     />
   );
 }

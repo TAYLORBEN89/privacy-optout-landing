@@ -41,10 +41,21 @@ describe("auth gate", () => {
     expect(API_BASE).toBe("");
     expect(isSafeReturnPath("/start")).toBe(true);
     expect(isSafeReturnPath("/account")).toBe(true);
+    expect(isSafeReturnPath("/start#step-1")).toBe(true);
+    expect(isSafeReturnPath("/start#step-12")).toBe(true);
+    expect(isSafeReturnPath("/start#step-99")).toBe(true);
+    expect(isSafeReturnPath("/start#step-0")).toBe(false);
+    expect(isSafeReturnPath("/start#step-100")).toBe(false);
+    expect(isSafeReturnPath("/start#step-01")).toBe(false);
+    expect(isSafeReturnPath("/security")).toBe(false);
     expect(isSafeReturnPath("//evil.example")).toBe(false);
     expect(isSafeReturnPath("//evil.example/start")).toBe(false);
     expect(isSafeReturnPath("https://evil.example")).toBe(false);
     expect(isSafeReturnPath("/\\evil.example")).toBe(false);
+    expect(accountsSignInUrl("/start#step-2")).toBe(
+      "https://accounts.droptexas.com/signin?return_to=%2Fstart%23step-2",
+    );
+    expect(accountsSignInUrl("/security")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
     expect(accountsSignInUrl("//evil.example")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
     expect(accountsSignInUrl("/account", "https://accounts.example/")).toBe(
       "https://accounts.example/signin?return_to=%2Faccount",

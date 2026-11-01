@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { exportAccount, optOutLabel, patchDisplayName, type OptOutRecord } from "../src/api/account";
+import { exportAccount, linkIdentity, optOutLabel, patchDisplayName, unlinkIdentity, type OptOutRecord } from "../src/api/account";
 import { isStepUpRequired, stepUpChoices } from "../src/api/stepUp";
 import { LOGOUT_PATH } from "../src/api";
 import { fetchMe, signInHrefFor, type MeOk } from "../src/authGate";
@@ -260,6 +260,61 @@ describe("step-up", () => {
   });
 });
 
+describe("linked identities", () => {
+  it("links and unlinks Google or Microsoft, and asks for step-up", async () => {
+    const user = userEvent.setup();
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const goTo = vi.fn();
+    let unlinked = false;
+    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
+      if (url.endsWith("/api/account/optouts")) return json(200, { optouts: [] });
+      if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
+      if (url.endsWith("/api/account/identities/microsoft/link")) {
+        return json(200, { url: "https://accounts.example/link" });
+      }
+      if (url.endsWith("/api/account/identities/google")) {
+        if (!unlinked) {
+          unlinked = true;
+          return json(403, { error: "step_up_required" });
+        }
+        return json(200, { ok: true });
+      }
+      return json(404, { error: "not_found" });
+    }) as typeof fetch;
+
+    render(
+      <AccountPage
+        action="form"
+        me={{ ...me, providers: [{ provider: "google" }] }}
+        fetchImpl={fetchImpl}
+        goTo={goTo}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Link Microsoft" }));
+    const link = calls.find((call) => call.url.endsWith("/api/account/identities/microsoft/link"));
+    expect(link?.init?.method).toBe("POST");
+    expect(link?.init?.credentials).toBe("same-origin");
+    expect(link?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
+    expect(String(link?.init?.body)).toBe(JSON.stringify({ return_to: "/account" }));
+    expect(goTo).toHaveBeenCalledWith("https://accounts.example/link");
+    expect(screen.queryByRole("button", { name: /Apple/ })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Unlink Google" }));
+    expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
+    const denied = calls.find((call) => call.url.endsWith("/api/account/identities/google"));
+    expect(denied?.init?.method).toBe("DELETE");
+    expect(denied?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
+
+    const rejected = await linkIdentity("other", "csrf-1", fetchImpl);
+    expect(rejected.ok).toBe(false);
+    const removed = await unlinkIdentity("other", "csrf-1", fetchImpl);
+    expect(removed.ok).toBe(false);
+  });
+});
+
 describe("account dashboard", () => {
   it("shows labels and hides confirmation numbers", () => {
     render(
@@ -278,6 +333,7 @@ describe("account dashboard", () => {
         ]}
         stepUpProviders={["google"]}
         offerPassword={false}
+        linkedProviders={["google"]}
         editing={false}
         draft=""
         profileError={false}
@@ -300,6 +356,8 @@ describe("account dashboard", () => {
         onCancelDelete={() => undefined}
         onStepUp={() => undefined}
         onPasswordStepUp={() => undefined}
+        onLink={() => undefined}
+        onUnlink={() => undefined}
       />,
     );
     expect(screen.getByText("Display name: Ada Lovelace")).toBeTruthy();
@@ -310,6 +368,8 @@ describe("account dashboard", () => {
     expect(screen.queryByText("Pending")).toBeNull();
     expect(screen.getByText("This device")).toBeTruthy();
     expect(screen.getByText("No reminders yet")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Unlink Google" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Link Microsoft" })).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: /confirmation/i })).toBeNull();
     expect(screen.queryByText(/verified/i)).toBeNull();
   });
