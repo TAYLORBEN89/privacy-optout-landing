@@ -65,6 +65,26 @@ describe("explore list", () => {
     expect(css).toContain(".nav-tiles .icon-share {\n  transform: translateY(-3px);");
     expect(css).not.toContain(".feature-card .icon-overview");
     expect(css).toContain(".explore {\n  width: 100%;");
+    expect(css).toContain(`@media (min-width: 768px) {
+  .explore {
+    width: min(720px, 84%);
+  }
+
+  .nav-panel {
+    padding: 16px 0;
+  }
+
+  .nav-panel::before,
+  .nav-panel::after {
+    height: 12px;
+  }
+
+  .nav-tiles a {
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}`);
     expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(css).toContain(".nav-tiles a:focus-visible");
     expect(css).not.toContain(".nav-tiles li + li");

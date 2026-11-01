@@ -2347,6 +2347,27 @@ textarea {
   }
 }
 
+@media (min-width: 768px) {
+  .explore {
+    width: min(720px, 84%);
+  }
+
+  .nav-panel {
+    padding: 16px 0;
+  }
+
+  .nav-panel::before,
+  .nav-panel::after {
+    height: 12px;
+  }
+
+  .nav-tiles a {
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
 @media (min-width: 800px) {
   .feature-panel {
     display: grid;
