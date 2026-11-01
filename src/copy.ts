@@ -1,5 +1,5 @@
 export const DISCLAIMER =
-  "DROP Texas is a private, free service. It is not affiliated with or endorsed by the State of California, CalPrivacy, or any government agency.";
+  "DROP Texas is an independent, free service run by a private individual. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.";
 
 export const SIGN_IN_TITLE = "Sign in to start removing your data";
 

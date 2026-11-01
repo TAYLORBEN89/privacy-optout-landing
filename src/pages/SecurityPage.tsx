@@ -1,4 +1,4 @@
-import { TRUST_LABEL } from "../copy";
+import { DISCLAIMER, TRUST_LABEL } from "../copy";
 import { storageNotice } from "../../worker/storage";
 
 export function SecurityPage() {
@@ -20,6 +20,7 @@ export function SecurityPage() {
       <p>We do not sell your data.</p>
       <h2>Standards</h2>
       <p>DROP Texas is built to SOC 2 standards. That is not a certification claim.</p>
+      <p className="independence">{DISCLAIMER}</p>
     </article>
   );
 }
