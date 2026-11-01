@@ -124,6 +124,46 @@ describe("POST /api/signup", () => {
     expect(lines.join("\n")).toContain("signup_accepted");
   });
 
+  it("redirects www to the apex before API forwarding or assets", async () => {
+    let forwarded = false;
+    let usedAsset = false;
+    const deps = {
+      fetchAsset: async () => {
+        usedAsset = true;
+        return new Response("asset", { status: 200 });
+      },
+      forwardApi: () => {
+        forwarded = true;
+        return Promise.resolve(new Response("api", { status: 200 }));
+      },
+    };
+
+    const get = await handleRequest(
+      new Request("https://www.droptexas.com/account?tab=history"),
+      deps,
+    );
+    expect(get.status).toBe(301);
+    expect(get.headers.get("location")).toBe("https://droptexas.com/account?tab=history");
+
+    const post = await handleRequest(
+      new Request("https://www.droptexas.com/api/signup?return_to=%2Fstart", {
+        method: "POST",
+        body: JSON.stringify({ email: "ada@example.com" }),
+        headers: { "content-type": "application/json" },
+      }),
+      deps,
+    );
+    expect(post.status).toBe(308);
+    expect(post.headers.get("location")).toBe("https://droptexas.com/api/signup?return_to=%2Fstart");
+    expect(forwarded).toBe(false);
+    expect(usedAsset).toBe(false);
+
+    const apex = await handleRequest(new Request("https://droptexas.com/account?tab=history"), assets());
+    expect(apex.status).toBe(200);
+    const local = await handleRequest(new Request("http://localhost:8787/account?tab=history"), assets());
+    expect(local.status).toBe(200);
+  });
+
   it("serves non-API requests from static assets", async () => {
     const response = await handleRequest(new Request("https://optout.example/"), assets());
     expect(response.status).toBe(200);

@@ -182,11 +182,25 @@ async function handleSignup(request: IncomingHttpRequest): Promise<Response> {
   return json({ ok: true }, 200);
 }
 
+function wwwRedirect(url: URL, method: string): Response | null {
+  if (url.hostname !== "www.droptexas.com") return null;
+  const status = method === "GET" || method === "HEAD" ? 301 : 308;
+  return new Response(null, {
+    status,
+    headers: {
+      location: `https://droptexas.com${url.pathname}${url.search}`,
+      "cache-control": "no-store",
+    },
+  });
+}
+
 export async function handleRequest(
   request: IncomingHttpRequest,
   deps: RequestDeps = {},
 ): Promise<Response> {
   const url = new URL(request.url);
+  const redirected = wwwRedirect(url, request.method);
+  if (redirected) return redirected;
   if (url.pathname === "/api/signup") {
     return handleSignup(request);
   }

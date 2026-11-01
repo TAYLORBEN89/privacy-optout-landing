@@ -40,6 +40,8 @@ The config uses custom domains, not a path route:
 
 `custom_domain: true` makes the Worker the origin. On deploy, Cloudflare creates the DNS records and proxies them (orange cloud). A custom domain matches one hostname, so both names are listed. Certificates are issued for you.
 
+Requests to `www.droptexas.com` are redirected by this Worker to `https://droptexas.com` with the same path and query. GET and HEAD use 301. Other methods use 308 so a POST body is preserved. Localhost and every other host stay as they are.
+
 Before you deploy:
 
 1. Use a Cloudflare account that will own the site.
