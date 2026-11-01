@@ -1,51 +1,58 @@
-// Two strokes of different colors stay apart. Round caps must not close the gap.
+// One outline in the card color, one gold detail inside it. The two strokes do not meet.
 
-const STROKE = 1.25;
+const STROKE = 1.5;
+const ACCENT = "#e39b14";
 
-const ICONS: Record<string, { a: string; b: string; pathsA: string[]; pathsB: string[] }> = {
+const ICONS: Record<string, { color: string; accent: string; outline: string[]; detail: string[] }> = {
   overview: {
-    a: "#ee0014",
-    b: "#056cb8",
-    pathsA: ["M3.2 7.6H10.2", "M4.4 12H11", "M3.2 16.4H8"],
-    pathsB: ["M14.51 10.1A3.8 3.8 0 1 1 14.51 13.9", "M17.8 4.6v1.6", "M18.4 12a.6.6 0 1 1-1.2 0 .6.6 0 0 1 1.2 0"],
+    color: "#ee0014",
+    accent: ACCENT,
+    outline: ["M7.7 7.5h8.6a4.5 4.5 0 0 1 0 9H7.7a4.5 4.5 0 0 1 0-9z"],
+    detail: ["M16.55 12a1.45 1.45 0 1 1-2.9 0 1.45 1.45 0 0 1 2.9 0"],
   },
   "how-drop-works": {
-    a: "#056cb8",
-    b: "#ee0014",
-    pathsA: ["M4.4 8.4H12.2Q14.4 8.4 14.4 10.6V13.4Q14.4 15.4 12.2 15.4H8L5.6 17.8V15.4Q4.4 15.4 4.4 13.6V10.4Q4.4 8.4 6.2 8.4"],
-    pathsB: ["M17.8 8.8 21.2 12.6", "M21.2 8.8 17.8 12.6"],
+    color: "#056cb8",
+    accent: ACCENT,
+    outline: [
+      "M4.2 7h15.6a1.4 1.4 0 0 1 1.4 1.4v8.2a1.4 1.4 0 0 1-1.4 1.4H4.2a1.4 1.4 0 0 1-1.4-1.4V8.4A1.4 1.4 0 0 1 4.2 7z",
+    ],
+    detail: ["M6.8 9.6 12 13.4 17.2 9.6"],
   },
   "personal-information": {
-    a: "#1c8a4a",
-    b: "#b8860b",
-    pathsA: ["M12 3.6 18.8 6.3v5.4c0 3.7-2.7 6.4-6.8 8-4.1-1.6-6.8-4.3-6.8-8V6.3L12 3.6z"],
-    pathsB: ["M9.4 12.2 11.2 14.1 14.8 10"],
+    color: "#1c8a4a",
+    accent: ACCENT,
+    outline: ["M12 3.5 19.2 6.2v5.8c0 4-3 6.8-7.2 8.5-4.2-1.7-7.2-4.5-7.2-8.5V6.2L12 3.5z"],
+    detail: ["M9.5 12.2 11.2 14 14.7 10.1"],
   },
   "data-brokers": {
-    a: "#b8860b",
-    b: "#056cb8",
-    pathsA: ["M16.5 6.64A7 7 0 1 0 18.58 14.39"],
-    pathsB: ["M12 12V8.2", "M12 12l3.2 1.6"],
+    color: "#b8860b",
+    accent: "#056cb8",
+    outline: ["M19.6 12a7.6 7.6 0 1 1-15.2 0 7.6 7.6 0 0 1 15.2 0"],
+    detail: ["M12 12V7.6", "M12 12l2.8 2.2"],
   },
   "unique-identifiers": {
-    a: "#0d7a72",
-    b: "#b8860b",
-    pathsA: ["M11.97 9.36A4.6 4.6 0 1 0 11.97 14.64"],
-    pathsB: ["M18.01 9.84A2.3 2.3 0 1 0 19.59 9.84"],
+    color: "#0d7a72",
+    accent: ACCENT,
+    outline: ["M5.4 8h8.2l4.6 4-4.6 4H5.4a1.5 1.5 0 0 1-1.5-1.5v-5A1.5 1.5 0 0 1 5.4 8z"],
+    detail: ["M9.35 12a1.05 1.05 0 1 1-2.1 0 1.05 1.05 0 0 1 2.1 0"],
   },
   tdpsa: {
-    a: "#9f1239",
-    b: "#056cb8",
-    pathsA: [
-      "M8.2 6.8 9.43 10.3 13.15 10.39 10.2 12.65 11.26 16.21 8.2 14.1 5.14 16.21 6.2 12.65 3.25 10.39 6.97 10.3Z",
+    color: "#9f1239",
+    accent: ACCENT,
+    outline: [
+      "M7.6 4h6.2L18.4 8.4V19.2a1.5 1.5 0 0 1-1.5 1.5H7.6a1.5 1.5 0 0 1-1.5-1.5V5.5A1.5 1.5 0 0 1 7.6 4z",
+      "M13.8 4v4.4H18.4",
     ],
-    pathsB: ["M17.1 12.4 18.6 14.1 21.5 10.4"],
+    detail: ["M12 12.35 12.51 13.7 13.95 13.77 12.82 14.67 13.2 16.06 12 15.26 10.8 16.06 11.18 14.67 10.05 13.77 11.49 13.7Z"],
   },
   children: {
-    a: "#6d28d9",
-    b: "#ee0014",
-    pathsA: ["M14.3 11a2.3 2.3 0 1 1-4.6 0 2.3 2.3 0 0 1 4.6 0", "M8.4 18.8c.8-2.4 2.2-3.6 3.6-3.6s2.8 1.2 3.6 3.6"],
-    pathsB: ["M5 9Q12 1.2 19 9"],
+    color: "#6d28d9",
+    accent: ACCENT,
+    outline: ["M4.6 11.4 12 4.8 19.4 11.4V19a1.4 1.4 0 0 1-1.4 1.4H6a1.4 1.4 0 0 1-1.4-1.4V11.4z"],
+    detail: [
+      "M13.2 12.6a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0",
+      "M9.7 17.8c.45-1.5 1.25-2.2 2.3-2.2s1.85.7 2.3 2.2",
+    ],
   },
 };
 
@@ -64,13 +71,13 @@ export function BenefitIcon({ id }: { id: string }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <g stroke={icon.a}>
-        {icon.pathsA.map((d) => (
+      <g stroke={icon.color}>
+        {icon.outline.map((d) => (
           <path key={d} d={d} />
         ))}
       </g>
-      <g stroke={icon.b}>
-        {icon.pathsB.map((d) => (
+      <g stroke={icon.accent}>
+        {icon.detail.map((d) => (
           <path key={d} d={d} />
         ))}
       </g>

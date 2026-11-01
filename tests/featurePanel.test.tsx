@@ -49,14 +49,16 @@ describe("feature panel", () => {
     const icons = [...document.querySelectorAll(".feature-card .benefit-icon")];
     expect(icons).toHaveLength(7);
     for (const icon of icons) {
-      expect(icon.getAttribute("stroke-width")).toBe("1.25");
+      expect(icon.getAttribute("stroke-width")).toBe("1.5");
       const tones = [...icon.querySelectorAll("g[stroke]")].map((node) => node.getAttribute("stroke"));
       expect(new Set(tones).size).toBe(2);
     }
     expect(document.querySelector(".feature-card-unique-identifiers .benefit-icon")?.innerHTML).not.toContain(
       "M12 19c0-3 .2-5 .2-7a3.2 3.2 0 0 1 6.4 0",
     );
-    expect(document.querySelector(".feature-card-overview .benefit-icon")?.innerHTML).toContain("M3.2 7.6H10.2");
+    expect(document.querySelector(".feature-card-overview .benefit-icon")?.innerHTML).toContain(
+      "M7.7 7.5h8.6a4.5 4.5 0 0 1 0 9H7.7a4.5 4.5 0 0 1 0-9z",
+    );
     expect(document.body.textContent).not.toMatch(/verified/i);
   });
 
