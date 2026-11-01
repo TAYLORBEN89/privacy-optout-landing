@@ -1,6 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
+import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { DISCLAIMER } from "../src/copy";
@@ -37,6 +38,24 @@ describe("signup form copy", () => {
     const state = screen.getByLabelText(/State/) as HTMLSelectElement;
     expect(state.value).toBe("TX");
     expect(state.querySelectorAll("option")).toHaveLength(51);
+    const order = [...document.querySelectorAll(".form-grid input, .form-grid select")].map((el) => el.id);
+    expect(order).toEqual([
+      "firstName",
+      "middleName",
+      "lastName",
+      "addressLine1",
+      "addressLine2",
+      "city",
+      "state",
+      "zip",
+      "email",
+      "phone",
+      "texasResident",
+    ]);
+    const css = readFileSync("src/styles.css", "utf8");
+    expect(css).toContain("width: min(640px, 100%)");
+    expect(css).toContain("grid-template-columns: repeat(12, minmax(0, 1fr))");
+    expect(css).not.toContain(".address-row");
   });
 
   it("does not repeat the disclaimer above the form, and the footer still has it", () => {

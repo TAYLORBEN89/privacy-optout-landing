@@ -129,8 +129,10 @@ export function SignupForm() {
         </p>
       ) : null}
 
+      <div className="form-grid">
       <TextControl
         id="firstName"
+        className="field-first"
         label="First name"
         required
         autoComplete="given-name"
@@ -141,6 +143,7 @@ export function SignupForm() {
       />
       <TextControl
         id="middleName"
+        className="field-middle"
         label="Middle name"
         optional
         autoComplete="additional-name"
@@ -151,6 +154,7 @@ export function SignupForm() {
       />
       <TextControl
         id="lastName"
+        className="field-last"
         label="Last name"
         required
         autoComplete="family-name"
@@ -161,6 +165,7 @@ export function SignupForm() {
       />
       <TextControl
         id="addressLine1"
+        className="field-street"
         label="Street address"
         required
         autoComplete="address-line1"
@@ -171,6 +176,7 @@ export function SignupForm() {
       />
       <TextControl
         id="addressLine2"
+        className="field-apt"
         label="Apt, suite, unit"
         optional
         autoComplete="address-line2"
@@ -181,6 +187,7 @@ export function SignupForm() {
       />
       <TextControl
         id="city"
+        className="field-city"
         label="City"
         required
         autoComplete="address-level2"
@@ -189,8 +196,7 @@ export function SignupForm() {
         onChange={setCity}
         onStart={markStarted}
       />
-      <div className="address-row">
-        <div className="field">
+        <div className="field field-state">
           <label htmlFor="state">
             State <span className="req">(required)</span>
           </label>
@@ -222,18 +228,19 @@ export function SignupForm() {
         </div>
         <TextControl
           id="zip"
+          className="field-zip"
           label="ZIP code"
           required
           autoComplete="postal-code"
           inputMode="numeric"
           value={zip}
-        error={errors.zip}
-        onChange={setZip}
+          error={errors.zip}
+          onChange={setZip}
           onStart={markStarted}
         />
-      </div>
       <TextControl
         id="email"
+        className="field-email"
         label="Email"
         required
         type="email"
@@ -246,6 +253,7 @@ export function SignupForm() {
       />
       <TextControl
         id="phone"
+        className="field-phone"
         label={PHONE_FIELD_LABEL}
         type="tel"
         autoComplete="tel"
@@ -256,7 +264,7 @@ export function SignupForm() {
         onStart={markStarted}
       />
 
-      <div className="field check">
+      <div className="field check field-check">
         <input
           id="texasResident"
           name="texasResident"
@@ -285,6 +293,7 @@ export function SignupForm() {
       <button type="submit" disabled={submitting}>
         {submitting ? "Submitting…" : "Submit opt-out request"}
       </button>
+      </div>
       <p className="fine-print">{storageNotice()}</p>
     </form>
   );
@@ -293,6 +302,7 @@ export function SignupForm() {
 function TextControl({
   id,
   label,
+  className,
   required = false,
   optional = false,
   type = "text",
@@ -305,6 +315,7 @@ function TextControl({
 }: {
   id: SignupField;
   label: string;
+  className?: string;
   required?: boolean;
   optional?: boolean;
   type?: "text" | "email" | "tel";
@@ -316,7 +327,7 @@ function TextControl({
   onStart: () => void;
 }) {
   return (
-    <div className="field">
+    <div className={className ? `field ${className}` : "field"}>
       <label htmlFor={id}>
         {label} {required ? <span className="req">(required)</span> : null}
         {optional ? <span className="req">(optional)</span> : null}

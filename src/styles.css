@@ -924,6 +924,64 @@ textarea {
   font: 16px/1.4 var(--font);
 }
 
+.form-card {
+  width: min(640px, 100%);
+  margin-inline: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 18px;
+}
+
+.form-grid > .field {
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .form-card {
+    padding: 40px 32px 36px;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 16px;
+    row-gap: 18px;
+  }
+
+  .form-grid .field-first,
+  .form-grid .field-middle,
+  .form-grid .field-last {
+    grid-column: span 4;
+  }
+
+  .form-grid .field-street,
+  .form-grid .field-apt,
+  .form-grid .field-check,
+  .form-grid > button {
+    grid-column: 1 / -1;
+  }
+
+  .form-grid .field-city {
+    grid-column: span 6;
+  }
+
+  .form-grid .field-state,
+  .form-grid .field-zip {
+    grid-column: span 3;
+  }
+
+  .form-grid .field-email,
+  .form-grid .field-phone {
+    grid-column: span 6;
+  }
+
+  .form-grid > button {
+    justify-self: start;
+  }
+}
+
 .form-card .control {
   box-sizing: border-box;
   display: block;
@@ -946,18 +1004,6 @@ textarea {
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 12px 8px;
-}
-
-.address-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0 12px;
-}
-
-@media (min-width: 360px) {
-  .address-row {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 textarea {
