@@ -44,7 +44,8 @@ export function authorizationUrl(c, provider, { state, verifier, nonce, reauth }
   if (reauth) {
     // Force fresh authentication; the callback additionally requires auth_time within 600 s.
     url.searchParams.set('max_age', '0');
-    url.searchParams.set('prompt', 'login');
+    // Google has no documented prompt=login; select_account + max_age=0 (+ the auth_time check) forces re-auth.
+    url.searchParams.set('prompt', provider === 'google' ? 'select_account' : 'login');
   }
   return url;
 }
@@ -120,12 +121,23 @@ export async function openState(env, sealed, aad = AAD) {
 // SameSite=Lax: the provider redirect back is a top-level GET navigation, so the cookie is sent.
 export const oauthCookie = (v) => `${OAUTH_COOKIE}=${v}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${OAUTH_TTL}`;
 export const clearOauthCookie = () => `${OAUTH_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
-// Intent token: binds a step-up/link flow started on the apex (authenticated) to the accounts host, without the
-// accounts host ever reading __Host-sid. AES-GCM sealed (separate AAD), 120 s, single use (oauth_states_used).
-export const INTENT_TTL = 120;
-const INTENT_AAD = new TextEncoder().encode('oauth-intent:v1');
-export const sealIntent = (env, data) => sealState(env, { ...data, j: crypto.randomUUID() }, INTENT_AAD, INTENT_TTL);
-export const openIntent = (env, token) => openState(env, token, INTENT_AAD);
+// Start token: every flow (login, step-up, link) begins on the apex, which seals {provider, intent, return_to,
+// browser-hash (sha256 of the __Host-login cookie), and for step-up/link the user + session hash}. AES-GCM (separate
+// AAD), 120 s, single use (oauth_states_used). The accounts host refuses /oauth/*/start without one.
+export const START_TTL = 120;
+const START_AAD = new TextEncoder().encode('oauth-start:v1');
+export const sealStart = (env, data) => sealState(env, { ...data, j: crypto.randomUUID() }, START_AAD, START_TTL);
+export const openStart = (env, token) => openState(env, token, START_AAD);
+
+// __Host-login: random, host-only cookie on the app origin, set when a flow starts there. Its SHA-256 travels in the
+// start token -> state cookie -> handoff row, and /api/auth/complete requires the same browser to present it.
+export const LOGIN_COOKIE = '__Host-login';
+export const loginCookie = (v) => `${LOGIN_COOKIE}=${v}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${OAUTH_TTL}`;
+export const clearLoginCookie = () => `${LOGIN_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+export function readLoginCookie(req) {
+  const m = (req.headers.get('Cookie') || '').match(/(?:^|;\s*)__Host-login=([A-Za-z0-9_-]{43})(?:;|$)/);
+  return m ? m[1] : null;
+}
 
 export function readOauthCookie(req) {
   const m = (req.headers.get('Cookie') || '').match(/(?:^|;\s*)__Host-oauth=([A-Za-z0-9_.-]+)/);
