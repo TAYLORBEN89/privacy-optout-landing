@@ -1,8 +1,8 @@
 import { FeaturePanel } from "../components/FeaturePanel";
 import { TopNav } from "../components/TopNav";
-import { PeopleArt } from "../components/Illustrations";
 import { BrokerMarquee } from "../components/Marquee";
 import { RightsSection } from "../components/Rights";
+import { ValuesSection } from "../components/Values";
 import { Reveal } from "../components/Reveal";
 import { Stats } from "../components/Stats";
 import { AppLink } from "../router";
@@ -69,6 +69,8 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       <BrokerMarquee />
 
       <RightsSection />
+
+      <ValuesSection />
 
       <section id="how-drop-works" className="block" aria-labelledby="how-heading">
         <Reveal>
@@ -171,21 +173,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <div className="panel">
             <h2 id="share-heading">Share DROP</h2>
             <p>You can share this private service at https://droptexas.com.</p>
-          </div>
-        </Reveal>
-      </section>
-
-      <section className="more-about" aria-labelledby="more-heading">
-        <Reveal>
-          <div className="more-card">
-            <PeopleArt />
-            <div>
-              <h2 id="more-heading">More about us</h2>
-              <p>DROP Texas is an independent opt-out service. Read a short note on who runs it.</p>
-              <AppLink className="text-link" href="/about">
-                More about DROP Texas
-              </AppLink>
-            </div>
           </div>
         </Reveal>
       </section>
