@@ -1209,7 +1209,6 @@ textarea {
   overflow: visible;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 10px 28px rgba(16, 16, 16, 0.05);
   padding: 72px 0;
 }
 
@@ -1227,13 +1226,13 @@ textarea {
 .nav-panel::before {
   top: 0;
   border-radius: 16px 16px 0 0;
-  background: linear-gradient(to bottom, #f7f7f8 0%, #f7f7f8 18%, rgba(247, 247, 248, 0) 100%);
+  background: linear-gradient(to bottom, var(--bg) 0%, rgba(247, 247, 248, 0) 100%);
 }
 
 .nav-panel::after {
   bottom: 0;
   border-radius: 0 0 16px 16px;
-  background: linear-gradient(to top, #f7f7f8 0%, #f7f7f8 18%, rgba(247, 247, 248, 0) 100%);
+  background: linear-gradient(to top, var(--bg) 0%, rgba(247, 247, 248, 0) 100%);
 }
 
 .nav-tiles {
@@ -1776,12 +1775,21 @@ textarea {
 .values-list li {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
+  width: 100%;
+  text-align: left;
 }
 
 .values-icon {
   display: block;
+  align-self: flex-start;
+  margin: 0;
+}
+
+.values-list li > div {
+  width: 100%;
+  text-align: left;
 }
 
 .values-list h3 {
@@ -1791,6 +1799,7 @@ textarea {
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  text-align: left;
 }
 
 .values-list p {
@@ -1798,6 +1807,7 @@ textarea {
   color: #3c3c3c;
   font-size: 18px;
   line-height: 1.6;
+  text-align: left;
 }
 
 .values-more {

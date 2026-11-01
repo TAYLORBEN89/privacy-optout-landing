@@ -70,6 +70,9 @@ describe("about us values", () => {
     expect(wide).toContain("grid-template-columns: 1fr 1fr");
     const item = css.slice(css.indexOf(".values-list li {"), css.indexOf(".values-icon"));
     expect(item).toContain("flex-direction: column");
+    expect(item).toContain("text-align: left");
+    const icon = css.slice(css.indexOf(".values-icon {"), css.indexOf(".values-list li > div"));
+    expect(icon).toContain("align-self: flex-start");
     const title = css.slice(css.indexOf(".values-list h3 {"), css.indexOf(".values-list p"));
     expect(title).toContain("font-size: 28px");
     expect(title).toContain("font-weight: 400");
