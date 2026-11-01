@@ -474,7 +474,7 @@ textarea {
   }
 
   .hero h1 {
-    font-size: clamp(40px, 11vw, 72px);
+    font-size: clamp(24px, 9vw, 40px);
   }
 
   h1 {
