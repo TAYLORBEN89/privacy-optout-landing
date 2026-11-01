@@ -1975,9 +1975,10 @@ textarea {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 28px 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
   align-items: start;
+  justify-items: center;
   width: min(1100px, 100%);
   margin: 48px auto 0;
   padding: 0;
@@ -1985,25 +1986,28 @@ textarea {
 }
 
 .stat-grid li {
-  grid-column: span 2;
+  width: min(280px, 100%);
 }
 
-.stat-grid li:nth-child(2) {
-  padding-top: 40px;
-}
+@media (min-width: 700px) {
+  .stat-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 36px 24px;
+    justify-items: stretch;
+  }
 
-.stat-grid li:nth-child(3) {
-  padding-top: 14px;
-}
+  .stat-grid li {
+    grid-column: span 2;
+    width: auto;
+  }
 
-.stat-grid li:nth-child(4) {
-  grid-column: 2 / span 2;
-  padding-top: 10px;
-}
+  .stat-grid li:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
 
-.stat-grid li:nth-child(5) {
-  grid-column: 4 / span 2;
-  padding-top: 36px;
+  .stat-grid li:nth-child(5) {
+    grid-column: 4 / span 2;
+  }
 }
 
 .stat-value {

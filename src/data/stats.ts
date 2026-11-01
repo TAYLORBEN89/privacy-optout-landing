@@ -16,6 +16,8 @@ export interface CitedStat {
   /** Decimal places shown while the number counts up. */
   decimals: number;
   label: string;
+  /** Visible lines, in order. Rendered with a break between each line. */
+  lines: readonly string[];
   sourceName: string;
   sourceUrl: string;
   sourceDate: string;
@@ -30,10 +32,11 @@ export const CITED_STATS: readonly CitedStat[] = [
   {
     id: "registered-brokers",
     value: 750,
-    prefix: "",
-    suffix: "+",
+    prefix: "+",
+    suffix: "",
     decimals: 0,
     label: "data brokers registered across US state registries",
+    lines: ["Data brokers selling", "your information."],
     sourceName: "Privacy Rights Clearinghouse and Electronic Frontier Foundation",
     sourceUrl: "https://privacyrights.org/resources-tools/reports/why-are-hundreds-data-brokers-not-registering-states",
     sourceDate: "2025-06-20",
@@ -45,10 +48,11 @@ export const CITED_STATS: readonly CitedStat[] = [
   {
     id: "cyber-events",
     value: 2514,
-    prefix: "~",
+    prefix: "",
     suffix: "",
     decimals: 0,
     label: "cybersecurity events per second",
+    lines: ["Cybersecurity events", "per second."],
     sourceName: "Comcast Business 2026 Cybersecurity Threat Report",
     sourceUrl: "https://business.comcast.com/about-us/press-releases/2026/cb-2026-cybersecurity-threat-report",
     sourceDate: "2026-10-05",
@@ -60,24 +64,26 @@ export const CITED_STATS: readonly CitedStat[] = [
   {
     id: "account-breaches",
     value: 810,
-    prefix: "~",
+    prefix: "",
     suffix: "",
     decimals: 0,
     label: "account breaches per minute worldwide in 2025",
+    lines: ["Account breaches", "per minute."],
     sourceName: "Surfshark",
     sourceUrl: "https://surfshark.com/research/study/data-breach-recap-2025",
     sourceDate: "2026-02-03",
     verified: true,
   },
   // Grand View Research, last updated July 2026: estimated market size in 2026
-  // is USD 307.3 billion. Shown as ~$307B.
+  // is USD 307.3 billion. Shown as $307B.
   {
     id: "broker-market",
     value: 307,
-    prefix: "~$",
+    prefix: "$",
     suffix: "B",
     decimals: 0,
     label: "data broker market size in 2026",
+    lines: ["Data broker market", "size in 2026."],
     sourceName: "Grand View Research",
     sourceUrl: "https://www.grandviewresearch.com/industry-analysis/data-broker-market-report",
     sourceDate: "2026-07",
@@ -94,6 +100,7 @@ export const CITED_STATS: readonly CitedStat[] = [
     suffix: "M",
     decimals: 2,
     label: "average data breach cost worldwide ($11.5M in the US)",
+    lines: ["average data breach cost worldwide ($11.5M in the US)"],
     sourceName: "IBM Cost of a Data Breach Report 2026",
     sourceUrl: "https://www.ibm.com/think/topics/data-breach",
     sourceDate: "2026-07-29",
@@ -106,10 +113,11 @@ export const CITED_STATS: readonly CitedStat[] = [
   {
     id: "bid-requests",
     value: 5.6,
-    prefix: "",
-    suffix: "M+",
+    prefix: "+",
+    suffix: "M",
     decimals: 1,
     label: "ad bid requests per second exposing data about people",
+    lines: ["Ad bid requests", "per second", "exposing data", "about people."],
     sourceName: "Irish Council for Civil Liberties",
     sourceUrl: "https://www.iccl.ie/digital-data/iccl-report-on-the-scale-of-real-time-bidding-data-broadcasts-in-the-u-s-and-europe/",
     sourceDate: "2022-05-16",

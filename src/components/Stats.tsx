@@ -86,7 +86,14 @@ export function Stats() {
         {stats.map((stat) => (
           <li key={stat.id} data-stat={stat.id}>
             <StatValue stat={stat} started={started} reduced={reduced} />
-            <p className="stat-label">{stat.label}</p>
+            <p className="stat-label">
+              {stat.lines.map((line, index) => (
+                <span key={`${stat.id}-${index}`}>
+                  {index > 0 ? <br /> : null}
+                  {line}
+                </span>
+              ))}
+            </p>
             <a
               className="stat-source"
               href={stat.sourceUrl}

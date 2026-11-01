@@ -53,6 +53,9 @@ describe("stats rendering", () => {
       expect(item?.querySelector(".stat-count")?.textContent).toBe(
         item?.querySelector(".visually-hidden")?.textContent,
       );
+      const label = item?.querySelector(".stat-label");
+      expect(label?.querySelectorAll("br")).toHaveLength(stat.lines.length - 1);
+      expect(label?.textContent).toBe(stat.lines.join(""));
       const source = item?.querySelector("a");
       expect(source?.getAttribute("href")).toBe(stat.sourceUrl);
       expect(source?.getAttribute("target")).toBe("_blank");
@@ -93,8 +96,8 @@ describe("stats rendering", () => {
     render(<Stats />);
     const hidden = document.querySelector("[data-stat='bid-requests'] .visually-hidden");
     const count = document.querySelector("[data-stat='bid-requests'] .stat-count");
-    expect(hidden?.textContent).toBe("5.6M+");
-    expect(count?.textContent).toBe("0.0M+");
+    expect(hidden?.textContent).toBe("+5.6M");
+    expect(count?.textContent).toBe("+0.0M");
     expect(count?.getAttribute("aria-hidden")).toBe("true");
     expect(document.querySelectorAll(".stat-grid li")).toHaveLength(5);
 
@@ -102,11 +105,11 @@ describe("stats rendering", () => {
       onIntersect?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
     });
     expect(disconnect).toHaveBeenCalled();
-    expect(document.querySelector("[data-stat='bid-requests'] .stat-count")?.textContent).toBe("5.6M+");
-    expect(document.querySelector("[data-stat='registered-brokers'] .stat-count")?.textContent).toBe("750+");
-    expect(document.querySelector("[data-stat='cyber-events'] .stat-count")?.textContent).toBe("~2,514");
-    expect(document.querySelector("[data-stat='account-breaches'] .stat-count")?.textContent).toBe("~810");
-    expect(document.querySelector("[data-stat='broker-market'] .stat-count")?.textContent).toBe("~$307B");
+    expect(document.querySelector("[data-stat='bid-requests'] .stat-count")?.textContent).toBe("+5.6M");
+    expect(document.querySelector("[data-stat='registered-brokers'] .stat-count")?.textContent).toBe("+750");
+    expect(document.querySelector("[data-stat='cyber-events'] .stat-count")?.textContent).toBe("2,514");
+    expect(document.querySelector("[data-stat='account-breaches'] .stat-count")?.textContent).toBe("810");
+    expect(document.querySelector("[data-stat='broker-market'] .stat-count")?.textContent).toBe("$307B");
     expect(document.querySelector("[data-stat='breach-cost']")).toBeNull();
     expect(document.querySelector("[data-stat='optouts']")).toBeNull();
   });
@@ -122,9 +125,12 @@ describe("stats rendering", () => {
     const css = readFileSync("src/styles.css", "utf8");
     const band = css.slice(css.indexOf(".stats {"), css.indexOf(".stats h2"));
     expect(band).toContain("background: #0b5cad");
+    expect(css).toContain("grid-template-columns: minmax(0, 1fr)");
     expect(css).toContain("grid-template-columns: repeat(6, minmax(0, 1fr))");
     expect(css).toContain("grid-column: 2 / span 2");
     expect(css).toContain("grid-column: 4 / span 2");
+    expect(css).not.toContain("padding-top: 40px");
+    expect(css).not.toContain("padding-top: 36px");
     expect(band).toContain("width: 100vw");
     const button = css.slice(css.indexOf(".stats-more {"), css.indexOf(".stats-more:hover"));
     expect(button).toContain("border: 1.5px solid #fff");
