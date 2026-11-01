@@ -2,6 +2,8 @@ import { apiUrl } from "../api";
 import { apiRequest, csrfHeaders, type ApiErr, type ApiOk } from "./http";
 import type { StepUpStart } from "./stepUp";
 
+export const PASSWORD_STEPUP_PATH = "/api/auth/stepup/password";
+
 /** Labels the product is allowed to show. Not a claim that deletion was verified. */
 export const REQUEST_LABELS = ["Submitted", "Confirmed", "Pending", "No record found"] as const;
 
@@ -116,9 +118,26 @@ export async function revokeSession(
 }
 
 export async function exportAccount(
+  csrfToken: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ApiOk<unknown> | ApiErr> {
-  return apiRequest(ACCOUNT_EXPORT_PATH, { method: "GET" }, fetchImpl);
+  return apiRequest(ACCOUNT_EXPORT_PATH, {
+    method: "POST",
+    headers: csrfHeaders(csrfToken),
+  }, fetchImpl);
+}
+
+export async function startPasswordStepUp(
+  password: string,
+  code: string,
+  csrfToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ApiOk<{ ok?: boolean; url?: string }> | ApiErr> {
+  return apiRequest(PASSWORD_STEPUP_PATH, {
+    method: "POST",
+    headers: csrfHeaders(csrfToken),
+    body: JSON.stringify({ password, code }),
+  }, fetchImpl);
 }
 
 export async function deleteAccount(

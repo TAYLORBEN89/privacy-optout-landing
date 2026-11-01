@@ -5,8 +5,8 @@ import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { optOutLabel, patchDisplayName, type OptOutRecord } from "../src/api/account";
-import { isStepUpRequired } from "../src/api/stepUp";
+import { exportAccount, optOutLabel, patchDisplayName, type OptOutRecord } from "../src/api/account";
+import { isStepUpRequired, stepUpChoices } from "../src/api/stepUp";
 import { LOGOUT_PATH } from "../src/api";
 import { fetchMe, type MeOk } from "../src/authGate";
 import { Header } from "../src/Header";
@@ -125,11 +125,33 @@ describe("csrf_token", () => {
 });
 
 describe("step-up", () => {
-  it("treats 401 and 403 step-up errors as a prompt, and ignores other failures", () => {
+  it("matches only HTTP 403 with error step_up_required", () => {
     expect(isStepUpRequired(403, { error: "step_up_required" })).toBe(true);
-    expect(isStepUpRequired(401, { code: "stepup" })).toBe(true);
-    expect(isStepUpRequired(403, { error: "forbidden" })).toBe(false);
+    expect(isStepUpRequired(401, { error: "step_up_required" })).toBe(false);
+    expect(isStepUpRequired(403, { code: "stepup" })).toBe(false);
+    expect(isStepUpRequired(403, { error: "stepup" })).toBe(false);
+    expect(isStepUpRequired(403, { error: "step-up required" })).toBe(false);
+    expect(isStepUpRequired(403, { message: "step_up_required" })).toBe(false);
     expect(isStepUpRequired(404, { error: "step_up_required" })).toBe(false);
+    expect(isStepUpRequired(403, "step_up_required")).toBe(false);
+  });
+
+  it("offers linked providers except Apple, and a password form when one is set", () => {
+    expect(stepUpChoices([{ provider: "google" }, { provider: "apple" }], false)).toEqual({
+      providers: ["google"],
+      offerPassword: false,
+      needsAnotherMethod: false,
+    });
+    expect(stepUpChoices([{ provider: "apple" }], false)).toEqual({
+      providers: [],
+      offerPassword: false,
+      needsAnotherMethod: true,
+    });
+    expect(stepUpChoices([{ provider: "Apple" }], true)).toEqual({
+      providers: [],
+      offerPassword: true,
+      needsAnotherMethod: false,
+    });
   });
 
   it("asks to confirm it's you and follows the provider step-up url", async () => {
@@ -148,6 +170,8 @@ describe("step-up", () => {
 
     render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} goTo={goTo} />);
     expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Continue with Apple" })).toBeNull();
+    expect(screen.queryByText("Password + authenticator code")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Continue with Google" }));
 
     const step = calls.find((call) => call.url.endsWith("/api/auth/google/stepup"));
@@ -156,6 +180,105 @@ describe("step-up", () => {
     expect(step?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
     expect(String(step?.init?.body)).toContain("/account");
     expect(goTo).toHaveBeenCalledWith("https://accounts.example/stepup");
+  });
+
+  it("posts the password and authenticator code, then clears the fields", async () => {
+    const user = userEvent.setup();
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const logs: unknown[][] = [];
+    vi.spyOn(console, "log").mockImplementation((...args) => {
+      logs.push(args);
+    });
+    vi.spyOn(console, "info").mockImplementation((...args) => {
+      logs.push(args);
+    });
+    vi.spyOn(console, "debug").mockImplementation((...args) => {
+      logs.push(args);
+    });
+    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), init });
+      const url = String(input);
+      if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
+      if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
+      if (url.endsWith("/api/account/optouts")) return json(403, { error: "step_up_required" });
+      if (url.endsWith("/api/auth/stepup/password")) return json(200, { ok: true, stepped_up_until: 1_700_000_600 });
+      return json(404, { error: "not_found" });
+    }) as typeof fetch;
+
+    render(
+      <AccountPage
+        action="form"
+        me={{ ...me, user: { ...me.user, has_password: true }, providers: [{ provider: "apple" }] }}
+        fetchImpl={fetchImpl}
+      />,
+    );
+    expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Continue with Apple" })).toBeNull();
+    expect(screen.getByText("Password + authenticator code")).toBeTruthy();
+    await user.type(screen.getByLabelText("Password"), "secret-pass");
+    await user.type(screen.getByLabelText("Authenticator code"), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+
+    const step = calls.find((call) => call.url.endsWith("/api/auth/stepup/password"));
+    expect(step?.init?.method).toBe("POST");
+    expect(step?.init?.credentials).toBe("same-origin");
+    expect(step?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
+    expect(String(step?.init?.body)).toBe(JSON.stringify({ password: "secret-pass", code: "123456" }));
+    expect(logs.flat().join(" ")).not.toContain("secret-pass");
+    expect(logs.flat().join(" ")).not.toContain("123456");
+    expect(window.localStorage.length).toBe(0);
+    expect(window.sessionStorage.length).toBe(0);
+    expect(screen.queryByLabelText("Password")).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Confirm it's you" })).toBeNull();
+  });
+
+  it("says another sign-in method is needed when Apple is the only provider", async () => {
+    const fetchImpl = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
+      if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
+      if (url.endsWith("/api/account/optouts")) return json(403, { error: "step_up_required" });
+      return json(404, { error: "not_found" });
+    }) as typeof fetch;
+
+    render(
+      <AccountPage
+        action="form"
+        me={{ ...me, user: { ...me.user, has_password: false }, providers: [{ provider: "apple" }] }}
+        fetchImpl={fetchImpl}
+      />,
+    );
+    expect(await screen.findByText("Another sign-in method is needed to confirm it's you.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Continue with Apple" })).toBeNull();
+    expect(screen.queryByText("Password + authenticator code")).toBeNull();
+  });
+
+  it("posts the data export with the csrf token", async () => {
+    const user = userEvent.setup();
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), init });
+      const url = String(input);
+      if (url.endsWith("/api/account/export")) return json(200, { ok: true });
+      if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
+      if (url.endsWith("/api/account/optouts")) return json(200, { optouts: [] });
+      if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
+      return json(404, { error: "not_found" });
+    }) as typeof fetch;
+
+    await exportAccount("csrf-1", fetchImpl);
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:export");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} />);
+    await user.click(await screen.findByRole("button", { name: "Export my data" }));
+
+    const posts = calls.filter((call) => call.url.endsWith("/api/account/export"));
+    expect(posts).toHaveLength(2);
+    for (const post of posts) {
+      expect(post.init?.method).toBe("POST");
+      expect(post.init?.credentials).toBe("same-origin");
+      expect(post.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
+    }
   });
 });
 
@@ -175,7 +298,9 @@ describe("account dashboard", () => {
             current: true,
           },
         ]}
-        providers={["google"]}
+        stepUpProviders={["google"]}
+        offerPassword={false}
+        needsAnotherMethod={false}
         editing={false}
         draft=""
         profileError={false}
@@ -197,6 +322,7 @@ describe("account dashboard", () => {
         onConfirmDelete={() => undefined}
         onCancelDelete={() => undefined}
         onStepUp={() => undefined}
+        onPasswordStepUp={() => undefined}
       />,
     );
     expect(screen.getByText("Display name: Ada Lovelace")).toBeTruthy();

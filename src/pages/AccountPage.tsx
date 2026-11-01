@@ -9,12 +9,14 @@ import {
   optOutLabel,
   patchDisplayName,
   revokeSession,
+  startPasswordStepUp,
   startProviderStepUp,
   type AccountProfile,
   type AccountSession,
   type OptOutRecord,
 } from "../api/account";
 import type { ApiErr, ApiOk } from "../api/http";
+import { stepUpChoices } from "../api/stepUp";
 import type { MeOk } from "../authGate";
 import { type StartAction, signInHrefFor } from "../authGate";
 import { navigate } from "../router";
@@ -30,6 +32,49 @@ function providerLabel(provider: string): string {
 
 function optOutTitle(record: OptOutRecord): string {
   return record.broker_id || record.kind || "Opt-out";
+}
+
+function PasswordStepUpForm({ onSubmit }: { onSubmit: (password: string, code: string) => void }) {
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+
+  return (
+    <form
+      className="stepup-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const nextPassword = password;
+        const nextCode = code;
+        setPassword("");
+        setCode("");
+        onSubmit(nextPassword, nextCode);
+      }}
+    >
+      <p className="stepup-method">Password + authenticator code</p>
+      <label htmlFor="stepup-password">
+        Password
+        <input
+          id="stepup-password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+      </label>
+      <label htmlFor="stepup-totp">
+        Authenticator code
+        <input
+          id="stepup-totp"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+        />
+      </label>
+      <button type="submit">Confirm</button>
+    </form>
+  );
 }
 
 function downloadExport(data: unknown): void {
@@ -48,7 +93,9 @@ export function AccountView({
   profile,
   optouts,
   sessions,
-  providers,
+  stepUpProviders,
+  offerPassword,
+  needsAnotherMethod,
   editing,
   draft,
   profileError,
@@ -70,11 +117,14 @@ export function AccountView({
   onConfirmDelete,
   onCancelDelete,
   onStepUp,
+  onPasswordStepUp,
 }: {
   profile: AccountProfile;
   optouts: OptOutRecord[];
   sessions: AccountSession[];
-  providers: string[];
+  stepUpProviders: string[];
+  offerPassword: boolean;
+  needsAnotherMethod: boolean;
   editing: boolean;
   draft: string;
   profileError: boolean;
@@ -96,6 +146,7 @@ export function AccountView({
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
   onStepUp: (provider: string) => void;
+  onPasswordStepUp: (password: string, code: string) => void;
 }) {
   return (
     <article className="panel account-page">
@@ -238,12 +289,14 @@ export function AccountView({
             <h2 id="stepup-title">Confirm it's you</h2>
             <p>Sign in again to continue.</p>
             <div className="account-actions">
-              {providers.map((provider) => (
+              {stepUpProviders.map((provider) => (
                 <button key={provider} type="button" onClick={() => onStepUp(provider)}>
                   Continue with {providerLabel(provider)}
                 </button>
               ))}
             </div>
+            {offerPassword ? <PasswordStepUpForm onSubmit={onPasswordStepUp} /> : null}
+            {needsAnotherMethod ? <p>Another sign-in method is needed to confirm it's you.</p> : null}
             {stepUpError ? <p role="alert">{stepUpError}</p> : null}
           </div>
         </div>
@@ -282,7 +335,7 @@ export function AccountPage({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const csrfToken = me?.csrf_token ?? null;
-  const providers = me?.providers.map((item) => item.provider).filter((provider) => provider.length > 0) ?? [];
+  const choices = stepUpChoices(me?.providers, Boolean(me?.user.has_password));
 
   useEffect(() => {
     if (action === "redirect") navigate(signInHrefFor("/account"));
@@ -359,7 +412,11 @@ export function AccountPage({
   async function onExport() {
     setActionError(null);
     setNotice(null);
-    const result = await exportAccount(fetchImpl);
+    if (!csrfToken) {
+      setActionError("Sign in again to export your data.");
+      return;
+    }
+    const result = await exportAccount(csrfToken, fetchImpl);
     if (!result.ok) {
       if (result.stepUp) setStepUp(true);
       else setActionError("Export is not available yet.");
@@ -399,6 +456,24 @@ export function AccountPage({
     goTo(result.data.url);
   }
 
+  async function onPasswordStepUp(password: string, code: string) {
+    setStepUpError(null);
+    if (!csrfToken) {
+      setStepUpError("Sign in again to continue.");
+      return;
+    }
+    const result = await startPasswordStepUp(password, code, csrfToken, fetchImpl);
+    if (!result.ok) {
+      setStepUpError(result.status === 429 ? "Too many attempts." : "That did not match.");
+      return;
+    }
+    if (typeof result.data?.url === "string" && result.data.url.length > 0) {
+      goTo(result.data.url);
+      return;
+    }
+    setStepUp(false);
+  }
+
   if (action === "loading") return <p className="panel">Checking sign-in…</p>;
   if (action === "redirect") return <p className="panel">Sending you to sign in…</p>;
   if (action === "unavailable") {
@@ -415,7 +490,9 @@ export function AccountPage({
       profile={profile}
       optouts={optouts}
       sessions={sessions}
-      providers={providers}
+      stepUpProviders={choices.providers}
+      offerPassword={choices.offerPassword}
+      needsAnotherMethod={choices.needsAnotherMethod}
       editing={editing}
       draft={draft}
       profileError={profileError}
@@ -440,6 +517,7 @@ export function AccountPage({
       onConfirmDelete={() => void onConfirmDelete()}
       onCancelDelete={() => setConfirmDelete(false)}
       onStepUp={(provider) => void onStepUp(provider)}
+      onPasswordStepUp={(password, code) => void onPasswordStepUp(password, code)}
     />
   );
 }

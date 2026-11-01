@@ -375,6 +375,7 @@ label {
 
 input[type="text"],
 input[type="email"],
+input[type="password"],
 textarea {
   width: 100%;
   padding: 12px;
@@ -1050,6 +1051,25 @@ textarea {
 
 .dialog-card p {
   margin: 0 0 16px;
+}
+
+.stepup-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stepup-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stepup-method {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {
