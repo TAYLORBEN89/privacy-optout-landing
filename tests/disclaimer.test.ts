@@ -26,5 +26,7 @@ describe("disclaimer", () => {
       const text = readFileSync(file, "utf8");
       expect(text, file).not.toMatch(/CalPrivacy|State of California/);
     }
+    const app = readFileSync("src/App.tsx", "utf8");
+    expect(app).not.toMatch(/private-sector|not a government entity|How we keep your data safe/);
   });
 });

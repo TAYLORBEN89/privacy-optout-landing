@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
-import { SmallLock, Wordmark } from "./Brand";
-import { DISCLAIMER, TRUST_LABEL } from "./copy";
+import { Wordmark } from "./Brand";
+import { DISCLAIMER } from "./copy";
 import { Header } from "./Header";
 import { SideNav } from "./components/SideNav";
 import { AboutPage } from "./pages/AboutPage";
@@ -61,9 +61,6 @@ export function App() {
   return (
     <>
       <div className="top-stack">
-        <p className="banner" role="note">
-          DROP Texas is a private-sector service, not a government entity.
-        </p>
         <Header
           signedIn={signedIn}
           csrf={session.status === "in" ? session.csrf : null}
@@ -71,14 +68,6 @@ export function App() {
           onSignedOut={() => setSession({ status: "out", httpStatus: 401 })}
         />
       </div>
-      {path === "/" ? (
-        <div className="trust">
-          <SmallLock />
-          <AppLink className="text-link" href="/security">
-            {TRUST_LABEL}
-          </AppLink>
-        </div>
-      ) : null}
       <div className={showNav ? "shell" : "solo"}>
         {showNav ? <SideNav /> : null}
         <div className="content">{page}</div>

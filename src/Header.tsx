@@ -102,7 +102,7 @@ export function Header({
           {signedIn ? (
             <button
               type="button"
-              className="icon-button"
+              className="account-button"
               aria-label="Account"
               aria-expanded={accountOpen}
               aria-controls={accountId}
@@ -111,8 +111,8 @@ export function Header({
               <UserGlyph />
             </button>
           ) : (
-            <AppLink className="icon-button" href={signInHref} aria-label="Sign in">
-              <UserGlyph />
+            <AppLink className="sign-in-link" href={signInHref}>
+              Sign in
             </AppLink>
           )}
           {signedIn && accountOpen ? (

@@ -25,4 +25,27 @@ describe("header menu", () => {
     await user.keyboard("{Escape}");
     expect(button.getAttribute("aria-expanded")).toBe("false");
   });
+
+  it("shows a plain Sign in link when signed out", () => {
+    render(
+      <Header signedIn={false} csrf={null} signInHref="/signin?return_to=/start" onSignedOut={() => undefined} />,
+    );
+    const link = screen.getByRole("link", { name: "Sign in" });
+    expect(link.getAttribute("href")).toBe("/signin?return_to=/start");
+    expect(link.className).toBe("sign-in-link");
+    expect(screen.queryByRole("button", { name: "Account" })).toBeNull();
+  });
+
+  it("shows a borderless account icon when signed in", async () => {
+    const user = userEvent.setup();
+    render(
+      <Header signedIn csrf="tok" signInHref="/signin?return_to=/start" onSignedOut={() => undefined} />,
+    );
+    const account = screen.getByRole("button", { name: "Account" });
+    expect(account.getAttribute("aria-label")).toBe("Account");
+    expect(account.className).toBe("account-button");
+    expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+    await user.click(account);
+    expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeTruthy();
+  });
 });

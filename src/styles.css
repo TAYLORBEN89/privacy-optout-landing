@@ -46,24 +46,6 @@ body {
   z-index: 2;
 }
 
-.banner {
-  margin: 0;
-  padding: 8px 16px;
-  background: #fff4f4;
-  color: var(--ink);
-  border-bottom: 1px solid #f3c3c3;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
-  text-align: center;
-}
-
-@media (min-width: 640px) {
-  .banner {
-    white-space: nowrap;
-  }
-}
-
 .topbar {
   background: #fff;
   border-bottom: 1px solid var(--line);
@@ -126,7 +108,33 @@ body {
 }
 
 .hero {
-  padding: 64px 0 12px;
+  padding: 80px 0 64px;
+  background: #f8f9fb;
+  text-align: center;
+}
+
+.hero h1 {
+  margin: 0 auto 8px;
+  color: #010101;
+  font-size: clamp(40px, 5.6vw, 72px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.hero h1 span {
+  display: block;
+  white-space: nowrap;
+}
+
+.hero .lede {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero .cta {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 h1 {
@@ -145,6 +153,11 @@ h1::after {
   height: 2px;
   margin-top: 18px;
   background: var(--red);
+}
+
+.hero h1::after {
+  margin-right: auto;
+  margin-left: auto;
 }
 
 .lede {
@@ -443,12 +456,6 @@ textarea {
 }
 
 @media (max-width: 480px) {
-  .banner {
-    padding: 8px;
-    font-size: 12px;
-    white-space: nowrap;
-  }
-
   .topbar-inner,
   .hero-inner,
   .block,
@@ -458,7 +465,11 @@ textarea {
   }
 
   .hero {
-    padding: 36px 0 8px;
+    padding: 48px 0 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(40px, 11vw, 72px);
   }
 
   h1 {
@@ -500,9 +511,7 @@ textarea {
   width: min(1040px, calc(100% - 48px));
 }
 
-.menu-button,
-.icon-button {
-  display: inline-flex;
+.menu-button {
   align-items: center;
   justify-content: center;
   width: 40px;
@@ -511,7 +520,35 @@ textarea {
   border-radius: 8px;
   background: #fff;
   color: var(--ink);
+}
+
+.sign-in-link {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
   text-decoration: none;
+}
+
+.sign-in-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
 }
 
 .menu-button {
@@ -586,16 +623,6 @@ textarea {
   border: 0;
 }
 
-.trust {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: #eef0f3;
-  color: #5c534c;
-}
-
 .text-link {
   color: #9f1239;
   font-weight: 700;
@@ -645,13 +672,6 @@ textarea {
 
 .sidenav a:hover {
   background: #fff4f4;
-}
-
-.hero {
-  background:
-    radial-gradient(520px 220px at 0% 0%, rgba(238, 0, 20, 0.08), transparent 70%),
-    radial-gradient(420px 180px at 100% 10%, rgba(255, 214, 120, 0.55), transparent 72%),
-    transparent;
 }
 
 .art {
