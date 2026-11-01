@@ -319,6 +319,16 @@ button[type="submit"]:disabled {
   line-height: 1.5;
 }
 
+.privacy-page {
+  margin-top: 40px;
+}
+
+@media (min-width: 900px) {
+  .privacy-page {
+    margin-top: 64px;
+  }
+}
+
 .privacy-list {
   margin: 28px 0 0;
   padding: 0;

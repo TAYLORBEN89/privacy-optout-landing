@@ -17,6 +17,14 @@ describe("privacy page", () => {
     expect(html).not.toMatch(/CalPrivacy|State of California/);
     expect(html).not.toMatch(/Strict-Transport-Security|HSTS/i);
     expect(html).toContain("independent, free service");
+    expect(html).toContain("privacy-page");
+    const css = readFileSync("src/styles.css", "utf8");
+    const rule = css.slice(css.indexOf(".privacy-page {"), css.indexOf(".privacy-list"));
+    expect(rule).toContain("margin-top: 40px");
+    const wide = css.slice(css.indexOf(".privacy-page {", css.indexOf("@media (min-width: 900px)")));
+    expect(wide).toContain("margin-top: 64px");
+    expect(readFileSync("src/pages/AboutPage.tsx", "utf8")).not.toContain("privacy-page");
+    expect(readFileSync("src/pages/SecurityPage.tsx", "utf8")).not.toContain("privacy-page");
   });
 
   it("keeps the review note in the source and out of the page", () => {
