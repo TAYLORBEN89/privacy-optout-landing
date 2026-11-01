@@ -23,6 +23,12 @@ describe("feature panel", () => {
       icon.getAttribute("stroke-width"),
     );
     expect(strokes).toEqual(["2", "2", "2", "2", "2", "2"]);
+    expect(document.querySelector(".feature-card-unique-identifiers .tile-icon")?.innerHTML).toContain(
+      "M12 19c0-3 .2-5 .2-7a3.2 3.2 0 0 1 6.4 0",
+    );
+    expect(document.querySelector(".feature-card-unique-identifiers .tile-icon")?.innerHTML).not.toContain(
+      "M2 12a10 10 0 0 1 18-6",
+    );
     expect(document.body.textContent).not.toMatch(/verified/i);
   });
 

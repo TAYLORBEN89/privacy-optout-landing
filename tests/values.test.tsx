@@ -68,6 +68,8 @@ describe("about us values", () => {
     expect(wide).toContain("width: min(1000px, calc(100% - 48px))");
     expect(wide).toContain("padding: 48px 48px 80px");
     expect(wide).toContain("grid-template-columns: 1fr 1fr");
+    const item = css.slice(css.indexOf(".values-list li {"), css.indexOf(".values-icon"));
+    expect(item).toContain("flex-direction: column");
     const title = css.slice(css.indexOf(".values-list h3 {"), css.indexOf(".values-list p"));
     expect(title).toContain("font-size: 28px");
     expect(title).toContain("font-weight: 400");

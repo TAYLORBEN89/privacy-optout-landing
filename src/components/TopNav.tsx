@@ -27,10 +27,12 @@ export function TileIcon({
   id,
   size = 40,
   strokeWidth = 2,
+  explore = false,
 }: {
   id: string;
   size?: number;
   strokeWidth?: number;
+  explore?: boolean;
 }) {
   const common = {
     viewBox: "0 0 24 24",
@@ -82,7 +84,7 @@ export function TileIcon({
       </svg>
     );
   }
-  if (id === "unique-identifiers") {
+  if (id === "unique-identifiers" && explore) {
     return (
       <svg {...common}>
         <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4" />
@@ -94,6 +96,16 @@ export function TileIcon({
         <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
         <path d="M8.65 22c.21-.66.45-1.32.57-2" />
         <path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2" />
+      </svg>
+    );
+  }
+  if (id === "unique-identifiers") {
+    return (
+      <svg {...common}>
+        <path d="M12 19c0-3 .2-5 .2-7a3.2 3.2 0 0 1 6.4 0" />
+        <path d="M8.2 19c0-4.2.6-7.2 1.4-9.2a5.2 5.2 0 0 1 9.6 2.4" />
+        <path d="M12 19V11.5" />
+        <path d="M9.4 19c.2-2.4.6-4.2 1.2-5.6" />
       </svg>
     );
   }
@@ -141,7 +153,7 @@ export function TopNav() {
           {NAV_ITEMS.map((item) => (
             <li key={item.id}>
               <AppLink href={item.href}>
-                <TileIcon id={item.id} strokeWidth={1.5} />
+                <TileIcon id={item.id} strokeWidth={1.5} explore />
                 <span className="tile-copy">
                   <span className="tile-title">{item.label}</span>
                   <span className="tile-blurb">{BLURBS[item.id]}</span>

@@ -48,7 +48,8 @@ describe("explore list", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(page).toContain("Explore DROP Texas");
     expect(css).toContain("width: 32px");
-    expect(css).toContain("flex-direction: column");
+    expect(css).toContain("min-height: 110px");
+    expect(css).toContain("gap: 16px");
     expect(css).toContain("font-size: 22px");
     expect(css).toContain(".explore {\n  width: 100%;");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
