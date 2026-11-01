@@ -23,14 +23,20 @@ describe("validateSignup", () => {
         mailingAddress: "123 Main St, Austin, TX 78701",
         email: "ada@example.com",
         texasResident: true,
+        jurisdiction: "TDPSA",
+        nonTexasFlag: false,
       },
     });
   });
 
-  it("accepts a non-Texan", () => {
-    const result = validateSignup({ ...valid, texasResident: false });
+  it("accepts a non-Texan under TDPSA and marks the non-Texas flag", () => {
+    const result = validateSignup({ ...valid, texasResident: false, jurisdiction: "CCPA" });
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.texasResident).toBe(false);
+    if (result.ok) {
+      expect(result.value.texasResident).toBe(false);
+      expect(result.value.jurisdiction).toBe("TDPSA");
+      expect(result.value.nonTexasFlag).toBe(true);
+    }
   });
 
   it("rejects a missing or single-word name", () => {
@@ -92,7 +98,11 @@ describe("validateSignup", () => {
     const result = validateSignup({ ...valid, ssn: "123-45-6789" });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value).toEqual(valid);
+      expect(result.value).toEqual({
+        ...valid,
+        jurisdiction: "TDPSA",
+        nonTexasFlag: false,
+      });
       expect(JSON.stringify(result.value)).not.toContain("123-45-6789");
     }
   });

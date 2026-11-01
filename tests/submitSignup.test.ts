@@ -28,6 +28,8 @@ describe("submitSignup", () => {
       mailingAddress: "123 Main St, Austin, TX 78701",
       email: "ada@example.com",
       texasResident: false,
+      jurisdiction: "TDPSA",
+      nonTexasFlag: true,
     });
   });
 

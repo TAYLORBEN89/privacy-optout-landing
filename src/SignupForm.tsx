@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { FieldIssue, SignupIssues } from "../shared/signup";
+import { storageNotice, submissionConfirmation } from "../worker/storage";
 import { fieldErrorEvents, track } from "./analytics";
 import { submitSignup } from "./submitSignup";
 
@@ -87,8 +88,7 @@ export function SignupForm() {
       <h2 id="form-heading">Send your request</h2>
       {success ? (
         <p className="status" role="status" tabIndex={-1} ref={statusRef}>
-          Thanks. Your details passed the check. Saving requests is not turned on yet, so
-          nothing was stored.
+          {submissionConfirmation()} {storageNotice()}
         </p>
       ) : null}
       {formError ? (
@@ -145,7 +145,7 @@ export function SignupForm() {
           }}
         />
         <p className="hint" id="mailingAddress-hint">
-          Street, city, state, and ZIP code.
+          Street, city, state, and ZIP code. Most broker opt-out forms require a physical address.
         </p>
         {errors.mailingAddress ? (
           <p className="error" id="mailingAddress-error" role="alert">
@@ -199,8 +199,9 @@ export function SignupForm() {
         <div>
           <label htmlFor="texasResident">I live in Texas</label>
           <p className="hint" id="texasResident-hint">
-            We use this to decide which state privacy law applies. Leave it unchecked if you
-            live somewhere else. You can still submit.
+            Check this if you live in Texas. A checked box means the Texas Data Privacy and
+            Security Act (TDPSA). Leave it unchecked if you live somewhere else. You can still
+            submit. An unchecked box still uses TDPSA for now and is marked non-Texas.
           </p>
           {errors.texasResident ? (
             <p className="error" id="texasResident-error" role="alert">
@@ -213,7 +214,7 @@ export function SignupForm() {
       <button type="submit" disabled={submitting}>
         {submitting ? "Submitting…" : "Submit opt-out request"}
       </button>
-      <p className="fine-print">This preview checks your details and does not store them yet.</p>
+      <p className="fine-print">{storageNotice()}</p>
     </form>
   );
 }

@@ -2,11 +2,20 @@ export const SIGNUP_FIELDS = ["fullName", "mailingAddress", "email", "texasResid
 
 export type SignupField = (typeof SIGNUP_FIELDS)[number];
 
+/** Law label applied to every accepted signup until more states are supported. */
+export const JURISDICTION_TDPSA = "TDPSA" as const;
+
+export type Jurisdiction = typeof JURISDICTION_TDPSA;
+
 export interface SignupInput {
   fullName: string;
   mailingAddress: string;
   email: string;
   texasResident: boolean;
+  /** Always TDPSA for now, including when the Texas box is unchecked. */
+  jurisdiction: Jurisdiction;
+  /** True when the person said they do not live in Texas. */
+  nonTexasFlag: boolean;
 }
 
 export interface FieldIssue {
@@ -144,6 +153,9 @@ export function validateSignup(input: unknown): SignupResult {
       mailingAddress: address.value,
       email: email.value,
       texasResident: texasResident.value,
+      // Derived here so a client cannot swap in another law label.
+      jurisdiction: JURISDICTION_TDPSA,
+      nonTexasFlag: !texasResident.value,
     },
   };
 }

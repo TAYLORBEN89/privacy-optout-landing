@@ -8,8 +8,13 @@
   "upload_source_maps": true,
   // Static assets are the Vite build. /api/* is handled by the Worker first.
   // No D1/KV binding yet — persistence is owned by a separate backend.
-  // Intended public site: https://droptexas.com
-  // Do not add a route or custom domain here, and do not deploy this preview.
+  // Intended public hostnames: droptexas.com and www.droptexas.com.
+  // custom_domain creates proxied DNS in the Cloudflare zone on deploy.
+  // Do not deploy until the zone is on this account and the operator asks for it.
+  "routes": [
+    { "pattern": "droptexas.com", "custom_domain": true },
+    { "pattern": "www.droptexas.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

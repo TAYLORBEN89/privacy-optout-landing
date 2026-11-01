@@ -27,10 +27,39 @@ body {
   line-height: 1.6;
 }
 
-.topbar {
+.noscript {
+  margin: 0;
+  padding: 16px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.top-stack {
   position: sticky;
   top: 0;
   z-index: 2;
+}
+
+.banner {
+  margin: 0;
+  padding: 8px 16px;
+  background: #fff4f4;
+  color: var(--ink);
+  border-bottom: 1px solid #f3c3c3;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .banner {
+    white-space: nowrap;
+  }
+}
+
+.topbar {
   background: #fff;
   border-bottom: 1px solid var(--line);
 }
@@ -49,12 +78,20 @@ body {
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   color: var(--ink);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.1px;
   line-height: 1.2;
+}
+
+.mark {
+  display: block;
+  flex: none;
 }
 
 .hero {
@@ -153,7 +190,7 @@ button[type="submit"]:disabled {
   border: 1px solid var(--line);
   border-radius: 10px;
   box-shadow: 0 10px 0 rgba(0, 0, 0, 0.03);
-  scroll-margin-top: 80px;
+  scroll-margin-top: 120px;
 }
 
 .panel p,
@@ -369,6 +406,12 @@ textarea {
 }
 
 @media (max-width: 480px) {
+  .banner {
+    padding: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
   .topbar-inner,
   .hero-inner,
   .block,
