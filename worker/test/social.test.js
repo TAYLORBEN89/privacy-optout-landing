@@ -4,7 +4,7 @@ import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { authenticator } from 'otplib';
-import { hashPassword, encryptStr } from '../src/crypto.js';
+import { hashPassword, encryptStr, encryptPii } from '../src/crypto.js';
 import { clearOauthCookie } from '../src/oauth.js';
 import { auditMeta, purge } from '../src/app.js';
 
@@ -328,7 +328,10 @@ describe('rate limits', () => {
 });
 
 describe('POST /api/optouts/signup (gate)', () => {
-  const good = { fullName: 'Pat Example', mailingAddress: '1 Main St, Somewhere, TX 75001', email: 'Pat@Example.test', texasResident: false };
+  const good = {
+    firstName: 'Pat', lastName: 'Example', dob: '1990-04-02', addressLine1: '1 Main St', city: 'Somewhere', state: 'TX', zip: '75001',
+    email: 'Pat@Example.test', texasResident: false,
+  };
   it('401 without a session', async () => {
     expect((await api('POST', '/api/optouts/signup', {}, good)).status).toBe(401);
   });
@@ -345,17 +348,21 @@ describe('POST /api/optouts/signup (gate)', () => {
     const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
     expect(p.payload_enc).not.toContain('Pat');
     const exp = await (await api('POST', '/api/account/export', a)).json();
-    expect(exp.optouts[0].pii).toMatchObject({ fullName: 'Pat Example', email: 'pat@example.test', jurisdiction: 'TDPSA', nonTexasFlag: true });
+    expect(exp.optouts[0].pii).toMatchObject({
+      v: 2, firstName: 'Pat', middleName: null, lastName: 'Example', dob: '1990-04-02', state: 'TX', zip: '75001',
+      fullName: 'Pat Example', mailingAddress: '1 Main St\nSomewhere, TX 75001',
+      email: 'pat@example.test', jurisdiction: 'TDPSA', nonTexasFlag: true, submitter: 'self', child: null, guardianAttestation: false,
+    });
     const list = await (await api('GET', '/api/account/optouts', a)).json();
     expect(list.optouts).toHaveLength(1);
     expect(JSON.stringify(list)).not.toContain('Pat');
   });
   it('validation errors use the shared rules and never echo values', async () => {
     const a = await socialLogin('google');
-    const r = await api('POST', '/api/optouts/signup', a, { fullName: 'Madonna', mailingAddress: 'x', email: 'bad<script>', texasResident: 'yes' });
+    const r = await api('POST', '/api/optouts/signup', a, { firstName: 'Madonna', dob: '2999-01-01', addressLine1: '<x>', city: 'C', state: 'ZZ', zip: '1', email: 'bad<script>', texasResident: 'yes' });
     expect(r.status).toBe(400);
     const b = await r.json();
-    expect(Object.keys(b.errors).sort()).toEqual(['email', 'fullName', 'mailingAddress', 'texasResident']);
+    expect(Object.keys(b.errors).sort()).toEqual(['addressLine1', 'dob', 'email', 'lastName', 'state', 'texasResident', 'zip']);
     expect(JSON.stringify(b)).not.toContain('Madonna');
     expect((await api('POST', '/api/optouts/signup', a, [])).status).toBe(400);
   });
@@ -382,6 +389,34 @@ describe('POST /api/optouts/signup (gate)', () => {
     expect(phones).toEqual(['+15125550100', null, null, null].sort());
     expect((await api('POST', '/api/account/delete', a)).status).toBe(200);
     expect((await env.DB.prepare('SELECT COUNT(*) AS c FROM pii_payloads').first()).c).toBe(0);
+  });
+  it('child signup (v2): needs guardian attestation, adult submitter and a child under 13; stored encrypted', async () => {
+    const a = await socialLogin('google');
+    const kid = { firstName: 'Kit', lastName: 'Example', dob: `${new Date().getFullYear() - 5}-01-15`, sameAddress: true };
+    const noAttest = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', child: kid });
+    expect(noAttest.status).toBe(400);
+    expect(Object.keys((await noAttest.json()).errors)).toContain('guardianAttestation');
+    const teen = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: { ...kid, dob: `${new Date().getFullYear() - 15}-01-15` } });
+    expect(Object.keys((await teen.json()).errors)).toContain('childDob');
+    const selfWithChild = await api('POST', '/api/optouts/signup', a, { ...good, child: kid });
+    expect(Object.keys((await selfWithChild.json()).errors)).toContain('submitter');
+    const ok = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: kid });
+    expect(ok.status).toBe(200);
+    const { id } = await ok.json();
+    const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
+    expect(String(p.payload_enc)).not.toContain('Kit');
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    expect(exp.optouts.find((o) => o.id === id).pii).toMatchObject({ v: 2, submitter: 'child', guardianAttestation: true, child: { firstName: 'Kit', sameAddress: true } });
+  });
+  it('v1 records (fullName/mailingAddress, no v key) still read through export', async () => {
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/optouts/signup', a, good);
+    const { id } = await r.json();
+    const v1 = { fullName: 'Old Record', mailingAddress: '2 Elm St, Town, TX 75002', email: 'old@example.test', texasResident: true, jurisdiction: 'TDPSA', nonTexasFlag: false };
+    const { blob, version } = await encryptPii(env, JSON.stringify(v1), `pii:${id}`);
+    await env.DB.prepare('UPDATE pii_payloads SET payload_enc = ?1, key_version = ?2 WHERE request_id = ?3').bind(blob, version, id).run();
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    expect(exp.optouts.find((o) => o.id === id).pii).toMatchObject({ v: 1, fullName: 'Old Record', mailingAddress: '2 Elm St, Town, TX 75002', submitter: 'self', child: null, phone: null, firstName: null });
   });
   it('opt-out rows are per-user', async () => {
     const a = await socialLogin('google', { sub: 'one' });

@@ -4,6 +4,7 @@ import {
   randomToken, sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptStr, decryptStr,
   encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
+import { readSignupPayload } from './signupPayload.js';
 import { reserve, refund, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
 
 const COOKIE = '__Host-sid';
@@ -426,7 +427,7 @@ async function getOptoutPii(ctx, cur, id) {
     'SELECT p.payload_enc, p.key_version, p.purge_after FROM pii_payloads p JOIN optout_requests o ON o.id = p.request_id WHERE p.request_id = ?1 AND o.user_id = ?2',
   ).bind(id, cur.session.user_id).first();
   if (!r) return json(ctx, { error: 'not found' }, 404);
-  const pii = JSON.parse(await decryptPii(ctx.env, r.payload_enc, r.key_version, `pii:${id}`));
+  const pii = readSignupPayload(JSON.parse(await decryptPii(ctx.env, r.payload_enc, r.key_version, `pii:${id}`)));
   return json(ctx, { pii, purge_after: r.purge_after });
 }
 
