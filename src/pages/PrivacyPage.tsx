@@ -5,7 +5,7 @@ import { DISCLAIMER } from "../copy";
  * Only claims that are true of this stack belong here. HSTS is not set in this
  * Worker, so it is omitted. Do not write "certified".
  * TODO(retention): no concrete retention period is stated for form fields.
- * Phone is kept on the same terms as the other form fields. Do not invent a number of days.
+ * Phone follows that same sentence. Do not invent a number of days.
  */
 
 const COLLECTED =
@@ -16,25 +16,21 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
     title: "Data we collect",
     paragraphs: [
       `The form asks for ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
-      "If you provide a phone number, it is used only to match and locate your records when sending opt-out, do-not-sell, and deletion requests to data brokers on your behalf. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
-      "A phone number you provide is kept on the same terms as your name, mailing address, email, and Texas residency.",
+      "If you provide a phone number, it is used only to match and locate your records to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
+      "We keep it only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
     ],
   },
   {
     title: "Encryption in transit",
-    paragraphs: ["Every page and API call is served over HTTPS with TLS through Cloudflare."],
+    paragraphs: ["Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare."],
   },
   {
     title: "Encryption at rest",
-    paragraphs: ["Information that is saved is stored in Cloudflare D1 and Workers KV. Cloudflare encrypts those stores at rest."],
+    paragraphs: ["Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256)."],
   },
   {
-    title: "Secure sign-in",
-    paragraphs: ["You sign in with Google or Microsoft at accounts.droptexas.com. The session cookie is HttpOnly and uses the __Host- prefix. Changes send a CSRF token. Exporting your data or deleting your account asks you to confirm it is you first."],
-  },
-  {
-    title: "Your controls",
-    paragraphs: ["From your account you can export your data, delete your account, and sign out of other sessions."],
+    title: "Coming soon",
+    paragraphs: ["Sign in with Google or Microsoft, secure session cookies, and self-service export and delete. Until then, email help@droptexas.com to see or delete your data."],
   },
   {
     title: "What we don't do",
@@ -42,7 +38,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
   },
   {
     title: "Compliance",
-    paragraphs: ["DROP Texas is built to SOC 2 standards. That is not a certification."],
+    paragraphs: ["DROP Texas is built to SOC 2 standards. Not audited, not certified."],
   },
 ];
 
@@ -91,15 +87,6 @@ function SectionIcon({ index }: { index: number }) {
     );
   }
   if (index === 4) {
-    return (
-      <svg {...common}>
-        <path d="M12 4v10" />
-        <path d="m8 10 4 4 4-4" />
-        <path d="M6 18h12" />
-      </svg>
-    );
-  }
-  if (index === 5) {
     return (
       <svg {...common}>
         <circle cx="12" cy="12" r="8" />

@@ -12,14 +12,27 @@ describe("privacy page", () => {
     expect(html).toContain("Encryption in transit");
     expect(html).toContain("Encryption at rest");
     expect(html).toContain("Cloudflare D1");
-    expect(html).toContain("built to SOC 2 standards");
-    expect(html).not.toMatch(/certified/i);
+    expect(html).toContain("DROP Texas is built to SOC 2 standards. Not audited, not certified.");
+    expect(html).not.toMatch(/SOC 2 certified|is certified/i);
     expect(html).not.toMatch(/CalPrivacy|State of California/);
     expect(html).not.toMatch(/Strict-Transport-Security|HSTS/i);
     expect(html).toContain("independent, free service");
-    expect(html).toContain("used only to match and locate your records");
+    expect(html).toContain(
+      "used only to match and locate your records to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them",
+    );
     expect(html).toContain("not used for marketing, calls, or texts");
-    expect(html).toContain("kept on the same terms as your name, mailing address, email, and Texas residency");
+    expect(html).toContain("We keep it only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.");
+    expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
+    expect(html).toContain("Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256).");
+    expect(html).toContain("Coming soon");
+    expect(html).toContain(
+      "Sign in with Google or Microsoft, secure session cookies, and self-service export and delete. Until then, email help@droptexas.com to see or delete your data.",
+    );
+    expect(html).not.toContain("Secure sign-in");
+    expect(html).not.toContain("Your controls");
+    expect(html).not.toContain("sign out of other sessions");
+    expect(html).not.toContain("on your behalf");
+    expect(html).toContain("the server checks them again");
     expect(html).not.toMatch(/\d+\s+days/);
     expect(html).toContain("privacy-page");
     const css = readFileSync("src/styles.css", "utf8");
