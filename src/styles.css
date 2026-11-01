@@ -892,6 +892,11 @@ textarea {
 }
 
 .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+.reveal.is-waiting {
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 0.6s ease, transform 0.6s ease;
@@ -900,6 +905,7 @@ textarea {
 .reveal.is-in {
   opacity: 1;
   transform: none;
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
 @media (max-width: 860px) {
@@ -933,9 +939,12 @@ textarea {
     transform: none;
   }
 
-  .reveal {
+  .reveal,
+  .reveal.is-waiting,
+  .reveal.is-in {
     opacity: 1;
     transform: none;
+    transition: none;
   }
 
   .marquee-track {

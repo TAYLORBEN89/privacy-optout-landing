@@ -11,7 +11,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
     <>
       <section id="overview" className="hero" aria-labelledby="page-title">
         <div className="hero-inner">
-          <Reveal>
             <h1 id="page-title">
               <span>Demanding privacy</span>
               <span>for the people</span>
@@ -28,7 +27,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <AppLink className="cta" href={getStartedHref}>
               Start Removing Me
             </AppLink>
-          </Reveal>
         </div>
       </section>
 
