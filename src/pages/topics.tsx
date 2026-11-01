@@ -13,17 +13,26 @@ function Topic({
   title,
   description,
   heading,
+  tone,
   children,
 }: {
   title: string;
   description: string;
   heading: string;
+  tone: string;
   children: ReactNode;
 }) {
   return (
-    <article className="panel topic-page">
+    <article className={`panel topic-page topic-${tone}`}>
       <PageMeta title={`${title} · DROP Texas`} description={description} />
-      <h1>{heading}</h1>
+      <header className="topic-hero">
+        <div className="topic-shapes" aria-hidden="true">
+          <span className="shape shape-a" />
+          <span className="shape shape-b" />
+          <span className="shape shape-c" />
+        </div>
+        <h1>{heading}</h1>
+      </header>
       {children}
       <AppLink className="cta" href="/start">
         Start my opt-out
@@ -38,6 +47,7 @@ export function OverviewPage() {
     <Topic
       title="Overview"
       heading="Overview"
+      tone="overview"
       description="What DROP Texas does, and what an opt-out request is."
     >
       <p>
@@ -58,6 +68,7 @@ export function HowItWorksPage() {
     <Topic
       title="How it works"
       heading="How DROP works"
+      tone="how"
       description="Sign up, confirm your details, and DROP Texas sends opt-out requests to data brokers for you."
     >
       <p>Three steps. You can stop at any time before you submit.</p>
@@ -88,6 +99,7 @@ export function PersonalInformationPage() {
     <Topic
       title="Personal information"
       heading="Personal information"
+      tone="personal"
       description="The form asks for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
     >
       <p>
@@ -107,6 +119,7 @@ export function DataBrokersPage() {
     <Topic
       title="Data brokers"
       heading="Data brokers"
+      tone="brokers"
       description="An opt-out request asks a data broker not to sell your personal information. DROP Texas does not check that a record was deleted."
     >
       <p>
@@ -140,6 +153,7 @@ export function UniqueIdentifiersPage() {
     <Topic
       title="Unique identifiers"
       heading="Unique identifiers"
+      tone="identifiers"
       description="The form asks for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
     >
       <p>
@@ -163,6 +177,7 @@ export function TdpsaPage() {
     <Topic
       title="TDPSA"
       heading="The Texas Data Privacy and Security Act"
+      tone="tdpsa"
       description="A plain-English summary of consumer rights in Texas Business and Commerce Code chapter 541."
     >
       <p>
@@ -226,6 +241,7 @@ export function HelpPage() {
     <Topic
       title="Help"
       heading="Help"
+      tone="help"
       description="Answers about signup, request statuses, and the Texas Data Privacy and Security Act."
     >
       {/* TODO: no support email is configured. Do not invent a contact address on this page. */}
@@ -292,6 +308,7 @@ export function SharePage() {
     <Topic
       title="Share"
       heading="Share DROP Texas"
+      tone="share"
       description="Share https://droptexas.com by copying the link, or with email, X, or Facebook."
     >
       <p>You can share this private service at {SITE}.</p>

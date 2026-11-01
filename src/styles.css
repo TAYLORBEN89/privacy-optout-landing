@@ -347,6 +347,160 @@ button[type="submit"]:disabled {
 
 .topic-page {
   margin-top: 40px;
+  padding-top: 0;
+  overflow: hidden;
+}
+
+.topic-hero {
+  position: relative;
+  margin: 0 -32px 28px;
+  padding: 52px 32px 36px;
+  overflow: hidden;
+  background: #f7f7f8;
+}
+
+.topic-hero h1 {
+  position: relative;
+  z-index: 1;
+  max-width: 14em;
+  margin-bottom: 0;
+}
+
+.topic-shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.shape {
+  position: absolute;
+  display: block;
+}
+
+.shape-a,
+.shape-b {
+  border-radius: 50%;
+}
+
+.shape-a {
+  top: -78px;
+  right: -36px;
+  width: 190px;
+  height: 190px;
+  background: #ee0014;
+}
+
+.shape-b {
+  bottom: -52px;
+  left: 8%;
+  width: 128px;
+  height: 128px;
+  background: #ffe7a3;
+}
+
+.shape-c {
+  top: 28px;
+  left: 46%;
+  width: 64px;
+  height: 64px;
+  background: #056cb8;
+  transform: rotate(18deg);
+}
+
+.topic-how .shape-a {
+  right: auto;
+  left: -48px;
+  background: #056cb8;
+}
+
+.topic-how .shape-b {
+  right: 6%;
+  left: auto;
+  background: #ee0014;
+}
+
+.topic-how .shape-c {
+  background: #ffe7a3;
+}
+
+.topic-personal .shape-a {
+  background: #ffe7a3;
+}
+
+.topic-personal .shape-b {
+  background: #056cb8;
+}
+
+.topic-personal .shape-c {
+  left: 18%;
+  background: #ee0014;
+  border-radius: 50%;
+}
+
+.topic-brokers .shape-a {
+  background: #d8dde3;
+}
+
+.topic-brokers .shape-b {
+  background: #ee0014;
+}
+
+.topic-brokers .shape-c {
+  background: #ffe7a3;
+}
+
+.topic-identifiers .shape-a {
+  width: 150px;
+  height: 150px;
+  background: #056cb8;
+}
+
+.topic-identifiers .shape-b {
+  background: #d8dde3;
+}
+
+.topic-identifiers .shape-c {
+  background: #ee0014;
+}
+
+.topic-tdpsa .shape-a {
+  background: #ee0014;
+}
+
+.topic-tdpsa .shape-b {
+  left: 28%;
+  background: #056cb8;
+}
+
+.topic-tdpsa .shape-c {
+  left: auto;
+  right: 18%;
+  background: #ffe7a3;
+}
+
+.topic-help .shape-a {
+  background: #056cb8;
+}
+
+.topic-help .shape-b {
+  background: #ffe7a3;
+}
+
+.topic-help .shape-c {
+  background: #d8dde3;
+}
+
+.topic-share .shape-a {
+  background: #ffe7a3;
+}
+
+.topic-share .shape-b {
+  background: #ee0014;
+}
+
+.topic-share .shape-c {
+  background: #056cb8;
+  border-radius: 50%;
 }
 
 .brokers-page {
@@ -856,6 +1010,15 @@ textarea {
   .form-card,
   .panel {
     padding: 24px 16px 20px;
+  }
+
+  .topic-page {
+    padding-top: 0;
+  }
+
+  .topic-hero {
+    margin-inline: -16px;
+    padding: 40px 16px 28px;
   }
 
   h2 {
