@@ -96,6 +96,8 @@ describe("site footer", () => {
     expect(css).toContain("transform: rotate(225deg)");
     expect(css).toContain("grid-template-rows: 0fr");
     expect(css).toContain("grid-template-rows: 1fr");
+    expect(css).toContain("min-height: 0");
+    expect(css).toContain("-webkit-tap-highlight-color: transparent");
     const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
     expect(reduced).toContain(".footer-toggle::after,\n  .footer-panel {\n    transition: none;");
   });
