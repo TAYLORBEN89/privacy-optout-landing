@@ -52,7 +52,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <p className="personal-sub">Only what we need. Nothing more.</p>
           <p className="personal-body">
             We collect only your name, mailing address, email, Texas residency, and (if you
-            choose to provide it) your phone number so we can send opt-out requests for you. We never
+            choose to provide it) your phone number so you can prepare opt-out requests to send to data brokers. We never
             sell your data.
           </p>
           <p className="personal-preview">{storageNotice()}</p>

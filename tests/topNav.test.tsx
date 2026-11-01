@@ -11,7 +11,7 @@ const BLURBS = [
   "DROP Texas is a free service for Texans to request data brokers not sell their personal information.",
   "The steps from signup to opt-out requests.",
   "What we collect and why.",
-  "The companies we send opt-out requests to.",
+  "The companies you can send opt-out requests to.",
   "Emails, phones, and IDs brokers track you by.",
   "Your rights under the Texas Data Privacy and Security Act.",
   "Answers to common questions.",

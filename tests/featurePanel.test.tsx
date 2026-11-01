@@ -14,7 +14,7 @@ describe("feature panel", () => {
   it("shows the first menu topics as tinted cards with honest copy", () => {
     render(<FeaturePanel />);
     expect(screen.getByRole("heading", { name: "Three steps to opt out" })).toBeTruthy();
-    expect(screen.getByText("Sign up, confirm your details, and we send opt-out requests to data brokers for you.")).toBeTruthy();
+    expect(screen.getByText("Free tools to send opt-out and deletion requests to data brokers and track every reply.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "See how it works >" }).getAttribute("href")).toBe("/how-it-works");
     expect(screen.getByRole("link", { name: "See the brokers >" }).getAttribute("href")).toBe("/data-brokers");
     expect(screen.getByText(/Acxiom, Experian/)).toBeTruthy();

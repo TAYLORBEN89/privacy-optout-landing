@@ -13,7 +13,8 @@ describe("privacy page", () => {
     expect(html).toContain("Encryption at rest");
     expect(html).toContain("Cloudflare D1");
     expect(html).toContain("built to SOC 2 standards");
-    expect(html).not.toMatch(/certified/i);
+    expect(html).not.toMatch(/(?<!not )certified/i);
+    expect(html).toContain("not audited and not certified");
     expect(html).not.toMatch(/CalPrivacy|State of California/);
     expect(html).not.toMatch(/Strict-Transport-Security|HSTS/i);
     expect(html).toContain("independent, free service");

@@ -16,7 +16,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
     title: "Data we collect",
     paragraphs: [
       `The form asks for ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
-      "If you provide a phone number, it is used only to match and locate your records when sending opt-out, do-not-sell, and deletion requests to data brokers on your behalf. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
+      "If you provide a phone number, it is used only to match and locate your records in the opt-out, do-not-sell, and deletion requests you send to data brokers. DROP Texas does not send requests for you today. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers you choose to send those requests to.",
       "A phone number you provide is kept on the same terms as your name, mailing address, email, and Texas residency.",
     ],
   },
@@ -26,15 +26,15 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
   },
   {
     title: "Encryption at rest",
-    paragraphs: ["Information that is saved is stored in Cloudflare D1 and Workers KV. Cloudflare encrypts those stores at rest."],
+    paragraphs: ["Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers."],
   },
   {
     title: "Secure sign-in",
-    paragraphs: ["You sign in with Google or Microsoft at accounts.droptexas.com. The session cookie is HttpOnly and uses the __Host- prefix. Changes send a CSRF token. Exporting your data or deleting your account asks you to confirm it is you first."],
+    paragraphs: ["Planned, not live yet: per-user accounts with Google or Microsoft sign-in at accounts.droptexas.com, TOTP two-factor sign-in, HttpOnly __Host- session cookies, CSRF protection, rate limiting, and a security audit log."],
   },
   {
     title: "Your controls",
-    paragraphs: ["From your account you can export your data, delete your account, and sign out of other sessions."],
+    paragraphs: ["Planned, not live yet: exporting your data, deleting your account, signing out of other sessions, and a daily job that deletes data when its retention period ends."],
   },
   {
     title: "What we don't do",
@@ -42,7 +42,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
   },
   {
     title: "Compliance",
-    paragraphs: ["DROP Texas is built to SOC 2 standards. That is not a certification."],
+    paragraphs: ["DROP Texas is built to SOC 2 standards. It is not audited and not certified."],
   },
 ];
 
