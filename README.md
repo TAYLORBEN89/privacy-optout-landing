@@ -169,3 +169,15 @@ Checklist categories now also include People-search sites, Search & apps, and Sp
 
 ## Social sign-in
 Provider console setup for Google and Microsoft sign-in: see [docs/oauth-setup.md](docs/oauth-setup.md).
+
+## Cloudflare IDs are not tracked
+`worker/wrangler.toml` holds placeholder KV/D1 IDs and no `account_id`. For remote commands:
+```sh
+export CLOUDFLARE_ACCOUNT_ID=...   # your account
+KV_RECORDS_ID=... D1_DATABASE_ID=... npm --prefix worker run config:local   # writes gitignored worker/wrangler.local.toml
+npx wrangler d1 migrations apply DB --remote -c wrangler.local.toml          # (from worker/)
+npm --prefix worker run check:remote   # dry-run deploy against the real IDs
+```
+- `npm run check` (from `worker/`) still uses the tracked `wrangler.toml` with placeholders, so it works on a fresh clone and in CI.
+- `config:local` refuses to overwrite an existing `wrangler.local.toml` (it may hold hand-added routes/vars); pass `--force` to regenerate it. It exits non-zero if either ID is missing/malformed or a placeholder is not found, and never prints the IDs.
+- The generated file is written with mode 0600 and is gitignored. Never commit it.
