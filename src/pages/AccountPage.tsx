@@ -1,0 +1,583 @@
+import { useEffect, useState, type FormEvent } from "react";
+import {
+  deleteAccount,
+  exportAccount,
+  ACCOUNT_PROVIDERS,
+  fetchAccountProfile,
+  fetchOptOuts,
+  fetchSessions,
+  formatUnix,
+  linkIdentity,
+  optOutLabel,
+  submitStart,
+  patchDisplayName,
+  revokeSession,
+  startPasswordStepUp,
+  startProviderStepUp,
+  unlinkIdentity,
+  type AccountProfile,
+  type AccountSession,
+  type OptOutRecord,
+} from "../api/account";
+import type { ApiErr, ApiOk } from "../api/http";
+import { stepUpChoices } from "../api/stepUp";
+import type { MeOk } from "../authGate";
+import { AuthErrorNotice } from "../components/AuthErrorNotice";
+import { type StartAction, signInHrefFor } from "../authGate";
+
+const EMPTY_PROFILE: AccountProfile = { display_name: null, identifiers_locked: true };
+
+function providerLabel(provider: string): string {
+  if (provider === "google") return "Google";
+  if (provider === "microsoft") return "Microsoft";
+  return "Sign-in";
+}
+
+function optOutTitle(record: OptOutRecord): string {
+  return record.broker_id || record.kind || "Opt-out";
+}
+
+function PasswordStepUpForm({ onSubmit }: { onSubmit: (password: string, code: string) => void }) {
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+
+  return (
+    <form
+      className="stepup-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const nextPassword = password;
+        const nextCode = code;
+        setPassword("");
+        setCode("");
+        onSubmit(nextPassword, nextCode);
+      }}
+    >
+      <p className="stepup-method">Password + authenticator code</p>
+      <label htmlFor="stepup-password">
+        Password
+        <input
+          id="stepup-password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+      </label>
+      <label htmlFor="stepup-totp">
+        Authenticator code
+        <input
+          id="stepup-totp"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+        />
+      </label>
+      <button type="submit">Confirm</button>
+    </form>
+  );
+}
+
+function downloadExport(data: unknown): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "drop-texas-export.json";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function AccountView({
+  profile,
+  optouts,
+  sessions,
+  stepUpProviders,
+  offerPassword,
+  linkedProviders,
+  editing,
+  draft,
+  profileError,
+  historyError,
+  sessionsError,
+  saveError,
+  actionError,
+  notice,
+  stepUp,
+  stepUpError,
+  confirmDelete,
+  onEdit,
+  onDraft,
+  onSaveName,
+  onCancelEdit,
+  onRevoke,
+  onExport,
+  onAskDelete,
+  onConfirmDelete,
+  onCancelDelete,
+  onStepUp,
+  onPasswordStepUp,
+  onLink,
+  onUnlink,
+}: {
+  profile: AccountProfile;
+  optouts: OptOutRecord[];
+  sessions: AccountSession[];
+  stepUpProviders: string[];
+  offerPassword: boolean;
+  linkedProviders: string[];
+  editing: boolean;
+  draft: string;
+  profileError: boolean;
+  historyError: boolean;
+  sessionsError: boolean;
+  saveError: boolean;
+  actionError: string | null;
+  notice: string | null;
+  stepUp: boolean;
+  stepUpError: string | null;
+  confirmDelete: boolean;
+  onEdit: () => void;
+  onDraft: (value: string) => void;
+  onSaveName: (event: FormEvent) => void;
+  onCancelEdit: () => void;
+  onRevoke: (id: string) => void;
+  onExport: () => void;
+  onAskDelete: () => void;
+  onConfirmDelete: () => void;
+  onCancelDelete: () => void;
+  onStepUp: (provider: string) => void;
+  onPasswordStepUp: (password: string, code: string) => void;
+  onLink: (provider: string) => void;
+  onUnlink: (provider: string) => void;
+}) {
+  return (
+    <article className="panel account-page">
+      <h1>Your account</h1>
+
+      <section className="account-section" aria-labelledby="profile-heading">
+        <h2 id="profile-heading">Profile</h2>
+        {profileError ? <p role="alert">Profile could not be loaded.</p> : null}
+        {editing ? (
+          <form className="name-edit" onSubmit={onSaveName}>
+            <label htmlFor="display-name">Display name</label>
+            <input
+              id="display-name"
+              name="display_name"
+              type="text"
+              value={draft}
+              onChange={(event) => onDraft(event.target.value)}
+              autoComplete="nickname"
+            />
+            <div className="account-actions">
+              <button type="submit">Save</button>
+              <button type="button" className="quiet-button" onClick={onCancelEdit}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <p className="name-row">
+            <span>Display name: {profile.display_name?.trim() ? profile.display_name : "Not provided"}</span>
+            <button type="button" className="quiet-button" onClick={onEdit}>
+              Edit
+            </button>
+          </p>
+        )}
+        {saveError ? <p role="alert">Could not save your display name.</p> : null}
+      </section>
+
+      <section className="account-section" aria-labelledby="identities-heading">
+        <h2 id="identities-heading">Sign-in methods</h2>
+        <ul className="identity-list">
+          {ACCOUNT_PROVIDERS.map((provider) => {
+            const linked = linkedProviders.includes(provider);
+            const label = providerLabel(provider);
+            return (
+              <li key={provider}>
+                <span>{label}</span>
+                <button type="button" className="quiet-button" onClick={() => (linked ? onUnlink(provider) : onLink(provider))}>
+                  {linked ? `Unlink ${label}` : `Link ${label}`}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className="account-section" aria-labelledby="history-heading">
+        <h2 id="history-heading">Opt-out history</h2>
+        {historyError ? <p role="alert">Opt-out history could not be loaded.</p> : null}
+        {!historyError && optouts.length === 0 ? <p>No requests yet</p> : null}
+        {optouts.length > 0 ? (
+          <table className="account-table">
+            <thead>
+              <tr>
+                <th scope="col">Request</th>
+                <th scope="col">Status</th>
+                <th scope="col">Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {optouts.map((record) => (
+                <tr key={record.id}>
+                  <td>{optOutTitle(record)}</td>
+                  <td>{optOutLabel(record)}</td>
+                  <td>{formatUnix(record.updated_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </section>
+
+      <section className="account-section" aria-labelledby="reminders-heading">
+        <h2 id="reminders-heading">Re-verification reminders</h2>
+        <p>No reminders yet</p>
+      </section>
+
+      <section className="account-section" aria-labelledby="sessions-heading">
+        <h2 id="sessions-heading">Sessions</h2>
+        {sessionsError ? <p role="alert">Sessions could not be loaded.</p> : null}
+        {!sessionsError && sessions.length === 0 ? <p>No sessions yet</p> : null}
+        {sessions.length > 0 ? (
+          <table className="account-table">
+            <thead>
+              <tr>
+                <th scope="col">Sign-in</th>
+                <th scope="col">Created</th>
+                <th scope="col">Last seen</th>
+                <th scope="col">
+                  <span className="visually-hidden">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.map((session) => (
+                <tr key={session.id}>
+                  <td>
+                    {providerLabel(session.auth_method)}
+                    {session.current ? <span className="device-badge">This device</span> : null}
+                  </td>
+                  <td>{formatUnix(session.created_at)}</td>
+                  <td>{formatUnix(session.last_seen_at)}</td>
+                  <td>
+                    <button type="button" className="quiet-button" onClick={() => onRevoke(session.id)}>
+                      Revoke
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </section>
+
+      <section className="account-section" aria-labelledby="controls-heading">
+        <h2 id="controls-heading">Data controls</h2>
+        <div className="account-actions">
+          <button type="button" onClick={onExport}>
+            Export my data
+          </button>
+          <button type="button" className="danger-button" onClick={onAskDelete}>
+            Delete my account
+          </button>
+        </div>
+        {notice ? <p>{notice}</p> : null}
+        {actionError ? <p role="alert">{actionError}</p> : null}
+      </section>
+
+      {confirmDelete ? (
+        <div className="dialog-backdrop">
+          <div className="dialog-card" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+            <h2 id="delete-title">Delete my account</h2>
+            <p>This permanently removes your account and sign-in.</p>
+            <div className="account-actions">
+              <button type="button" className="danger-button" onClick={onConfirmDelete}>
+                Confirm delete
+              </button>
+              <button type="button" className="quiet-button" onClick={onCancelDelete}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {stepUp ? (
+        <div className="dialog-backdrop">
+          <div className="dialog-card" role="dialog" aria-modal="true" aria-labelledby="stepup-title">
+            <h2 id="stepup-title">Confirm it's you</h2>
+            <p>Sign in again to continue.</p>
+            <div className="account-actions">
+              {stepUpProviders.map((provider) => (
+                <button key={provider} type="button" onClick={() => onStepUp(provider)}>
+                  Continue with {providerLabel(provider)}
+                </button>
+              ))}
+            </div>
+            {offerPassword ? <PasswordStepUpForm onSubmit={onPasswordStepUp} /> : null}
+            {stepUpError ? <p role="alert">{stepUpError}</p> : null}
+          </div>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function assignLocation(url: string): void {
+  window.location.assign(url);
+}
+
+export function AccountPage({
+  action,
+  me,
+  fetchImpl = fetch,
+  goTo = assignLocation,
+}: {
+  action: StartAction;
+  me: MeOk | null;
+  fetchImpl?: typeof fetch;
+  goTo?: (url: string) => void;
+}) {
+  const [profile, setProfile] = useState<AccountProfile>(EMPTY_PROFILE);
+  const [optouts, setOptouts] = useState<OptOutRecord[]>([]);
+  const [sessions, setSessions] = useState<AccountSession[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [profileError, setProfileError] = useState(false);
+  const [historyError, setHistoryError] = useState(false);
+  const [sessionsError, setSessionsError] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [stepUp, setStepUp] = useState(false);
+  const [stepUpError, setStepUpError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [linkedProviders, setLinkedProviders] = useState<string[]>(() =>
+    (me?.providers ?? [])
+      .map((item) => item.provider.trim().toLowerCase())
+      .filter((provider) => provider === "google" || provider === "microsoft"),
+  );
+
+  const csrfToken = me?.csrf_token ?? null;
+  const choices = stepUpChoices(me?.providers, Boolean(me?.user.has_password));
+
+  useEffect(() => {
+    if (action === "redirect") goTo(signInHrefFor("/account"));
+  }, [action, goTo]);
+
+  useEffect(() => {
+    if (action !== "form") return;
+    let live = true;
+    Promise.all([fetchAccountProfile(fetchImpl), fetchOptOuts(fetchImpl), fetchSessions(fetchImpl)]).then(
+      ([profileResult, optoutResult, sessionResult]) => {
+        if (!live) return;
+        applyResult(profileResult, setProfileError, (data) => {
+          setProfile(data);
+          setDraft(data.display_name ?? "");
+        });
+        applyResult(optoutResult, setHistoryError, setOptouts);
+        applyResult(sessionResult, setSessionsError, setSessions);
+        if (
+          (!profileResult.ok && profileResult.stepUp) ||
+          (!optoutResult.ok && optoutResult.stepUp) ||
+          (!sessionResult.ok && sessionResult.stepUp)
+        ) {
+          setStepUp(true);
+        }
+        setLoaded(true);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [action, fetchImpl]);
+
+  function applyResult<T>(result: ApiOk<T> | ApiErr, setError: (value: boolean) => void, setData: (data: T) => void) {
+    if (!result.ok) {
+      setError(!result.stepUp);
+      return;
+    }
+    setError(false);
+    setData(result.data);
+  }
+
+  async function onSaveName(event: FormEvent) {
+    event.preventDefault();
+    setSaveError(false);
+    if (!csrfToken) {
+      setSaveError(true);
+      return;
+    }
+    const result = await patchDisplayName(draft.trim(), csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setSaveError(true);
+      return;
+    }
+    setProfile((current) => ({ ...current, display_name: draft.trim() || null }));
+    setEditing(false);
+  }
+
+  async function onRevoke(id: string) {
+    setActionError(null);
+    if (!csrfToken) {
+      setActionError("Sign in again to continue.");
+      return;
+    }
+    const result = await revokeSession(id, csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setActionError("Could not revoke that session.");
+      return;
+    }
+    setSessions((current) => current.filter((session) => session.id !== id));
+  }
+
+  async function onExport() {
+    setActionError(null);
+    setNotice(null);
+    if (!csrfToken) {
+      setActionError("Sign in again to export your data.");
+      return;
+    }
+    const result = await exportAccount(csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setActionError("Export is not available yet.");
+      return;
+    }
+    downloadExport(result.data);
+    setNotice("Your export is downloading.");
+  }
+
+  async function onConfirmDelete() {
+    setActionError(null);
+    if (!csrfToken) {
+      setActionError("Sign in again to delete your account.");
+      return;
+    }
+    const result = await deleteAccount(csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setActionError("Account deletion is not available yet.");
+      return;
+    }
+    setConfirmDelete(false);
+    goTo("/");
+  }
+
+  async function onStepUp(provider: string) {
+    setStepUpError(null);
+    if (!csrfToken) {
+      setStepUpError("Sign in again to continue.");
+      return;
+    }
+    const result = await startProviderStepUp(provider, csrfToken, fetchImpl);
+    if (!result.ok || !submitStart(result.data)) {
+      setStepUpError("Could not start confirmation. Try again.");
+    }
+  }
+
+  async function onPasswordStepUp(password: string, code: string) {
+    setStepUpError(null);
+    if (!csrfToken) {
+      setStepUpError("Sign in again to continue.");
+      return;
+    }
+    const result = await startPasswordStepUp(password, code, csrfToken, fetchImpl);
+    if (!result.ok) {
+      setStepUpError(result.status === 429 ? "Too many attempts." : "That did not match.");
+      return;
+    }
+    setStepUp(false);
+  }
+
+  async function onLink(provider: string) {
+    setActionError(null);
+    if (!csrfToken) {
+      setActionError("Sign in again to continue.");
+      return;
+    }
+    const result = await linkIdentity(provider, csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setActionError("Could not link that sign-in.");
+      return;
+    }
+    if (!submitStart(result.data)) setActionError("Could not link that sign-in.");
+  }
+
+  async function onUnlink(provider: string) {
+    setActionError(null);
+    if (!csrfToken) {
+      setActionError("Sign in again to continue.");
+      return;
+    }
+    const result = await unlinkIdentity(provider, csrfToken, fetchImpl);
+    if (!result.ok) {
+      if (result.stepUp) setStepUp(true);
+      else setActionError("Could not unlink that sign-in.");
+      return;
+    }
+    setLinkedProviders((current) => current.filter((item) => item !== provider));
+  }
+
+  let body = <AccountView
+      profile={profile}
+      optouts={optouts}
+      sessions={sessions}
+      stepUpProviders={choices.providers}
+      offerPassword={choices.offerPassword}
+      linkedProviders={linkedProviders}
+      editing={editing}
+      draft={draft}
+      profileError={profileError}
+      historyError={historyError}
+      sessionsError={sessionsError}
+      saveError={saveError}
+      actionError={actionError}
+      notice={notice}
+      stepUp={stepUp}
+      stepUpError={stepUpError}
+      confirmDelete={confirmDelete}
+      onEdit={() => {
+        setDraft(profile.display_name ?? "");
+        setEditing(true);
+      }}
+      onDraft={setDraft}
+      onSaveName={(event) => void onSaveName(event)}
+      onCancelEdit={() => setEditing(false)}
+      onRevoke={(id) => void onRevoke(id)}
+      onExport={() => void onExport()}
+      onAskDelete={() => setConfirmDelete(true)}
+      onConfirmDelete={() => void onConfirmDelete()}
+      onCancelDelete={() => setConfirmDelete(false)}
+      onStepUp={(provider) => void onStepUp(provider)}
+      onPasswordStepUp={(password, code) => void onPasswordStepUp(password, code)}
+      onLink={(provider) => void onLink(provider)}
+      onUnlink={(provider) => void onUnlink(provider)}
+    />;
+  if (action === "loading") body = <p className="panel">Checking sign-in…</p>;
+  else if (action === "redirect") body = <p className="panel">Sending you to sign in…</p>;
+  else if (action === "unavailable") {
+    body = (
+      <p className="panel">
+        Sign-in could not be checked. You can try <a href={signInHrefFor("/account")}>sign in</a> again.
+      </p>
+    );
+  } else if (!loaded) body = <p className="panel">Loading your account…</p>;
+
+  return (
+    <>
+      <AuthErrorNotice />
+      {body}
+    </>
+  );
+}
