@@ -6,7 +6,7 @@ import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { authenticator } from 'otplib';
 import { hashPassword, encryptStr } from '../src/crypto.js';
 import { clearOauthCookie } from '../src/oauth.js';
-import { auditMeta } from '../src/app.js';
+import { auditMeta, purge } from '../src/app.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -815,5 +815,53 @@ describe('browser binding (B1) and deferred link (H-new1)', () => {
     }
     expect(await env.DB.prepare("SELECT COUNT(*) AS c FROM user_identities WHERE sub LIKE '%attacker-ms'").first()).toEqual({ c: 0 });
     expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'identity.link' AND ip = ?1").bind(IP).first()).toBeNull();
+  });
+});
+
+describe('pre-deploy: handoff scrubbing, purge, 429 cookie clear', () => {
+  const hdrs = () => ({ 'CF-Connecting-IP': IP, 'User-Agent': UA });
+  const linkFields = (row) => [row.link_sub, row.link_email, row.link_email_key_version, row.link_email_verified];
+
+  it('a successful link claim nulls the staged identity fields on the handoff row', async () => {
+    const a = await socialLogin('google');
+    const lb = await bound(await api('POST', '/api/account/identities/microsoft/link', a, {}));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'scrub-sub', nonce: lb.loc.searchParams.get('nonce') });
+    const r = await callback('microsoft', { state: lb.state, oauth: lb.oauth, cookie: a.sid });
+    expect(r.headers.get('Location')).toBe('/account');
+    const row = await env.DB.prepare("SELECT * FROM auth_handoffs WHERE intent = 'link'").first();
+    expect(row.used_at).not.toBeNull();
+    expect(linkFields(row)).toEqual([null, null, null, null]);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS c FROM user_identities WHERE sub LIKE '%scrub-sub'").first()).toEqual({ c: 1 });
+  });
+
+  it('a claim that then fails (session mismatch) still leaves the staged fields nulled', async () => {
+    const a = await socialLogin('google');
+    const lb = await bound(await api('POST', '/api/account/identities/microsoft/link', a, {}));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'scrub-2', nonce: lb.loc.searchParams.get('nonce') });
+    const r = await callback('microsoft', { state: lb.state, oauth: lb.oauth }); // no apex session
+    expect(r.headers.get('Location')).toBe('/start?auth_error=session_mismatch');
+    const row = await env.DB.prepare("SELECT * FROM auth_handoffs WHERE intent = 'link'").first();
+    expect(row.used_at).not.toBeNull();
+    expect(linkFields(row)).toEqual([null, null, null, null]);
+  });
+
+  it('an expired link handoff is scrubbed on redemption and purged by the cron', async () => {
+    const a = await socialLogin('google');
+    const lb = await bound(await api('POST', '/api/account/identities/microsoft/link', a, {}));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'scrub-3', nonce: lb.loc.searchParams.get('nonce') });
+    const cb = await SELF.fetch(`${ACC}/oauth/microsoft/callback?state=${encodeURIComponent(lb.state)}&code=x`, { redirect: 'manual', headers: { ...hdrs(), Cookie: lb.oauth } });
+    await env.DB.prepare('UPDATE auth_handoffs SET expires_at = ?1').bind(t0() - 1).run();
+    const r = await SELF.fetch(cb.headers.get('Location'), { redirect: 'manual', headers: { ...hdrs(), Cookie: `${a.sid}; ${browser}` } });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_expired');
+    expect(linkFields(await env.DB.prepare("SELECT * FROM auth_handoffs WHERE intent = 'link'").first())).toEqual([null, null, null, null]);
+    await purge(env);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS c FROM auth_handoffs WHERE expires_at <= ?1').bind(t0()).first()).toEqual({ c: 0 });
+  });
+
+  it('the 429 on /api/auth/complete clears __Host-login', async () => {
+    for (let i = 0; i < 30; i++) await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: hdrs() });
+    const r = await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: { ...hdrs(), Cookie: '__Host-login=' + 'A'.repeat(43) } });
+    expect(r.status).toBe(429);
+    expect(setCookies(r).some((c) => c.startsWith('__Host-login=;') && c.includes('Max-Age=0'))).toBe(true);
   });
 });
