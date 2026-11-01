@@ -5,6 +5,7 @@ import {
   encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
 import { reserve, refund, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
+import { log, logError } from './log.js';
 
 const COOKIE = '__Host-sid';
 const STEP = 30;
@@ -576,7 +577,7 @@ export async function purge(env, at = now()) {
   ]);
   const all = res.map((x) => x.meta.changes);
   const counts = [all[0], all[1], all[2], all[5], all[6]]; // all[3] oauth_states_used, all[4] auth_handoffs (not reported)
-  console.log('purge', JSON.stringify({ pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] }));
+  log('purge', { counts: { pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] } });
   return counts;
 }
 
@@ -599,7 +600,7 @@ export async function expireAudit(env, at = now()) {
     env.DB.prepare("DELETE FROM maintenance_gate WHERE name = 'audit_expiry'"),
   ]);
   const deleted = res[2].meta.changes;
-  console.log('audit_expiry', JSON.stringify({ deleted }));
+  log('audit_expiry', { deleted });
   return deleted;
 }
 
@@ -641,7 +642,7 @@ export async function inactiveAccounts(env, at = now()) {
           subject: 'Your DropTexas account will be deleted for inactivity',
           text: inactivityWarningText(u.last_seen, at, delDays, notice),
         });
-      } catch { console.error('inactive_warn send failed'); continue; } // no address/PII in logs
+      } catch (e) { logError('inactive_warn', e, { job: 'inactive_accounts' }); continue; } // error name only: no address/PII
       await env.DB.prepare('UPDATE users SET inactivity_warned_at = ?1 WHERE id = ?2 AND inactivity_warned_at IS NULL').bind(at, u.id).run();
       warned++;
     }
@@ -649,6 +650,6 @@ export async function inactiveAccounts(env, at = now()) {
   const del = await env.DB.prepare(
     'DELETE FROM users WHERE COALESCE(last_active_at, created_at) < ?1 AND inactivity_warned_at IS NOT NULL AND inactivity_warned_at <= ?2',
   ).bind(at - delDays * day, at - notice * day).run();
-  console.log('inactive_accounts', JSON.stringify({ warned, deleted: del.meta.changes }));
+  log('inactive_accounts', { warned, deleted: del.meta.changes });
   return { warned, deleted: del.meta.changes };
 }
