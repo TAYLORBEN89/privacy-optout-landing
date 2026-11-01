@@ -38,10 +38,13 @@ export function App() {
           <div className="hero-inner">
             <h1 id="page-title">Privacy is a right. This service is free for Texans.</h1>
             <p className="lede">
-              DROP Texas is a free way to send an opt-out request. If you live in Texas, check the
-              box. That means the Texas Data Privacy and Security Act (TDPSA). If you live somewhere
-              else, you can still submit. An unchecked box still uses TDPSA for now, and the request
-              is marked non-Texas.
+              DROP Texas gives you more control over your data. You can ask data brokers to delete
+              your personal information and not sell it.
+            </p>
+            <p className="lede">
+              If you live in Texas, check the box. That means the Texas Data Privacy and Security Act
+              (TDPSA). If you live somewhere else, you can still submit. An unchecked box still uses
+              TDPSA for now, and the request is marked non-Texas.
             </p>
             <a className="cta" href="#opt-out">
               Start Removing Me
