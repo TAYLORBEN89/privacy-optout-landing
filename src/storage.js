@@ -84,7 +84,10 @@ export async function saveTxRequest(req) {
 export class ProfileAuthError extends Error {}
 const isAuthStatus = (e) => e instanceof ApiError && (e.status === 401 || e.status === 403);
 export async function loadProfile() {
-  try { return { profile: await call('/profile'), source: 'session' }; } catch (e) {
+  try {
+    await call('/me'); // restores the in-memory CSRF token after a reload (needed for the PUT)
+    return { profile: await call('/profile'), source: 'session' };
+  } catch (e) {
     if (!isAuthStatus(e)) throw e;
   }
   if (!getKey() || !API_URL) throw new ProfileAuthError('sign in required');
