@@ -1,4 +1,4 @@
-# Opt Out Texas — Code & Config Changes Required by the operator's Decisions (2026-10-31)
+# DROP Texas — Code & Config Changes Required by the operator's Decisions (2026-10-31)
 
 All items: **Owner: Backend Agent.** Each goes in as a **draft PR** through the four-agent Review gate, and **the operator approves before merge**. The operator is the only one who deploys. The Compliance Agent changes no code.
 **Where:** the dashboard code goes into a separate folder of the public repo `TAYLORBEN89/privacy-optout-landing`. Item 6 and a full history scan must be done **before** the code is pushed.
@@ -12,7 +12,7 @@ All items: **Owner: Backend Agent.** Each goes in as a **draft PR** through the 
 | 5 | Texas requests in per-user D1 rows: migration `tx_requests` (`user_id` FK ON DELETE CASCADE, broker, status, sent_at, deadline, final_at, notes); routes; migrate legacy KV `txreq:*`; retire KV collection | Shared KV `txreq:` via `legacy.js` | Per-user D1 (confirmed) |
 | 6 | Remove Cloudflare `account_id`, KV namespace `id`, and placeholder D1 `database_id` from `worker/wrangler.toml`; supply via CI vars or untracked local config | `worker/wrangler.toml` | **Blocking before code push** |
 | 7 | Remove `http://localhost:5173` from production `ALLOWED_ORIGIN`; dev origin only in `.dev.vars`; add droptexas.com when live | `wrangler.toml [vars]` | Production origins only |
-| 8 | Inactive accounts: add `last_login_at`; send a warning email 30 days before deletion (needs an email-sending path, e.g. Cloudflare Email Service or Zoho SMTP; record `warned_at`); delete (cascade) at 24 months inactive | Not present | 30-day warning, 24-mo deletion |
+| 8 | Inactive accounts: add `last_login_at`; send a warning email 30 days before deletion (needs an email-sending path, e.g. Cloudflare Email Service or iCloud Mail custom-domain SMTP; record `warned_at`); delete (cascade) at 24 months inactive | Not present | 30-day warning, 24-mo deletion |
 | 9 | Enable Cloudflare Workers Logs: `[observability] enabled = true` in `wrangler.toml`; never `console.log` request bodies, identifiers, emails, or tokens (audit existing `console.error('app error', e.stack)` so stacks never include PII); consider `head_sampling_rate`; add a test/lint for PII in logs | Not enabled in config | ON, no bodies/PII (config change) |
 | 10 | (Supporting) Retire legacy shared-`API_TOKEN` routes after migration | `src/legacy.js`, `src/index.js` | Required for multi-user |
 | 11 | (Supporting) Stop caching identifiers in plain-text localStorage | `src/storage.js` `PROFILE_CACHE` | Data minimization |

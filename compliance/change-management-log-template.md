@@ -1,4 +1,4 @@
-# Opt Out Texas — Change Management Policy & Log (DRAFT)
+# DROP Texas — Change Management Policy & Log (DRAFT)
 
 **Repo: PUBLIC, `TAYLORBEN89/privacy-optout-landing` (final, operator 2026-10-31).** Landing page, compliance docs (`/compliance`), and dashboard code (separate folder) share this repo. The dashboard code is still local only (`main`, `backend/d1-auth`) and must clear the checklist below before it is pushed.
 
