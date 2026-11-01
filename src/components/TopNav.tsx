@@ -2,14 +2,14 @@ import { NAV_ITEMS } from "../navItems";
 import { AppLink } from "../router";
 
 const BLURBS: Record<string, string> = {
-  overview: "What DROP Texas does, and what an opt-out request is.",
-  "how-drop-works": "The steps from signup to opt-out requests.",
-  "personal-information": "What we collect and why.",
-  "data-brokers": "The companies we send opt-out requests to.",
-  "unique-identifiers": "Emails, phones, and IDs brokers track you by.",
-  tdpsa: "Your rights under the Texas Data Privacy and Security Act.",
+  overview: "No catch, no fees.",
+  "how-drop-works": "One form, then we take it from there.",
+  "personal-information": "Only what's needed. Never sold.",
+  "data-brokers": "Major brokers, one request.",
+  "unique-identifiers": "Matched to your record.",
+  tdpsa: "Backed by Texas law.",
   help: "Answers to common questions.",
-  share: "Tell a friend about DROP Texas.",
+  share: "Pass it on to a fellow Texan.",
 };
 
 const ACCENTS: Record<string, string> = {

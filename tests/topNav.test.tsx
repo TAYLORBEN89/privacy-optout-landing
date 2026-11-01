@@ -8,14 +8,14 @@ import { TopNav } from "../src/components/TopNav";
 import { NAV_ITEMS } from "../src/navItems";
 
 const BLURBS = [
-  "What DROP Texas does, and what an opt-out request is.",
-  "The steps from signup to opt-out requests.",
-  "What we collect and why.",
-  "The companies we send opt-out requests to.",
-  "Emails, phones, and IDs brokers track you by.",
-  "Your rights under the Texas Data Privacy and Security Act.",
+  "No catch, no fees.",
+  "One form, then we take it from there.",
+  "Only what's needed. Never sold.",
+  "Major brokers, one request.",
+  "Matched to your record.",
+  "Backed by Texas law.",
   "Answers to common questions.",
-  "Tell a friend about DROP Texas.",
+  "Pass it on to a fellow Texan.",
 ];
 
 afterEach(() => {

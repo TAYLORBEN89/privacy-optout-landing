@@ -125,7 +125,8 @@ describe("stats rendering", () => {
     const css = readFileSync("src/styles.css", "utf8");
     const band = css.slice(css.indexOf(".stats {"), css.indexOf(".stats h2"));
     expect(band).toContain("background: #0b5cad");
-    expect(css).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(css).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
+    expect(css).toContain("@media (min-width: 768px)");
     expect(css).toContain("grid-template-columns: repeat(6, minmax(0, 1fr))");
     expect(css).toContain("grid-column: 2 / span 2");
     expect(css).toContain("grid-column: 4 / span 2");
