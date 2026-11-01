@@ -1,3 +1,4 @@
+import protectedArt from "../assets/personal-protected.png";
 import { FeaturePanel } from "../components/FeaturePanel";
 import { TopNav } from "../components/TopNav";
 import { BrokerMarquee } from "../components/Marquee";
@@ -37,13 +38,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       {/* A real, permissioned quote can be added here later. Do not invent a testimonial. */}
       <section id="personal-information" className="yellow-band" aria-labelledby="personal-heading">
         <div className="personal-protect">
-          <svg className="personal-icon" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
-            <rect x="8" y="14" width="48" height="36" rx="6" fill="none" stroke="#056cb8" strokeWidth="2.4" />
-            <circle cx="24" cy="30" r="6" fill="none" stroke="#ee0014" strokeWidth="2.4" />
-            <path d="M14 44c1.6-5 5-7.5 10-7.5s8.4 2.5 10 7.5" fill="none" stroke="#ee0014" strokeWidth="2.4" strokeLinecap="round" />
-            <rect x="36" y="26" width="14" height="12" rx="2" fill="none" stroke="#b8860b" strokeWidth="2.4" />
-            <path d="M39 26v-3a4 4 0 0 1 8 0v3" fill="none" stroke="#b8860b" strokeWidth="2.4" strokeLinecap="round" />
-          </svg>
+          <img className="personal-icon" src={protectedArt} alt="" />
           <p className="personal-kicker">Personal information</p>
           <h2 id="personal-heading">Your information, protected</h2>
           <p className="personal-sub">Only what we need. Nothing more.</p>
