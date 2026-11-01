@@ -2,10 +2,11 @@
 // throwaway keypairs generated per run; no network access.
 import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
-import { generateKeyPair, exportJWK, SignJWT, decodeJwt } from 'jose';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { authenticator } from 'otplib';
 import { hashPassword, encryptStr } from '../src/crypto.js';
-import { MS_CONSUMER_TID } from '../src/oauth.js';
+import { clearOauthCookie } from '../src/oauth.js';
+import { auditMeta } from '../src/app.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -14,16 +15,14 @@ const ORG_TID = '11111111-2222-3333-4444-555555555555';
 let IP; let n = 0;
 
 const keys = {};
-const ALG = { google: 'RS256', microsoft: 'RS256', apple: 'ES256' };
-const AUD = { google: 'test-google-client', microsoft: 'test-ms-client', apple: 'test.apple.services' };
+const ALG = { google: 'RS256', microsoft: 'RS256' };
+const AUD = { google: 'test-google-client', microsoft: 'test-ms-client' };
 const JWKS = {
   'https://www.googleapis.com/oauth2/v3/certs': 'google',
-  'https://appleid.apple.com/auth/keys': 'apple',
   'https://login.microsoftonline.com/common/discovery/v2.0/keys': 'microsoft',
 };
 const TOKEN = {
   'https://oauth2.googleapis.com/token': 'google',
-  'https://appleid.apple.com/auth/token': 'apple',
   'https://login.microsoftonline.com/common/oauth2/v2.0/token': 'microsoft',
 };
 let nextClaims = {}; // provider -> claims for the next token response
@@ -57,15 +56,14 @@ beforeEach(async () => {
   IP = `10.9.0.${++n}`;
   nextClaims = {};
   tokenRequests.length = 0;
-  await env.DB.batch(['audit_log', 'user_identities', 'oauth_states_used', 'confirmations', 'pii_payloads', 'optout_requests', 'profiles', 'backup_codes', 'sessions', 'users']
+  await env.DB.batch(['user_identities', 'oauth_states_used', 'confirmations', 'pii_payloads', 'optout_requests', 'profiles', 'backup_codes', 'sessions', 'users']
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`))); // test-only fixed table names
 });
 
 const t0 = () => Math.floor(Date.now() / 1000);
 function claimsFor(p, { sub = 'subject-1', email = 'person@example.test', nonce, tid = ORG_TID, ...extra } = {}) {
-  const base = { sub, email, nonce, aud: AUD[p], iat: t0(), exp: t0() + 600 };
+  const base = { sub, email, nonce, aud: AUD[p], iat: t0(), exp: t0() + 600, auth_time: t0() };
   if (p === 'google') return { ...base, iss: 'https://accounts.google.com', email_verified: true, ...extra };
-  if (p === 'apple') return { ...base, iss: 'https://appleid.apple.com', email_verified: 'true', ...extra };
   return { ...base, iss: `https://login.microsoftonline.com/${tid}/v2.0`, tid, ...extra };
 }
 
@@ -83,13 +81,6 @@ function parseStart(r) {
 }
 async function callback(p, { state, oauth, cookie = '', code = 'auth-code' }) {
   const Cookie = [oauth, cookie].filter(Boolean).join('; ');
-  if (p === 'apple') {
-    return SELF.fetch(`${BASE}/api/auth/apple/callback`, {
-      method: 'POST', redirect: 'manual',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'https://appleid.apple.com', 'CF-Connecting-IP': IP, 'User-Agent': UA, Cookie },
-      body: new URLSearchParams({ state, code }).toString(),
-    });
-  }
   return SELF.fetch(`${BASE}/api/auth/${p}/callback?state=${encodeURIComponent(state)}&code=${code}`, { redirect: 'manual', headers: H({ Cookie }) });
 }
 // Full login; returns { sid, csrf, res }.
@@ -111,14 +102,14 @@ const expireStepUp = (sid) => env.DB.prepare('UPDATE sessions SET stepped_up_at 
 const countUsers = async () => (await env.DB.prepare('SELECT COUNT(*) AS c FROM users').first()).c;
 
 describe('social login happy paths', () => {
-  for (const p of ['google', 'apple', 'microsoft']) {
+  for (const p of ['google', 'microsoft']) {
     it(`${p}: creates a user + identity, sets a Lax session cookie, redirects to return_to`, async () => {
       const { res, sid, s } = await socialLogin(p);
       expect(res.status).toBe(303);
       expect(res.headers.get('Location')).toBe('/account');
       expect(s.loc.searchParams.get('nonce')).toBeTruthy();
-      if (p !== 'apple') expect(s.loc.searchParams.get('code_challenge_method')).toBe('S256');
-      else expect(s.loc.searchParams.get('response_mode')).toBe('form_post');
+      expect(s.loc.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(setCookies(await start(p)).find((c) => c.startsWith('__Host-oauth='))).toContain('SameSite=Lax');
       const sc = setCookies(res).find((c) => c.startsWith('__Host-sid='));
       for (const a of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/']) expect(sc).toContain(a);
       expect(setCookies(res).some((c) => c.startsWith('__Host-oauth=;') && c.includes('Max-Age=0'))).toBe(true);
@@ -139,27 +130,19 @@ describe('social login happy paths', () => {
     });
   }
 
-  it('apple: client_secret is an ES256 JWT generated at runtime; private relay flagged; email kept when later omitted', async () => {
-    await socialLogin('apple', { email: 'abc123@privaterelay.appleid.com', is_private_email: 'true' });
-    const body = new URLSearchParams(tokenRequests[0].body);
-    const cs = body.get('client_secret');
-    const hdr = JSON.parse(atob(cs.split('.')[0].replace(/-/g, '+').replace(/_/g, '/')));
-    expect(hdr).toMatchObject({ alg: 'ES256', kid: 'TESTKEY001' });
-    expect(decodeJwt(cs)).toMatchObject({ iss: 'TESTTEAM01', sub: 'test.apple.services' });
-    let row = await env.DB.prepare('SELECT * FROM user_identities').first();
-    expect(row.is_private_relay).toBe(1);
-    const before = row.email;
-    await socialLogin('apple', { email: null });
-    row = await env.DB.prepare('SELECT * FROM user_identities').first();
-    expect(row.email).toBe(before);
+  it('email is kept when the provider later omits it', async () => {
+    await socialLogin('google');
+    const before = (await env.DB.prepare('SELECT email FROM user_identities').first()).email;
+    await socialLogin('google', { email: null });
+    expect((await env.DB.prepare('SELECT email FROM user_identities').first()).email).toBe(before);
   });
 
-  it('microsoft: email verified only for consumer tenant or xms_edov', async () => {
+  it('microsoft: email verified only via xms_edov (no consumer-tenant shortcut)', async () => {
     await socialLogin('microsoft', { sub: 'a' });
     await socialLogin('microsoft', { sub: 'b', xms_edov: true });
-    await socialLogin('microsoft', { sub: 'c', tid: MS_CONSUMER_TID });
+    await socialLogin('microsoft', { sub: 'c', tid: '9188040d-6c67-4c5b-b112-36a304b66dad' });
     const rows = (await env.DB.prepare('SELECT sub, email_verified FROM user_identities ORDER BY sub').all()).results;
-    expect(rows.map((r) => r.email_verified)).toEqual([0, 1, 1]);
+    expect(rows.map((r) => r.email_verified)).toEqual([0, 1, 0]);
   });
 });
 
@@ -191,17 +174,17 @@ describe('callback rejections', () => {
     ['wrong nonce', 'google', { nonce: 'wrong' }, 'nonce_mismatch'],
     ['wrong aud', 'google', { aud: 'someone-else' }, 'bad_aud'],
     ['wrong iss (google)', 'google', { iss: 'https://evil.example' }, 'bad_iss'],
-    ['wrong iss (apple)', 'apple', { iss: 'https://evil.example' }, 'bad_iss'],
+    ['wrong iss (microsoft)', 'microsoft', { iss: 'https://evil.example' }, 'bad_iss'],
     ['microsoft iss not matching tid', 'microsoft', { iss: 'https://login.microsoftonline.com/99999999-2222-3333-4444-555555555555/v2.0' }, 'bad_iss'],
     ['expired token', 'google', { exp: Math.floor(Date.now() / 1000) - 3600, iat: Math.floor(Date.now() / 1000) - 7200 }, 'token_expired'],
-    ['future iat', 'apple', { iat: Math.floor(Date.now() / 1000) + 3600 }, 'bad_claims'],
+    ['future iat', 'google', { iat: Math.floor(Date.now() / 1000) + 3600 }, 'bad_claims'],
   ];
   for (const [name, p, over, reason] of cases) {
     it(name, async () => {
       const s = parseStart(await start(p));
       nextClaims[p] = { ...claimsFor(p, { nonce: s.nonce }), ...over };
       expect(await failOf(await callback(p, s))).toBe(`/start?auth_error=${reason}`);
-      const a = await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'auth.fail'").first();
+      const a = await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'auth.fail' AND ip = ?1 ORDER BY id DESC").bind(IP).first();
       expect(a.target).toBe(`${p}:${reason}`);
       expect(await countUsers()).toBe(0);
     });
@@ -216,7 +199,7 @@ describe('callback rejections', () => {
 describe('identity linking', () => {
   it('a matching email does NOT link: same email on another provider creates a separate user', async () => {
     await socialLogin('google', { email: 'same@example.test' });
-    await socialLogin('microsoft', { email: 'same@example.test', tid: MS_CONSUMER_TID });
+    await socialLogin('microsoft', { email: 'same@example.test', tid: '9188040d-6c67-4c5b-b112-36a304b66dad' });
     expect(await countUsers()).toBe(2);
     // and a password user with that email is not linked either
     expect((await env.DB.prepare('SELECT COUNT(DISTINCT user_id) AS c FROM user_identities').first()).c).toBe(2);
@@ -248,7 +231,7 @@ describe('identity linking', () => {
     const me = await (await api('GET', '/api/me', a)).json();
     expect(me.providers.map((x) => x.provider).sort()).toEqual(['google', 'microsoft']);
     expect(await countUsers()).toBe(1);
-    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'identity.link' AND target = 'microsoft'").first()).toBeTruthy();
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'identity.link' AND target = 'microsoft' AND ip = ?1").bind(IP).first()).toBeTruthy();
   });
 
   it('linking an identity owned by another user is refused', async () => {
@@ -327,7 +310,7 @@ describe('POST /api/optouts/signup (gate)', () => {
     expect(row).toMatchObject({ status: 'queued', kind: 'tx', sub_status: 'non_texas' });
     const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
     expect(p.payload_enc).not.toContain('Pat');
-    const exp = await (await api('GET', '/api/account/export', a)).json();
+    const exp = await (await api('POST', '/api/account/export', a)).json();
     expect(exp.optouts[0].pii).toMatchObject({ fullName: 'Pat Example', email: 'pat@example.test', jurisdiction: 'TDPSA', nonTexasFlag: true });
     const list = await (await api('GET', '/api/account/optouts', a)).json();
     expect(list.optouts).toHaveLength(1);
@@ -368,7 +351,7 @@ describe('account API + step-up', () => {
   it('step-up expiry blocks export, delete and session revoke', async () => {
     const a = await socialLogin('google');
     await expireStepUp();
-    expect((await api('GET', '/api/account/export', a)).status).toBe(403);
+    expect((await api('POST', '/api/account/export', a)).status).toBe(403);
     expect((await api('POST', '/api/account/delete', a)).status).toBe(403);
     const sess = await (await api('GET', '/api/account/sessions', a)).json();
     expect(sess.sessions[0].current).toBe(true);
@@ -392,7 +375,7 @@ describe('account API + step-up', () => {
     for (const t of ['users', 'user_identities', 'sessions', 'optout_requests', 'pii_payloads', 'profiles']) {
       expect((await env.DB.prepare(`SELECT COUNT(*) AS c FROM ${t}`).first()).c).toBe(0); // test-only fixed table names
     }
-    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'account.delete'").first()).toBeTruthy();
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'account.delete' AND ip = ?1").bind(IP).first()).toBeTruthy();
     expect((await api('GET', '/api/me', a)).status).toBe(401);
   });
 
@@ -444,11 +427,16 @@ describe('audit IP / user-agent', () => {
       await callback('google', { ...s, state: 'bad' }); // failure path
       const long = 'L'.repeat(600);
       await SELF.fetch(`${BASE}/api/auth/google/callback?state=x&code=y`, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': long } });
-      const rows = (await env.DB.prepare('SELECT action, ip, user_agent FROM audit_log ORDER BY id').all()).results;
+      const rows = (await env.DB.prepare('SELECT action, user_id, ip, user_agent FROM audit_log WHERE ip = ?1 ORDER BY id').bind(IP).all()).results;
       expect(rows.length).toBeGreaterThan(2);
-      for (const r of rows) expect(r.ip).toBe(IP);
-      expect(rows.slice(0, -1).every((r) => r.user_agent === UA)).toBe(true);
-      expect(rows.at(-1).user_agent).toHaveLength(512);
+      const ok = rows.filter((r) => r.action !== 'auth.fail');
+      expect(ok.length).toBeGreaterThan(0);
+      expect(ok.every((r) => r.user_agent === UA)).toBe(true);
+      // L2: unauthenticated auth.fail rows keep the IP but store no User-Agent
+      const fails = rows.filter((r) => r.action === 'auth.fail');
+      expect(fails.length).toBe(2);
+      expect(fails.every((r) => r.user_id === null && r.user_agent === null)).toBe(true);
+      expect(auditMeta(new Request('https://x', { headers: { 'User-Agent': long } }))[1]).toHaveLength(512);
     } finally { spies.forEach((s) => s.mockRestore()); }
     const out = logged.join('\n');
     expect(out).not.toContain(IP);
@@ -456,7 +444,67 @@ describe('audit IP / user-agent', () => {
   });
   it('ip is NULL when CF-Connecting-IP is absent', async () => {
     await SELF.fetch(`${BASE}/api/auth/google/callback?state=x&code=y`, { redirect: 'manual' });
-    const r = await env.DB.prepare('SELECT ip FROM audit_log').first();
+    const r = await env.DB.prepare('SELECT ip FROM audit_log ORDER BY id DESC').first();
     expect(r.ip).toBeNull();
+  });
+});
+
+describe('security review fixes', () => {
+  const stepUpFlow = async (a, claimOver) => {
+    const r = await api('POST', '/api/auth/google/stepup', a, {});
+    const loc = new URL((await r.json()).url);
+    nextClaims.google = { ...claimsFor('google', { nonce: loc.searchParams.get('nonce') }), ...claimOver };
+    return callback('google', { state: loc.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
+  };
+
+  it('H1: step-up/link send prompt=login + max_age=0 and require a fresh numeric auth_time', async () => {
+    const a = await socialLogin('google');
+    let r = await api('POST', '/api/auth/google/stepup', a, {});
+    const loc = new URL((await r.json()).url);
+    expect(loc.searchParams.get('prompt')).toBe('login');
+    expect(loc.searchParams.get('max_age')).toBe('0');
+    await expireStepUp();
+    expect((await stepUpFlow(a, { auth_time: undefined })).headers.get('Location')).toBe('/start?auth_error=stale_auth');
+    expect((await stepUpFlow(a, { auth_time: t0() - 601 })).headers.get('Location')).toBe('/start?auth_error=stale_auth');
+    expect((await stepUpFlow(a, { auth_time: String(t0()) })).headers.get('Location')).toBe('/start?auth_error=stale_auth');
+    expect((await api('POST', '/api/account/export', a)).status).toBe(403);
+    expect((await stepUpFlow(a, {})).headers.get('Location')).toBe('/account');
+    // link without auth_time is refused too
+    r = await api('POST', '/api/account/identities/microsoft/link', a, {});
+    const l = new URL((await r.json()).url);
+    nextClaims.microsoft = { ...claimsFor('microsoft', { nonce: l.searchParams.get('nonce') }), auth_time: undefined };
+    r = await callback('microsoft', { state: l.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=stale_auth');
+  });
+
+  it('Apple sign-in is removed: /api/auth/apple/* and Apple identity routes return 404', async () => {
+    for (const path of ['/api/auth/apple/start', '/api/auth/apple/callback']) {
+      expect((await SELF.fetch(BASE + path, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP } })).status).toBe(404);
+    }
+    const a = await socialLogin('google');
+    expect((await api('POST', '/api/auth/apple/stepup', a, {})).status).toBe(404);
+    expect((await api('POST', '/api/auth/apple/callback', a, {})).status).toBe(404);
+    expect((await api('POST', '/api/account/identities/apple/link', a, {})).status).toBe(404);
+  });
+
+  it('M3: bound flow refuses an idle session', async () => {
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/auth/google/stepup', a, {});
+    const loc = new URL((await r.json()).url);
+    await env.DB.prepare('UPDATE sessions SET last_seen_at = ?1').bind(t0() - 43201).run();
+    nextClaims.google = claimsFor('google', { nonce: loc.searchParams.get('nonce') });
+    const cb = await callback('google', { state: loc.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
+    expect(cb.headers.get('Location')).toBe('/start?auth_error=session_mismatch');
+  });
+
+  it('M4: export is POST only and needs CSRF', async () => {
+    const a = await socialLogin('google');
+    expect((await api('GET', '/api/account/export', a)).status).not.toBe(200);
+    expect((await api('POST', '/api/account/export', { sid: a.sid })).status).toBe(403);
+    expect((await api('POST', '/api/account/export', a)).status).toBe(200);
+  });
+
+  it('the state cookie is always SameSite=Lax (set and clear)', () => {
+    expect(clearOauthCookie()).toContain('SameSite=Lax');
   });
 });

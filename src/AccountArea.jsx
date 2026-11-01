@@ -6,7 +6,7 @@ import * as api from './authApi.js';
 const fmt = (t) => (t ? new Date(t * 1000).toLocaleString() : '—');
 const STATUS_LABEL = {
   queued: 'Queued', submitted: 'Submitted', in_progress: 'In progress', pending: 'Waiting on response',
-  confirmed: 'Confirmed', denied: 'Denied', reverify: 'Needs re-check',
+  confirmed: 'Confirmed', denied: 'Not completed', reverify: 'Needs re-check',
 };
 const ACTIVE = new Set(['queued', 'submitted', 'in_progress', 'pending', 'reverify']);
 const providerLabel = (id) => api.PROVIDERS.find((p) => p.id === id)?.label || id;
@@ -64,7 +64,7 @@ function Profile({ guard }) {
       {p.identifiers_locked
         ? <button className="acct-btn" onClick={() => guard(load)}>Show</button>
         : <ul className="acct-list">{p.sign_in_emails.map((e) => (
-          <li key={e.provider + e.email}><span>{e.email}</span><span className="muted">{providerLabel(e.provider)}{e.private_relay ? ' · private relay' : ''}{e.verified ? '' : ' · unverified'}</span></li>
+          <li key={e.provider + e.email}><span>{e.email}</span><span className="muted">{providerLabel(e.provider)}{e.verified ? '' : ' · unverified'}</span></li>
         ))}</ul>}
     </section>
   );

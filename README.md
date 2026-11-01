@@ -55,7 +55,7 @@ Edit `src/services.js` and add an entry to `SERVICES`:
 
 The **Texas broker requests** tab lists every broker in the [Texas SOS data broker registry](https://texas-sos.appianportalsgov.com/data-broker-registry) (bundled export: `src/data/tx-brokers.json`, 445 brokers, exported 2026-10-21). For each broker it builds a Texas Data Privacy and Security Act deletion + opt-out email with **Copy email** and **Open in mail app** (mailto:) buttons. The dashboard never sends email; you send it, then mark it sent.
 
-- Tracking per broker: date sent, 45-day deadline (auto), status (sent, extended +45, completed, no data, denied, appealed +60, AG complaint), response notes. Overdue requests show in red with appeal / AG complaint guidance.
+- Tracking per broker: date sent, 45-day deadline (auto), status (sent, extended +45, completed, no data, not completed (stored as `denied`), appealed +60, AG complaint), response notes. Overdue requests show in red with appeal / AG complaint guidance.
 - Requests sync through the Worker at `/txrequests` (KV prefix `txreq:`).
 - **Your identifiers** (name, aliases, addresses, phones, emails) live only in the Worker at `/settings/profile` (KV key `settings:profile`), edited from the "Your identifiers" panel. They are not in the site's code.
 - **Refreshing the registry:** on the registry site click "Export to Excel", then use "Upload newer registry export" in the tab (XLSX or CSV). An uploaded list is kept in that browser only; to update the bundled list for all devices, replace `src/data/tx-brokers.json` and redeploy.
@@ -71,4 +71,4 @@ npm run build && npx wrangler pages deploy dist --project-name privacy-dashboard
 Checklist categories now also include People-search sites, Search & apps, and Specialty reports (Innovis, LexisNexis Risk, ChexSystems, NCTUE freezes; 12-month re-verify). Add services in `src/services.js` as before.
 
 ## Social sign-in
-Google, Apple and Microsoft sign-in (plus the password + TOTP fallback) and the account area: see [docs/oauth-setup.md](docs/oauth-setup.md).
+Google and Microsoft sign-in (plus the password + TOTP fallback) and the account area: see [docs/oauth-setup.md](docs/oauth-setup.md).

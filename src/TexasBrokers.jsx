@@ -12,7 +12,7 @@ export const TX_STATUSES = [
   { id: 'extended', label: 'Extended (+45 days)' },
   { id: 'completed', label: 'Completed / deleted' },
   { id: 'no_data', label: 'No data held' },
-  { id: 'denied', label: 'Denied' },
+  { id: 'denied', label: 'Not completed' },
   { id: 'appealed', label: 'Appealed' },
   { id: 'ag_complaint', label: 'AG complaint filed' },
 ];
@@ -88,7 +88,7 @@ function BrokerRow({ broker, req, onChange, profile }) {
         </div>
       </div>
       {overdue && <div className="badge-red">No response — deadline passed {r.deadline}. Consider an appeal or an AG complaint.</div>}
-      {r.status === 'denied' && <div className="tx-hint">Denied: reply with an appeal (the company has 60 days to answer, § 541.053). If the appeal is denied, <a href={AG_COMPLAINT_URL} target="_blank" rel="noreferrer">file a complaint with the Texas AG</a>.</div>}
+      {r.status === 'denied' && <div className="tx-hint">Not completed: reply with an appeal (the company has 60 days to answer, § 541.053). If the appeal is denied, <a href={AG_COMPLAINT_URL} target="_blank" rel="noreferrer">file a complaint with the Texas AG</a>.</div>}
       {r.status === 'appealed' && <div className="tx-hint">Appeal sent {r.appealDate}. If it is denied or unanswered by {r.deadline}, <a href={AG_COMPLAINT_URL} target="_blank" rel="noreferrer">file a Texas AG complaint</a>.</div>}
       {open && (
         <>

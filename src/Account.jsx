@@ -1,4 +1,4 @@
-// Account sign-in (D1 auth): Continue with Google/Apple/Microsoft, or email + password -> TOTP or backup code
+// Account sign-in (D1 auth): Continue with Google/Microsoft, or email + password -> TOTP or backup code
 // (fallback); TOTP enrollment with QR; backup codes. Signed-in users get the account area (AccountArea.jsx).
 // The legacy shared-key dashboard is still available at "#/" until the KV -> D1 migration is finished.
 import { useEffect, useRef, useState } from 'react';

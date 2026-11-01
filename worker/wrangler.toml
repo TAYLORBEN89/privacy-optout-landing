@@ -8,7 +8,9 @@ compatibility_flags = ["nodejs_compat"]   # otplib uses node:crypto HMAC
 # Comma-separated list of exact origins allowed by CORS (no trailing slashes).
 # droptexas.com plan: dashboard https://droptexas.com, API https://api.droptexas.com (same site -> SameSite=Strict).
 # The pages.dev origin stays until the dashboard has moved; remove it afterwards.
-ALLOWED_ORIGIN = "https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
+# Production origins only. Dev/preview origins (localhost, pages.dev) go in .dev.vars (see .dev.vars.example).
+# `npm run check:origins` fails if anything else appears here.
+ALLOWED_ORIGIN = "https://droptexas.com,https://www.droptexas.com"
 SESSION_COOKIE_SAMESITE = "Lax"       # Lax: OAuth callbacks are top-level cross-site navigations (Strict would drop the cookie). "None" only for a cross-site pages.dev setup.
 SESSION_IDLE_SECONDS = "43200"        # 12h idle
 SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (approved)
@@ -20,13 +22,13 @@ SESSION_PURGE_DAYS = "7"                  # session rows deleted 7 days after ex
 FINISHED_RECORD_RETENTION_DAYS = "730"    # Compliance: finished opt-out records kept 24 months
 TX_RECORD_RETENTION_DAYS = "1095"         # Compliance: Texas requests kept 3 years
 PII_KEY_VERSION = "1"
+AUDIT_RETENTION_DAYS = "365"               # audit_log kept 12 months, then expired by expireAudit (append-only otherwise)
 
 # Social sign-in (public client IDs; placeholders until the provider apps are registered - see docs/oauth-setup.md).
 GOOGLE_CLIENT_ID = "<google-client-id>.apps.googleusercontent.com"
 MICROSOFT_CLIENT_ID = "00000000-0000-0000-0000-000000000000"
-APPLE_CLIENT_ID = "com.example.signin"       # Apple Services ID
 # Exact redirect_uri allowlist (comma-separated). Must match the provider consoles character for character.
-OAUTH_REDIRECT_URIS = "https://privacy-api.example.com/api/auth/google/callback,https://privacy-api.example.com/api/auth/apple/callback,https://privacy-api.example.com/api/auth/microsoft/callback"
+OAUTH_REDIRECT_URIS = "https://droptexas.com/api/auth/google/callback,https://droptexas.com/api/auth/microsoft/callback"
 
 [[kv_namespaces]]
 binding = "RECORDS"
@@ -51,6 +53,6 @@ crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expire
 
 # Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
 # ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists).
-# Social sign-in secrets: GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY (.p8 PEM),
+# Social sign-in secrets: GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET,
 # OAUTH_COOKIE_KEY (base64 32 bytes). See docs/oauth-setup.md. Optional during PII key rotation: PII_ENC_KEY_PREV + PII_PREV_KEY_VERSION.
 # Local dev values go in .dev.vars (gitignored).

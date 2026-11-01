@@ -30,7 +30,7 @@ export const regenerateBackupCodes = () => call('/api/auth/backup-codes/regenera
 
 // Social sign-in: full-page navigation to the provider.
 export const PROVIDERS = [
-  { id: 'google', label: 'Google' }, { id: 'apple', label: 'Apple' }, { id: 'microsoft', label: 'Microsoft' },
+  { id: 'google', label: 'Google' }, { id: 'microsoft', label: 'Microsoft' },
 ];
 export const socialStartUrl = (provider, returnTo = '/account') =>
   `${API_URL}/api/auth/${provider}/start?return_to=${encodeURIComponent(returnTo)}`;
@@ -50,5 +50,5 @@ export const sessions = () => call('/api/account/sessions');
 export const revokeSession = (id) => call(`/api/account/sessions/${id}/revoke`, { method: 'POST' });
 export const linkProvider = (provider) => call(`/api/account/identities/${provider}/link`, { method: 'POST', body: { return_to: '/account' } });
 export const unlinkProvider = (provider) => call(`/api/account/identities/${provider}`, { method: 'DELETE' });
-export const exportData = () => call('/api/account/export');
+export const exportData = () => call('/api/account/export', { method: 'POST' }); // POST + CSRF (was GET)
 export const deleteAccount = () => call('/api/account/delete', { method: 'POST' });

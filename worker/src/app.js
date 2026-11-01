@@ -12,7 +12,7 @@ authenticator.options = { step: STEP, window: 1 };
 
 const now = () => Math.floor(Date.now() / 1000);
 const num = (v, d) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
-const cfg = (env) => ({
+export const cfg = (env) => ({
   idle: num(env.SESSION_IDLE_SECONDS, 43200),
   absolute: num(env.SESSION_ABSOLUTE_SECONDS, 604800),
   preauth: num(env.PREAUTH_SECONDS, 300),
@@ -67,9 +67,11 @@ export const auditMeta = (req) => {
   return [ip, ua];
 };
 // `ctx` is a request context { env, req }; a bare env is accepted (no request -> ip/ua NULL, e.g. cron).
-export async function audit(ctx, userId, action, target = null) {
+// opts.ua=false stores a NULL User-Agent (used for unauthenticated auth.fail rows; the IP is kept for rate-limit forensics).
+export async function audit(ctx, userId, action, target = null, opts = {}) {
   const env = ctx.env ?? ctx;
-  const [ip, ua] = auditMeta(ctx.req);
+  const [ip, uaRaw] = auditMeta(ctx.req);
+  const ua = opts.ua === false ? null : uaRaw;
   await env.DB.prepare('INSERT INTO audit_log (user_id, action, target, at, ip, user_agent) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
     .bind(userId, action, target, now(), ip, ua).run();
 }
@@ -130,6 +132,11 @@ export async function rotate(ctx, cur, mfa) {
 
 export const sessionResponse = (ctx, s, body, status = 200) =>
   json(ctx, { ...body, csrf_token: s.csrf }, status, { 'Set-Cookie': setCookie(ctx.env, s.token, s.maxAge) });
+
+// Step-up: re-authentication within the last 10 minutes (social re-auth, password+TOTP, or a fresh login).
+export const STEP_UP_SECONDS = 600;
+export const isSteppedUp = (s) => !!s.stepped_up_at && now() - s.stepped_up_at <= STEP_UP_SECONDS;
+const STEP_UP_REQUIRED = (ctx) => json(ctx, { error: 'step_up_required' }, 403);
 
 // ---------- handlers ----------
 async function login(ctx) {
@@ -515,12 +522,13 @@ export async function handleApp(req, env) {
   const cm = path.match(/^\/optouts\/([0-9a-f-]{36})\/confirmations$/);
   if (cm && m === 'POST') return addConfirmation(ctx, cur, cm[1]);
   if (m === 'GET' && path === '/brokers') return listBrokers(ctx);
-  if (m === 'GET' && path === '/profile') return getProfile(ctx, cur);
-  if (m === 'PUT' && path === '/profile') return putProfile(ctx, cur);
+  // Identifier/PII reads and writes on the legacy routes require step-up (kept for the dashboard, gated not removed).
+  if (m === 'GET' && path === '/profile') return isSteppedUp(cur.session) ? getProfile(ctx, cur) : STEP_UP_REQUIRED(ctx);
+  if (m === 'PUT' && path === '/profile') return isSteppedUp(cur.session) ? putProfile(ctx, cur) : STEP_UP_REQUIRED(ctx);
   const om = path.match(/^\/optouts\/([^/]+)(\/pii)?$/);
   if (om && ID_RE.test(om[1])) {
     if (!om[2] && m === 'PATCH') return patchOptout(ctx, cur, om[1]);
-    if (om[2] && m === 'GET') return getOptoutPii(ctx, cur, om[1]);
+    if (om[2] && m === 'GET') return isSteppedUp(cur.session) ? getOptoutPii(ctx, cur, om[1]) : STEP_UP_REQUIRED(ctx);
   }
   return json(ctx, { error: 'not found' }, 404);
 }
@@ -531,7 +539,7 @@ export const isAppPath = (pathname) => /^\/(auth|me|optouts|brokers|profile|admi
 // Retention (env vars, days): PII_RETENTION_DAYS (after confirmation, 30), PII_HARD_MAX_DAYS (90, enforced via purge_after),
 // SESSION_PURGE_DAYS (after expiry/revocation, 7), FINISHED_RECORD_RETENTION_DAYS (optout kind, 730 = 24 months),
 // TX_RECORD_RETENTION_DAYS (Texas kind, 1095 = 3 years). Record retention counts from finished_at (confirmed/denied).
-// audit_log retention is intentionally NOT handled here (owned by a separate PR).
+// audit_log is NOT purged here; it has its own append-only expiry job (expireAudit) below.
 export function retention(env) {
   return {
     piiDays: num(env.PII_RETENTION_DAYS, 30),
@@ -559,4 +567,22 @@ export async function purge(env, at = now()) {
   const counts = [all[0], all[1], all[2], all[4], all[5]]; // all[3] = oauth_states_used (not reported)
   console.log('purge', JSON.stringify({ pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] }));
   return counts;
+}
+
+// ---------- audit_log expiry (separate scheduled job) ----------
+// Same as PR #3. AUDIT_RETENTION_DAYS (min/default 365 = 12 months). The only path that deletes audit rows: opens the
+// DB gate, deletes rows older than the cutoff, closes the gate and records the run in maintenance_log, all in one
+// D1 batch (a single transaction), so the gate is never visible outside this job.
+export async function expireAudit(env, at = now()) {
+  const days = Math.max(365, num(env.AUDIT_RETENTION_DAYS, 365));
+  const cutoff = at - days * 86400;
+  const res = await env.DB.batch([
+    env.DB.prepare("INSERT INTO maintenance_gate (name, cutoff) VALUES ('audit_expiry', ?1)").bind(cutoff),
+    env.DB.prepare('DELETE FROM audit_log WHERE at < ?1').bind(cutoff),
+    env.DB.prepare("DELETE FROM maintenance_gate WHERE name = 'audit_expiry'"),
+    env.DB.prepare("INSERT INTO maintenance_log (job, ran_at, cutoff, deleted) VALUES ('audit_expiry', ?1, ?2, changes())").bind(at, cutoff),
+  ]);
+  const deleted = res[1].meta.changes;
+  console.log('audit_expiry', JSON.stringify({ deleted }));
+  return deleted;
 }

@@ -1,0 +1,9 @@
+# Copy to .dev.vars (gitignored) for `wrangler dev`. Local throwaway values only.
+ALLOWED_ORIGIN="https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
+OAUTH_REDIRECT_URIS="http://localhost:8787/api/auth/google/callback,http://localhost:8787/api/auth/microsoft/callback"
+API_TOKEN="local-dev-only"
+# Generate with: node -e "console.log(crypto.getRandomValues(Buffer.alloc(32)).toString('base64'))"
+TOTP_ENC_KEY="<base64 32 bytes>"
+PII_ENC_KEY="<base64 32 bytes, different from TOTP_ENC_KEY>"
+OAUTH_COOKIE_KEY="<base64 32 bytes, different from the others>"
+ADMIN_BOOTSTRAP_TOKEN="<at least 32 random characters>"

@@ -1,8 +1,8 @@
-// Same-origin /api/* routes: social sign-in (Google, Apple, Microsoft), step-up, account area, and the opt-out gate.
+// Same-origin /api/* routes: social sign-in (Google, Microsoft), step-up, account area, and the opt-out gate.
 // Every D1 query uses a literal SQL string with prepare().bind(). No PII or tokens in audit_log targets or logs.
 import {
   json, readJson, audit, createSession, loadSession, revoke, setCookie, clearCookie, allowedOrigins, handleApp,
-  checkTotp, claimStep,
+  checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
 import { isLimited, hit, clientIp } from './ratelimit.js';
@@ -13,12 +13,10 @@ import {
 import { validateSignup } from './shared/signup.ts';
 
 const now = () => Math.floor(Date.now() / 1000);
-export const STEP_UP_SECONDS = 600; // step-up is valid for 10 minutes
 const NO_PASSWORD = '!';            // sentinel pw_hash for social-only users; verifyPassword() never accepts it
 const UNAUTH = (ctx) => json(ctx, { error: 'unauthorized' }, 401);
 const FORBIDDEN = (ctx) => json(ctx, { error: 'forbidden' }, 403);
 const STEP_UP_REQUIRED = (ctx) => json(ctx, { error: 'step_up_required' }, 403);
-const isSteppedUp = (s) => !!s.stepped_up_at && now() - s.stepped_up_at <= STEP_UP_SECONDS;
 
 const redirect = (location, cookies = []) => {
   const h = new Headers({ Location: location, 'Cache-Control': 'no-store' });
@@ -33,7 +31,6 @@ const LEGACY_AUTH_ALIASES = new Set([
 ]);
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-export const isAppleCallback = (method, path) => method === 'POST' && path === '/api/auth/apple/callback';
 
 // A usable session for the new API: social sessions, or password sessions that completed TOTP.
 async function requireSession(ctx) {
@@ -57,7 +54,7 @@ async function oauthStart(ctx, provider, { intent = 'login', cur = null, returnT
     u: cur?.session.user_id ?? null, sh: cur?.idHash ?? null,
   });
   const url = authorizationUrl(c, provider, { ...f, reauth: intent !== 'login' });
-  return { url: url.toString(), cookie: oauthCookie(provider, sealed) };
+  return { url: url.toString(), cookie: oauthCookie(sealed) };
 }
 
 async function startLogin(ctx, provider) {
@@ -72,21 +69,14 @@ async function startLogin(ctx, provider) {
 async function callback(ctx, provider) {
   const ip = clientIp(ctx.req);
   const fail = async (reason, userId = null) => {
-    await audit(ctx, userId, 'auth.fail', `${provider}:${reason}`); // reason is a fixed category, never provider text
+    // reason is a fixed category, never provider text. Unauthenticated failures keep the IP but no User-Agent.
+    await audit(ctx, userId, 'auth.fail', `${provider}:${reason}`, { ua: userId !== null });
     return redirect(`/start?auth_error=${reason}`, [clearOauthCookie()]);
   };
   if (await isLimited(ctx.env, 'oauth_cb', ip)) return json(ctx, { error: 'too many requests' }, 429);
   await hit(ctx.env, 'oauth_cb', ip);
 
-  let params;
-  if (provider === 'apple') {
-    if (ctx.req.method !== 'POST') return fail('bad_request');
-    const t = await ctx.req.text();
-    if (t.length > 32768) return fail('bad_request');
-    params = new URLSearchParams(t);
-  } else {
-    params = new URL(ctx.req.url).searchParams;
-  }
+  const params = new URL(ctx.req.url).searchParams;
   const st = await openState(ctx.env, readOauthCookie(ctx.req));
   if (!st || st.p !== provider || !timingSafeEqual(params.get('state') || '', st.s)) return fail('bad_state');
   const used = await ctx.env.DB.prepare('INSERT INTO oauth_states_used (state_hash, used_at) VALUES (?1, ?2) ON CONFLICT(state_hash) DO NOTHING')
@@ -109,12 +99,15 @@ async function callback(ctx, provider) {
     .bind(provider, ident.sub).first();
 
   if (st.i === 'link' || st.i === 'stepup') {
-    // Bound session from the sealed cookie (works for Apple's cross-site POST where the Lax sid cookie isn't sent).
+    // Bound session from the sealed cookie (the session id hash sealed at start).
+    // Same rules as loadSession: not revoked, 7-day cap, 12h idle; password sessions must have completed TOTP.
     const s = st.sh && await ctx.env.DB.prepare("SELECT * FROM sessions WHERE id_hash = ?1 AND stage = 'session'").bind(st.sh).first();
-    if (!s || s.revoked || t >= s.expires_at || s.user_id !== st.u) return fail('session_mismatch');
+    if (!s || s.revoked || t >= s.expires_at || t - s.last_seen_at >= cfg(ctx.env).idle || s.user_id !== st.u
+      || ((s.auth_method || 'password') === 'password' && !s.mfa)) return fail('session_mismatch');
+    // Fresh authentication is mandatory for step-up and link: auth_time must be present and within 600 s.
+    if (typeof ident.authTime !== 'number' || t - ident.authTime > STEP_UP_SECONDS || ident.authTime > t + 300) return fail('stale_auth', s.user_id);
     if (st.i === 'stepup') {
       if (!existing || existing.user_id !== s.user_id) return fail('identity_mismatch', s.user_id);
-      if (typeof ident.authTime === 'number' && t - ident.authTime > STEP_UP_SECONDS) return fail('stale_auth', s.user_id);
       await ctx.env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1 WHERE id_hash = ?2').bind(t, st.sh).run();
       await audit(ctx, s.user_id, 'auth.step_up', provider);
       return redirect(st.r, [clearOauthCookie()]);
@@ -130,11 +123,11 @@ async function callback(ctx, provider) {
   let userId;
   if (existing) {
     userId = existing.user_id;
-    // Apple sends the email only reliably on the first authorization: keep the stored one if none now.
+    // Keep the stored email if the provider omits it this time.
     if (ident.email) {
       const { blob, version } = await encryptPii(ctx.env, ident.email, `identity:${provider}:${ident.sub}`);
-      await ctx.env.DB.prepare('UPDATE user_identities SET last_login_at = ?1, email = ?2, email_key_version = ?3, email_verified = ?4, is_private_relay = ?5 WHERE id = ?6')
-        .bind(t, blob, version, ident.emailVerified ? 1 : 0, ident.privateRelay ? 1 : 0, existing.id).run();
+      await ctx.env.DB.prepare('UPDATE user_identities SET last_login_at = ?1, email = ?2, email_key_version = ?3, email_verified = ?4 WHERE id = ?5')
+        .bind(t, blob, version, ident.emailVerified ? 1 : 0, existing.id).run();
     } else {
       await ctx.env.DB.prepare('UPDATE user_identities SET last_login_at = ?1 WHERE id = ?2').bind(t, existing.id).run();
     }
@@ -158,9 +151,9 @@ async function insertIdentity(env, userId, provider, ident, t) {
   let blob = null; let version = null;
   if (ident.email) ({ blob, version } = await encryptPii(env, ident.email, `identity:${provider}:${ident.sub}`));
   await env.DB.prepare(
-    `INSERT INTO user_identities (user_id, provider, sub, email, email_key_version, email_verified, is_private_relay, created_at, last_login_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)`,
-  ).bind(userId, provider, ident.sub, blob, version, ident.emailVerified ? 1 : 0, ident.privateRelay ? 1 : 0, t).run();
+    `INSERT INTO user_identities (user_id, provider, sub, email, email_key_version, email_verified, created_at, last_login_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)`,
+  ).bind(userId, provider, ident.sub, blob, version, ident.emailVerified ? 1 : 0, t).run();
 }
 
 // ---------- me / logout ----------
@@ -169,9 +162,9 @@ async function loadUser(env, uid) {
 }
 const displayName = async (env, u) => (u.display_name_enc ? decryptPii(env, u.display_name_enc, u.display_name_key_version, `display:${u.id}`) : null);
 const listIdentities = (env, uid) => env.DB.prepare(
-  'SELECT provider, sub, email, email_key_version, email_verified, is_private_relay, created_at, last_login_at FROM user_identities WHERE user_id = ?1 ORDER BY created_at',
+  'SELECT provider, sub, email, email_key_version, email_verified, created_at, last_login_at FROM user_identities WHERE user_id = ?1 ORDER BY created_at',
 ).bind(uid).all().then((r) => r.results);
-const publicIdentity = (i) => ({ provider: i.provider, email_verified: !!i.email_verified, is_private_relay: !!i.is_private_relay, linked_at: i.created_at, last_login_at: i.last_login_at });
+const publicIdentity = (i) => ({ provider: i.provider, email_verified: !!i.email_verified, linked_at: i.created_at, last_login_at: i.last_login_at });
 const hasPassword = (u) => u.pw_hash !== NO_PASSWORD && !!u.totp_enabled; // password counts as a sign-in method only with TOTP
 
 async function me(ctx, cur) {
@@ -255,7 +248,7 @@ async function getAccountProfile(ctx, cur) {
     const ids = await listIdentities(ctx.env, uid);
     out.sign_in_emails = await Promise.all(ids.filter((i) => i.email).map(async (i) => ({
       provider: i.provider, email: await decryptPii(ctx.env, i.email, i.email_key_version, `identity:${i.provider}:${i.sub}`),
-      verified: !!i.email_verified, private_relay: !!i.is_private_relay,
+      verified: !!i.email_verified,
     })));
     const p = await ctx.env.DB.prepare('SELECT payload_enc, key_version FROM profiles WHERE user_id = ?1').bind(uid).first();
     out.identifiers = p ? JSON.parse(await decryptPii(ctx.env, p.payload_enc, p.key_version, `profile:${uid}`)) : {};
@@ -401,9 +394,8 @@ export async function handleApi(req, env) {
   const path = url.pathname.replace(/\/+$/, '');
   const m = req.method;
 
-  // Apple's form_post callback is a cross-site POST (Origin https://appleid.apple.com or null); it is protected by
-  // the sealed single-use state cookie instead of the Origin/CSRF checks.
-  if (isAppleCallback(m, path)) return callback(ctx, 'apple');
+  // Only Google and Microsoft are supported; Apple sign-in was removed, so /api/auth/apple/* is a plain 404.
+  if (/^\/api\/(auth|account\/identities)\/apple(\/|$)/.test(path)) return json(ctx, { error: 'not found' }, 404);
   if (STATE_CHANGING.has(m) && !(origin && allowedOrigins(env).includes(origin))) return FORBIDDEN(ctx);
 
   if (LEGACY_AUTH_ALIASES.has(path)) {
@@ -411,7 +403,7 @@ export async function handleApi(req, env) {
     return handleApp(new Request(u, req), env);
   }
 
-  let pm = path.match(/^\/api\/auth\/(google|apple|microsoft)\/(start|callback)$/);
+  let pm = path.match(/^\/api\/auth\/(google|microsoft)\/(start|callback)$/);
   if (pm && m === 'GET') return pm[2] === 'start' ? startLogin(ctx, pm[1]) : callback(ctx, pm[1]);
 
   const cur = await requireSession(ctx);
@@ -423,9 +415,9 @@ export async function handleApi(req, env) {
   if (cur.limited) return json(ctx, { error: 'mfa required' }, 403); // password session that hasn't finished TOTP
 
   if (m === 'POST' && path === '/api/auth/stepup/password') return stepUpPassword(ctx, cur);
-  pm = path.match(/^\/api\/auth\/(google|apple|microsoft)\/stepup$/);
+  pm = path.match(/^\/api\/auth\/(google|microsoft)\/stepup$/);
   if (pm && m === 'POST') return startBound(ctx, cur, pm[1], 'stepup');
-  pm = path.match(/^\/api\/account\/identities\/(google|apple|microsoft)(\/link)?$/);
+  pm = path.match(/^\/api\/account\/identities\/(google|microsoft)(\/link)?$/);
   if (pm && m === 'POST' && pm[2]) return startBound(ctx, cur, pm[1], 'link');
   if (pm && m === 'DELETE' && !pm[2]) return unlink(ctx, cur, pm[1]);
 
@@ -435,7 +427,7 @@ export async function handleApi(req, env) {
   if (m === 'GET' && path === '/api/account/sessions') return listSessions(ctx, cur);
   pm = path.match(/^\/api\/account\/sessions\/([0-9a-f]{16})\/revoke$/);
   if (pm && m === 'POST') return revokeSession(ctx, cur, pm[1]);
-  if (m === 'GET' && path === '/api/account/export') return exportAccount(ctx, cur);
+  if (m === 'POST' && path === '/api/account/export') return exportAccount(ctx, cur);
   if (m === 'POST' && path === '/api/account/delete') return deleteAccount(ctx, cur);
   if (m === 'POST' && path === '/api/optouts/signup') return signup(ctx, cur);
   return json(ctx, { error: 'not found' }, 404);
