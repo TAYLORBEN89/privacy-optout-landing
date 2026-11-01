@@ -7,3 +7,10 @@ dist
 worker/node_modules
 worker/.wrangler
 worker/.dev.vars
+# PII / never commit (public repo)
+worker/.migration-backup/
+.migration-backup/
+*.dev.vars
+screenshot*.png
+*-tab.png
+screenshots/
