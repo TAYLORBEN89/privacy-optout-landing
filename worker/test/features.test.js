@@ -308,3 +308,14 @@ describe('in_progress status + retention clock', () => {
     expect(ids).toEqual(['opt-ancient-pending', 'opt-created-old-finished-recent', 'tx-ancient-in-progress', 'tx-created-old-finished-recent']);
   });
 });
+
+describe('last_active_at', () => {
+  it('is set on login and clears a pending inactivity warning', async () => {
+    const u = await makeUser();
+    await env.DB.prepare('UPDATE users SET last_active_at = 5, inactivity_warned_at = 6 WHERE id = ?1').bind(u.id).run();
+    await fullLogin(u);
+    const r = await env.DB.prepare('SELECT last_active_at, inactivity_warned_at FROM users WHERE id = ?1').bind(u.id).first();
+    expect(r.last_active_at).toBeGreaterThan(1_700_000_000);
+    expect(r.inactivity_warned_at).toBeNull();
+  });
+});
