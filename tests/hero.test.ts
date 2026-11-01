@@ -19,6 +19,8 @@ describe("hero copy", () => {
     expect(hero).not.toContain("<Reveal");
     expect(hero).toContain('id="page-title"');
     expect(hero).toContain('<h2 className="hero-sub">');
+    expect(hero).toContain("Start my opt-out");
+    expect(hero).not.toContain("Start Removing Me");
     const css = readFileSync("src/styles.css", "utf8");
     expect(css).toContain("@keyframes hero-line-in");
     expect(css).toContain("animation: hero-line-in 0.7s ease 0.22s both");
