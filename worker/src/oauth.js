@@ -16,10 +16,10 @@ const jwksCache = {};
 const jwks = (p) => (jwksCache[p] ??= createRemoteJWKSet(new URL(JWKS_URL[p]), { cooldownDuration: 30000, cacheMaxAge: 3600000 }));
 
 // ---------- redirect_uri allowlist ----------
-// OAUTH_REDIRECT_URIS: comma-separated exact URIs, e.g. https://privacy-api.example.com/api/auth/google/callback.
-// The URI used must match the request origin and the provider's callback path exactly.
+// OAUTH_REDIRECT_URIS: comma-separated exact URIs, e.g. https://accounts.droptexas.com/oauth/google/callback.
+// Callbacks live only on the accounts host; the URI must match the request origin and callback path exactly.
 export function redirectUriFor(env, provider, reqUrl) {
-  const want = `${new URL(reqUrl).origin}/api/auth/${provider}/callback`;
+  const want = `${new URL(reqUrl).origin}/oauth/${provider}/callback`;
   const list = String(env.OAUTH_REDIRECT_URIS || '').split(',').map((s) => s.trim()).filter(Boolean);
   return list.includes(want) ? want : null;
 }
@@ -103,16 +103,16 @@ async function cookieKey(env) {
 const b64url = (s) => s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const unb64url = (s) => unb64(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
 
-export async function sealState(env, data) {
+export async function sealState(env, data, aad = AAD, ttl = OAUTH_TTL) {
   const iv = randomBytes(12);
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: AAD }, await cookieKey(env),
-    new TextEncoder().encode(JSON.stringify({ ...data, e: Math.floor(Date.now() / 1000) + OAUTH_TTL })));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad }, await cookieKey(env),
+    new TextEncoder().encode(JSON.stringify({ ...data, e: Math.floor(Date.now() / 1000) + ttl })));
   return `${b64url(b64(iv))}.${b64url(b64(ct))}`;
 }
-export async function openState(env, sealed) {
+export async function openState(env, sealed, aad = AAD) {
   try {
     const [iv, ct] = String(sealed).split('.');
-    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64url(iv), additionalData: AAD }, await cookieKey(env), unb64url(ct));
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64url(iv), additionalData: aad }, await cookieKey(env), unb64url(ct));
     const d = JSON.parse(new TextDecoder().decode(pt));
     return d.e > Math.floor(Date.now() / 1000) ? d : null;
   } catch { return null; }
@@ -120,6 +120,13 @@ export async function openState(env, sealed) {
 // SameSite=Lax: the provider redirect back is a top-level GET navigation, so the cookie is sent.
 export const oauthCookie = (v) => `${OAUTH_COOKIE}=${v}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${OAUTH_TTL}`;
 export const clearOauthCookie = () => `${OAUTH_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+// Intent token: binds a step-up/link flow started on the apex (authenticated) to the accounts host, without the
+// accounts host ever reading __Host-sid. AES-GCM sealed (separate AAD), 120 s, single use (oauth_states_used).
+export const INTENT_TTL = 120;
+const INTENT_AAD = new TextEncoder().encode('oauth-intent:v1');
+export const sealIntent = (env, data) => sealState(env, { ...data, j: crypto.randomUUID() }, INTENT_AAD, INTENT_TTL);
+export const openIntent = (env, token) => openState(env, token, INTENT_AAD);
+
 export function readOauthCookie(req) {
   const m = (req.headers.get('Cookie') || '').match(/(?:^|;\s*)__Host-oauth=([A-Za-z0-9_.-]+)/);
   return m ? m[1] : null;

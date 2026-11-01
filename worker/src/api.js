@@ -8,7 +8,7 @@ import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, de
 import { isLimited, hit, clientIp } from './ratelimit.js';
 import {
   PROVIDERS, redirectUriFor, client, authorizationUrl, newFlowSecrets, exchange, verifyIdToken, IdTokenError,
-  sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo,
+  sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo, sealIntent, openIntent,
 } from './oauth.js';
 import { validateSignup } from './shared/signup.ts';
 
@@ -40,38 +40,76 @@ async function requireSession(ctx) {
   return cur;
 }
 
-// ---------- OAuth start ----------
-async function oauthStart(ctx, provider, { intent = 'login', cur = null, returnTo }) {
-  const ip = clientIp(ctx.req);
-  if (await isLimited(ctx.env, 'oauth_start', ip)) return json(ctx, { error: 'too many requests' }, 429);
-  await hit(ctx.env, 'oauth_start', ip);
+// ---------- hosts ----------
+// Sign-in runs on the accounts host (ACCOUNTS_HOST, e.g. accounts.droptexas.com); the session cookie and API stay on
+// the app origin (APP_ORIGIN, e.g. https://droptexas.com). The two are joined by a single-use 60 s handoff code.
+export const accountsOrigin = (env) => `https://${env.ACCOUNTS_HOST}`;
+export const appOrigin = (env) => String(env.APP_ORIGIN || '');
+const HANDOFF_TTL = 60;
+
+// ---------- OAuth start (accounts host) ----------
+async function oauthStart(ctx, provider, { intent = 'login', u = null, sh = null, returnTo }) {
   const redirectUri = redirectUriFor(ctx.env, provider, ctx.req.url);
   const c = redirectUri && client(ctx.env, provider, redirectUri);
   if (!c) return json(ctx, { error: 'provider not configured' }, 503);
   const f = newFlowSecrets();
-  const sealed = await sealState(ctx.env, {
-    p: provider, s: f.state, v: f.verifier, n: f.nonce, r: safeReturnTo(returnTo), i: intent,
-    u: cur?.session.user_id ?? null, sh: cur?.idHash ?? null,
-  });
+  const sealed = await sealState(ctx.env, { p: provider, s: f.state, v: f.verifier, n: f.nonce, r: safeReturnTo(returnTo), i: intent, u, sh });
   const url = authorizationUrl(c, provider, { ...f, reauth: intent !== 'login' });
-  return { url: url.toString(), cookie: oauthCookie(sealed) };
-}
-
-async function startLogin(ctx, provider) {
-  const r = await oauthStart(ctx, provider, { returnTo: new URL(ctx.req.url).searchParams.get('return_to') });
-  if (r instanceof Response) return r;
-  const h = new Headers({ Location: r.url, 'Cache-Control': 'no-store' });
-  h.append('Set-Cookie', r.cookie);
+  const h = new Headers({ Location: url.toString(), 'Cache-Control': 'no-store' });
+  h.append('Set-Cookie', oauthCookie(sealed)); // __Host- cookie on the accounts host only
   return new Response(null, { status: 302, headers: h });
 }
 
-// ---------- OAuth callback ----------
-async function callback(ctx, provider) {
+// GET accounts:/oauth/{provider}/start?return_to=..[&intent=<sealed intent token>]
+export async function accountsStart(ctx, provider) {
+  const ip = clientIp(ctx.req);
+  if (await isLimited(ctx.env, 'oauth_start', ip)) return json(ctx, { error: 'too many requests' }, 429);
+  await hit(ctx.env, 'oauth_start', ip);
+  const q = new URL(ctx.req.url).searchParams;
+  const token = q.get('intent');
+  if (!token) return oauthStart(ctx, provider, { returnTo: q.get('return_to') });
+  // Step-up / link: bound to the apex session by the sealed, single-use, 120 s intent token (never by __Host-sid).
+  const it = await openIntent(ctx.env, token);
+  if (!it || it.p !== provider || (it.i !== 'stepup' && it.i !== 'link')) {
+    await audit(ctx, null, 'auth.fail', `${provider}:bad_intent`, { ua: false });
+    return redirect(`${appOrigin(ctx.env)}/start?auth_error=bad_intent`);
+  }
+  const used = await ctx.env.DB.prepare('INSERT INTO oauth_states_used (state_hash, used_at) VALUES (?1, ?2) ON CONFLICT(state_hash) DO NOTHING')
+    .bind(await sha256Hex(`intent:${it.j}`), now()).run();
+  if (used.meta.changes !== 1) {
+    await audit(ctx, it.u, 'auth.fail', `${provider}:intent_reused`);
+    return redirect(`${appOrigin(ctx.env)}/start?auth_error=intent_reused`);
+  }
+  return oauthStart(ctx, provider, { intent: it.i, u: it.u, sh: it.sh, returnTo: it.r });
+}
+
+// GET apex:/api/auth/{provider}/start -> the accounts host.
+function startLogin(ctx, provider) {
+  const rt = safeReturnTo(new URL(ctx.req.url).searchParams.get('return_to'));
+  return new Response(null, { status: 302, headers: {
+    Location: `${accountsOrigin(ctx.env)}/oauth/${provider}/start?return_to=${encodeURIComponent(rt)}`, 'Cache-Control': 'no-store' } });
+}
+
+// ---------- OAuth callback (accounts host) ----------
+async function newHandoff(ctx, { userId, intent, authMethod, sh = null, returnTo, at }) {
+  const code = b64urlRandom(32);
+  await ctx.env.DB.prepare(
+    `INSERT INTO auth_handoffs (code_hash, user_id, intent, auth_method, session_hash, return_to, auth_at, expires_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+  ).bind(await sha256Hex(code), userId, intent, authMethod, sh, returnTo, at, at + HANDOFF_TTL).run();
+  const h = new Headers({ Location: `${appOrigin(ctx.env)}/api/auth/complete?code=${code}`, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+  h.append('Set-Cookie', clearOauthCookie());
+  return new Response(null, { status: 302, headers: h });
+}
+const b64urlRandom = (n) => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(n))))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+export async function callback(ctx, provider) {
   const ip = clientIp(ctx.req);
   const fail = async (reason, userId = null) => {
     // reason is a fixed category, never provider text. Unauthenticated failures keep the IP but no User-Agent.
     await audit(ctx, userId, 'auth.fail', `${provider}:${reason}`, { ua: userId !== null });
-    return redirect(`/start?auth_error=${reason}`, [clearOauthCookie()]);
+    return redirect(`${appOrigin(ctx.env)}/start?auth_error=${reason}`, [clearOauthCookie()]);
   };
   if (await isLimited(ctx.env, 'oauth_cb', ip)) return json(ctx, { error: 'too many requests' }, 429);
   await hit(ctx.env, 'oauth_cb', ip);
@@ -99,8 +137,8 @@ async function callback(ctx, provider) {
     .bind(provider, ident.sub).first();
 
   if (st.i === 'link' || st.i === 'stepup') {
-    // Bound session from the sealed cookie (the session id hash sealed at start).
-    // Same rules as loadSession: not revoked, 7-day cap, 12h idle; password sessions must have completed TOTP.
+    // Bound session from the sealed state (sealed from the intent token). Same rules as loadSession: not revoked,
+    // 7-day cap, 12h idle; password sessions must have completed TOTP.
     const s = st.sh && await ctx.env.DB.prepare("SELECT * FROM sessions WHERE id_hash = ?1 AND stage = 'session'").bind(st.sh).first();
     if (!s || s.revoked || t >= s.expires_at || t - s.last_seen_at >= cfg(ctx.env).idle || s.user_id !== st.u
       || ((s.auth_method || 'password') === 'password' && !s.mfa)) return fail('session_mismatch');
@@ -108,15 +146,14 @@ async function callback(ctx, provider) {
     if (typeof ident.authTime !== 'number' || t - ident.authTime > STEP_UP_SECONDS || ident.authTime > t + 300) return fail('stale_auth', s.user_id);
     if (st.i === 'stepup') {
       if (!existing || existing.user_id !== s.user_id) return fail('identity_mismatch', s.user_id);
-      await ctx.env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1 WHERE id_hash = ?2').bind(t, st.sh).run();
-      await audit(ctx, s.user_id, 'auth.step_up', provider);
-      return redirect(st.r, [clearOauthCookie()]);
+      // Applied on the apex at redemption, only if the browser presents the same session.
+      return newHandoff(ctx, { userId: s.user_id, intent: 'stepup', authMethod: provider, sh: st.sh, returnTo: st.r, at: t });
     }
     if (!isSteppedUp(s)) return fail('step_up_required', s.user_id);
     if (existing) return fail(existing.user_id === s.user_id ? 'already_linked' : 'identity_in_use', s.user_id);
     await insertIdentity(ctx.env, s.user_id, provider, ident, t);
     await audit(ctx, s.user_id, 'identity.link', provider);
-    return redirect(st.r, [clearOauthCookie()]);
+    return newHandoff(ctx, { userId: s.user_id, intent: 'link', authMethod: provider, sh: st.sh, returnTo: st.r, at: t });
   }
 
   // intent=login. Identities are keyed ONLY on (provider, sub); a matching email never links accounts.
@@ -140,12 +177,52 @@ async function callback(ctx, provider) {
     await audit(ctx, userId, 'user.create_social', provider);
     await audit(ctx, userId, 'login.social', provider);
   }
-  // Session fixation: drop any session this browser already had.
+  return newHandoff(ctx, { userId, intent: 'login', authMethod: provider, returnTo: st.r, at: t });
+}
+
+// ---------- handoff redemption (apex) ----------
+// GET apex:/api/auth/complete?code=..  Single use, 60 s, rate-limited and audited. Sets the host-only __Host-sid.
+async function complete(ctx) {
+  const ip = clientIp(ctx.req);
+  const fail = async (reason, userId = null) => {
+    await audit(ctx, userId, 'auth.fail', `handoff:${reason}`, { ua: userId !== null });
+    return redirect(`/start?auth_error=${reason}`);
+  };
+  if (await isLimited(ctx.env, 'handoff', ip)) return json(ctx, { error: 'too many requests' }, 429);
+  await hit(ctx.env, 'handoff', ip);
+  const code = new URL(ctx.req.url).searchParams.get('code') || '';
+  if (!/^[A-Za-z0-9_-]{43}$/.test(code)) return fail('handoff_invalid');
+  const t = now();
+  const ch = await sha256Hex(code);
+  const row = await ctx.env.DB.prepare('SELECT * FROM auth_handoffs WHERE code_hash = ?1').bind(ch).first();
+  if (!row) return fail('handoff_invalid');
+  if (row.used_at !== null) return fail('handoff_reused', row.user_id);
+  if (t >= row.expires_at) return fail('handoff_expired', row.user_id);
+  const claim = await ctx.env.DB.prepare('UPDATE auth_handoffs SET used_at = ?1 WHERE code_hash = ?2 AND used_at IS NULL AND expires_at > ?1')
+    .bind(t, ch).run();
+  if (claim.meta.changes !== 1) return fail('handoff_reused', row.user_id);
+  const rt = safeReturnTo(row.return_to);
+  const noRef = { 'Referrer-Policy': 'no-referrer' };
+
+  if (row.intent === 'stepup' || row.intent === 'link') {
+    // Must be the same browser/session that started the flow.
+    const cur = await loadSession(ctx);
+    if (!cur || cur.idHash !== row.session_hash || cur.session.user_id !== row.user_id) return fail('session_mismatch', row.user_id);
+    if (row.intent === 'stepup') {
+      await ctx.env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1 WHERE id_hash = ?2').bind(row.auth_at, cur.idHash).run();
+      await audit(ctx, row.user_id, 'auth.step_up', row.auth_method);
+    }
+    await audit(ctx, row.user_id, 'auth.handoff', row.intent);
+    return withHeaders(redirect(rt), noRef);
+  }
+  // login. Session fixation: drop any session this browser already had.
   const prior = await loadSession(ctx);
   if (prior) await revoke(ctx.env, prior.idHash);
-  const s = await createSession(ctx.env, userId, false, { authMethod: provider, steppedUpAt: t }); // fresh auth counts as step-up
-  return redirect(st.r, [clearOauthCookie(), setCookie(ctx.env, s.token, s.maxAge)]);
+  const s = await createSession(ctx.env, row.user_id, false, { authMethod: row.auth_method, steppedUpAt: row.auth_at }); // fresh auth counts as step-up
+  await audit(ctx, row.user_id, 'auth.handoff', 'login');
+  return withHeaders(redirect(rt, [setCookie(ctx.env, s.token, s.maxAge)]), noRef);
 }
+const withHeaders = (res, extra) => { for (const [k, v] of Object.entries(extra)) res.headers.set(k, v); return res; };
 
 async function insertIdentity(env, userId, provider, ident, t) {
   let blob = null; let version = null;
@@ -220,9 +297,8 @@ async function startBound(ctx, cur, provider, intent) {
   }
   if (intent === 'link' && !isSteppedUp(cur.session)) return STEP_UP_REQUIRED(ctx);
   const b = await readJson(ctx.req);
-  const r = await oauthStart(ctx, provider, { intent, cur, returnTo: b?.return_to ?? '/account' });
-  if (r instanceof Response) return r;
-  return json(ctx, { url: r.url }, 200, { 'Set-Cookie': r.cookie });
+  const token = await sealIntent(ctx.env, { p: provider, i: intent, u: cur.session.user_id, sh: cur.idHash, r: safeReturnTo(b?.return_to ?? '/account') });
+  return json(ctx, { url: `${accountsOrigin(ctx.env)}/oauth/${provider}/start?intent=${encodeURIComponent(token)}` });
 }
 
 async function unlink(ctx, cur, provider) {
@@ -403,8 +479,11 @@ export async function handleApi(req, env) {
     return handleApp(new Request(u, req), env);
   }
 
-  let pm = path.match(/^\/api\/auth\/(google|microsoft)\/(start|callback)$/);
-  if (pm && m === 'GET') return pm[2] === 'start' ? startLogin(ctx, pm[1]) : callback(ctx, pm[1]);
+  // Callbacks moved to the accounts host; the old apex callback paths are gone (404).
+  let pm = path.match(/^\/api\/auth\/(google|microsoft)\/start$/);
+  if (pm && m === 'GET') return startLogin(ctx, pm[1]);
+  if (m === 'GET' && path === '/api/auth/complete') return complete(ctx);
+  if (/^\/api\/auth\/[a-z]+\/callback$/.test(path)) return json(ctx, { error: 'not found' }, 404);
 
   const cur = await requireSession(ctx);
   if (!cur) return UNAUTH(ctx);

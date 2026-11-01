@@ -2,29 +2,55 @@
 
 Only Google and Microsoft are supported (Apple sign-in was removed), plus the email + password + TOTP fallback.
 
-DROP Texas uses same-origin sign-in: the site forwards `/api/*` to the `privacy-dashboard-api` Worker, so every
-provider redirects back to `https://droptexas.com/api/auth/{provider}/callback`. Register these exact URIs
-(production `OAUTH_REDIRECT_URIS` in `wrangler.toml` lists exactly these; local dev URIs go in `worker/.dev.vars`):
+Sign-in runs on **`accounts.droptexas.com`** (like accounts.google.com), served by the same Worker
+`privacy-dashboard-api`, which branches on the request `Host`. The session cookie and the API stay on `droptexas.com`.
 
-| Provider  | Redirect URI                                           | Method |
-|-----------|--------------------------------------------------------|--------|
-| Google    | `https://droptexas.com/api/auth/google/callback`       | GET    |
-| Microsoft | `https://droptexas.com/api/auth/microsoft/callback`    | GET    |
+| Provider  | Redirect URI to register (exact)                              | Method |
+|-----------|---------------------------------------------------------------|--------|
+| Google    | `https://accounts.droptexas.com/oauth/google/callback`        | GET    |
+| Microsoft | `https://accounts.droptexas.com/oauth/microsoft/callback`     | GET    |
 
-The same list goes into `OAUTH_REDIRECT_URIS` in `worker/wrangler.toml` (comma-separated, exact match).
+The same two URIs are `OAUTH_REDIRECT_URIS` in `worker/wrangler.toml` (`npm run check:origins` enforces them).
+
+### Flow
+1. `droptexas.com/api/auth/{google,microsoft}/start?return_to=/account` → 302 to
+   `accounts.droptexas.com/oauth/{provider}/start` (or the user opens `accounts.droptexas.com/signin`).
+2. The accounts host sets the sealed `__Host-oauth` state cookie (host-only, accounts host only) and redirects to the provider.
+3. `accounts.droptexas.com/oauth/{provider}/callback` verifies state/PKCE/nonce/ID token, then creates a random
+   **handoff code** (single use, 60 s; only its SHA-256 is stored in D1 `auth_handoffs`, bound to user, intent and
+   return_to) and 302s to `https://droptexas.com/api/auth/complete?code=…`.
+4. `droptexas.com/api/auth/complete` redeems the code once, sets the host-only `__Host-sid` on `droptexas.com`
+   (no `Domain=` cookie anywhere) and redirects to the allowlisted `return_to` (`/start`, `/start#step-N`, `/account`).
+   Reuse, expiry, tampering and wrong-host requests are refused; redemptions are rate-limited (30/10 min/IP) and audited.
+5. Step-up and link: the apex (authenticated) returns `{url}` pointing at the accounts host with a sealed, single-use,
+   120-second **intent token** bound to the user and session. The accounts host never reads `__Host-sid`. Step-up is
+   applied at redemption only if the browser presents that same apex session.
+
+### Routes
+- accounts.droptexas.com (GET only; `Origin`, if present, must be `https://accounts.droptexas.com`):
+  `/signin`, `/oauth/{google,microsoft}/start`, `/oauth/{google,microsoft}/callback`. Everything else 404.
+  Headers: CSP `default-src 'none'; style-src 'nonce-…'; script-src 'none'; form-action 'none'; base-uri 'none';
+  frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, HSTS.
+- droptexas.com: `GET /api/auth/{provider}/start` (302 to accounts), `GET /api/auth/complete`,
+  `POST /api/auth/{provider}/stepup` and `POST /api/account/identities/{provider}/link` (return `{url}` on the accounts host).
+  The old `/api/auth/{provider}/callback` paths return 404. API origins stay `droptexas.com` and `www.droptexas.com`.
+
+### Custom domain (not attached)
+`wrangler.toml` has a commented `[[routes]]` entry `pattern = "accounts.droptexas.com"`, `custom_domain = true`.
+Uncommenting it and deploying creates the DNS record for the subdomain, so it happens only at deploy with the owner's yes.
 
 ## 1. Google
 1. Google Cloud Console → APIs & Services → OAuth consent screen: External, app name "DROP Texas", support email,
-   authorized domain `droptexas.com`, scopes `openid`, `email`, `profile` only (no verification review needed for these).
+   authorized domain `droptexas.com` (covers accounts.droptexas.com), scopes `openid`, `email`, `profile` only (no verification review needed for these).
 2. Credentials → Create credentials → OAuth client ID → **Web application**.
-3. Authorized redirect URI: `https://droptexas.com/api/auth/google/callback`. No JavaScript origins are needed.
+3. Authorized redirect URI: `https://accounts.droptexas.com/oauth/google/callback`. No JavaScript origins are needed.
 4. Put the client ID in `GOOGLE_CLIENT_ID` ([vars]) and run `npx wrangler secret put GOOGLE_CLIENT_SECRET`.
 5. Publish the consent screen (move out of "Testing") before launch, or only test users can sign in.
 
 ## 2. Microsoft (Entra ID, personal + work/school accounts)
 1. Entra admin center → App registrations → New registration, name "DROP Texas".
 2. Supported account types: **Accounts in any organizational directory and personal Microsoft accounts** (multi-tenant + consumer; the Worker uses the `/common` endpoint).
-3. Redirect URI: platform **Web**, `https://droptexas.com/api/auth/microsoft/callback`.
+3. Redirect URI: platform **Web**, `https://accounts.droptexas.com/oauth/microsoft/callback`.
 4. Certificates & secrets → New client secret → copy the **Value** → `npx wrangler secret put MICROSOFT_CLIENT_SECRET`. Note its expiry date and rotate before it lapses.
 5. Token configuration → Add optional claim → ID token → `email` and **`xms_edov`** (email domain owner verified). Emails are marked verified **only** when the token carries `xms_edov=true`; otherwise (including personal Microsoft accounts) they are stored as *unverified*.
 6. API permissions: `openid`, `email`, `profile` (Microsoft Graph, delegated) — default.
@@ -38,8 +64,8 @@ sign-ins that are in progress (10-minute window).
 1. `npx wrangler d1 migrations apply DB --remote` (applies `0007_social_auth.sql`: adds tables/columns only, no rebuilds).
 2. Set all secrets above, plus the existing `TOTP_ENC_KEY`, `PII_ENC_KEY`, `API_TOKEN`.
 3. Replace the placeholder client IDs and `OAUTH_REDIRECT_URIS` in `wrangler.toml`.
-4. Confirm the site Worker forwards `/api/*` to this Worker (service binding) and keeps the request host, so the
-   redirect URI computed from the request origin matches the allowlist.
+4. Confirm the site Worker forwards `/api/*` to this Worker (service binding) and keeps the request host, and attach
+   `accounts.droptexas.com` as a Custom Domain of this Worker (creates its DNS record; owner approval).
 5. `SESSION_COOKIE_SAMESITE = "Lax"` (already set): needed because the provider redirect back is a cross-site navigation.
 
 ## Local development

@@ -36,6 +36,20 @@ CREATE TABLE oauth_states_used (
 );
 CREATE INDEX oauth_states_used_at ON oauth_states_used(used_at);
 
+-- Sign-in handoff from accounts.droptexas.com to droptexas.com. Only the SHA-256 of the random code is stored.
+-- Single use (used_at), 60 s (expires_at), bound to user, intent, return_to and (step-up/link) the apex session hash.
+CREATE TABLE auth_handoffs (
+  code_hash    TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  intent       TEXT NOT NULL CHECK (intent IN ('login','stepup','link')),
+  auth_method  TEXT NOT NULL CHECK (auth_method IN ('google','microsoft')),
+  session_hash TEXT,
+  return_to    TEXT NOT NULL,
+  auth_at      INTEGER NOT NULL,
+  expires_at   INTEGER NOT NULL,
+  used_at      INTEGER
+);
+
 -- Audit context (approved): client IP (CF-Connecting-IP) and User-Agent (<=512 chars). Stored only here,
 -- never written to Workers Logs. Unauthenticated auth.fail rows keep the IP but store a NULL User-Agent.
 ALTER TABLE audit_log ADD COLUMN ip TEXT;

@@ -28,7 +28,10 @@ AUDIT_RETENTION_DAYS = "365"               # audit_log kept 12 months, then expi
 GOOGLE_CLIENT_ID = "<google-client-id>.apps.googleusercontent.com"
 MICROSOFT_CLIENT_ID = "00000000-0000-0000-0000-000000000000"
 # Exact redirect_uri allowlist (comma-separated). Must match the provider consoles character for character.
-OAUTH_REDIRECT_URIS = "https://droptexas.com/api/auth/google/callback,https://droptexas.com/api/auth/microsoft/callback"
+OAUTH_REDIRECT_URIS = "https://accounts.droptexas.com/oauth/google/callback,https://accounts.droptexas.com/oauth/microsoft/callback"
+# Sign-in host (served by this Worker, selected by Host) and the app origin that receives the handoff + session cookie.
+ACCOUNTS_HOST = "accounts.droptexas.com"
+APP_ORIGIN = "https://droptexas.com"
 
 [[kv_namespaces]]
 binding = "RECORDS"
@@ -50,6 +53,13 @@ crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expire
 # routes = [
 #   { pattern = "api.droptexas.com", custom_domain = true }
 # ]
+
+# NOT ATTACHED. Sign-in host accounts.droptexas.com, served by this same Worker (branching on the request Host).
+# A Workers Custom Domain creates its own DNS record on deploy, so uncomment ONLY with the owner's explicit yes.
+# (If the api.droptexas.com list above is enabled too, merge both entries into one routes list.)
+# [[routes]]
+# pattern = "accounts.droptexas.com"
+# custom_domain = true
 
 # Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
 # ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists).

@@ -71,17 +71,39 @@ const H = (extra = {}) => ({ Origin: ORIGIN, 'CF-Connecting-IP': IP, 'User-Agent
 const setCookies = (r) => r.headers.getSetCookie();
 const cookieVal = (r, name) => { const c = setCookies(r).find((x) => x.startsWith(`${name}=`)); return c ? c.split(';')[0] : null; };
 
+const ACC = 'https://accounts.test';
+// Apex /api/auth/{p}/start -> accounts host /oauth/{p}/start -> provider. Returns the accounts-host response.
 async function start(p, returnTo = '/account') {
   const r = await SELF.fetch(`${BASE}/api/auth/${p}/start?return_to=${encodeURIComponent(returnTo)}`, { headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA }, redirect: 'manual' });
-  return r;
+  expect(r.status).toBe(302);
+  const next = r.headers.get('Location');
+  expect(next.startsWith(`${ACC}/oauth/${p}/start?`)).toBe(true);
+  return SELF.fetch(next, { headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA }, redirect: 'manual' });
 }
 function parseStart(r) {
   const loc = new URL(r.headers.get('Location'));
   return { loc, state: loc.searchParams.get('state'), nonce: loc.searchParams.get('nonce'), oauth: cookieVal(r, '__Host-oauth') };
 }
+// Provider -> accounts host callback (only the __Host-oauth cookie; __Host-sid is host-only on the apex) ->
+// handoff -> apex /api/auth/complete with the apex cookie. Returns the final response (or the failure redirect).
 async function callback(p, { state, oauth, cookie = '', code = 'auth-code' }) {
-  const Cookie = [oauth, cookie].filter(Boolean).join('; ');
-  return SELF.fetch(`${BASE}/api/auth/${p}/callback?state=${encodeURIComponent(state)}&code=${code}`, { redirect: 'manual', headers: H({ Cookie }) });
+  const r = await SELF.fetch(`${ACC}/oauth/${p}/callback?state=${encodeURIComponent(state)}&code=${code}`,
+    { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA, ...(oauth ? { Cookie: oauth } : {}) } });
+  const loc = r.headers.get('Location') || '';
+  if (!loc.startsWith(`${BASE}/api/auth/complete?code=`)) return r;
+  lastHandoff = loc;
+  const done = await SELF.fetch(loc, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA, ...(cookie ? { Cookie: cookie } : {}) } });
+  done.first = r;
+  return done;
+}
+let lastHandoff = null;
+// Step-up / link: the apex returns {url} on the accounts host with an intent token; follow it to the provider.
+async function bound(apexRes) {
+  const { url } = await apexRes.json();
+  expect(url.startsWith(`${ACC}/oauth/`)).toBe(true);
+  const r = await SELF.fetch(url, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA } });
+  const loc = new URL(r.headers.get('Location'));
+  return { url, loc, state: loc.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth') };
 }
 // Full login; returns { sid, csrf, res }.
 async function socialLogin(p, claimOpts = {}, returnTo = '/account') {
@@ -112,7 +134,7 @@ describe('social login happy paths', () => {
       expect(setCookies(await start(p)).find((c) => c.startsWith('__Host-oauth='))).toContain('SameSite=Lax');
       const sc = setCookies(res).find((c) => c.startsWith('__Host-sid='));
       for (const a of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/']) expect(sc).toContain(a);
-      expect(setCookies(res).some((c) => c.startsWith('__Host-oauth=;') && c.includes('Max-Age=0'))).toBe(true);
+      expect(setCookies(res.first).some((c) => c.startsWith('__Host-oauth=;') && c.includes('Max-Age=0'))).toBe(true);
       const me = await (await SELF.fetch(`${BASE}/api/me`, { headers: H({ Cookie: sid }) })).json();
       expect(me.providers.map((x) => x.provider)).toEqual([p]);
       expect(me.user.has_password).toBe(false);
@@ -152,22 +174,22 @@ describe('callback rejections', () => {
   it('bad state', async () => {
     const s = parseStart(await start('google'));
     nextClaims.google = claimsFor('google', { nonce: s.nonce });
-    expect(await failOf(await callback('google', { ...s, state: 'tampered' }))).toBe('/start?auth_error=bad_state');
-    expect(await failOf(await callback('google', { ...s, oauth: null }))).toBe('/start?auth_error=bad_state');
-    expect(await failOf(await callback('google', { ...s, oauth: '__Host-oauth=AAAA.BBBB' }))).toBe('/start?auth_error=bad_state');
+    expect(await failOf(await callback('google', { ...s, state: 'tampered' }))).toBe(BASE + '/start?auth_error=bad_state');
+    expect(await failOf(await callback('google', { ...s, oauth: null }))).toBe(BASE + '/start?auth_error=bad_state');
+    expect(await failOf(await callback('google', { ...s, oauth: '__Host-oauth=AAAA.BBBB' }))).toBe(BASE + '/start?auth_error=bad_state');
   });
 
   it('reused state cookie', async () => {
     const s = parseStart(await start('google'));
     nextClaims.google = claimsFor('google', { nonce: s.nonce });
     expect((await callback('google', s)).headers.get('Location')).toBe('/account');
-    expect(await failOf(await callback('google', s))).toBe('/start?auth_error=state_reused');
+    expect(await failOf(await callback('google', s))).toBe(BASE + '/start?auth_error=state_reused');
   });
 
   it('state cookie for another provider is refused', async () => {
     const s = parseStart(await start('google'));
     nextClaims.microsoft = claimsFor('microsoft', { nonce: s.nonce });
-    expect(await failOf(await callback('microsoft', s))).toBe('/start?auth_error=bad_state');
+    expect(await failOf(await callback('microsoft', s))).toBe(BASE + '/start?auth_error=bad_state');
   });
 
   const cases = [
@@ -183,7 +205,7 @@ describe('callback rejections', () => {
     it(name, async () => {
       const s = parseStart(await start(p));
       nextClaims[p] = { ...claimsFor(p, { nonce: s.nonce }), ...over };
-      expect(await failOf(await callback(p, s))).toBe(`/start?auth_error=${reason}`);
+      expect(await failOf(await callback(p, s))).toBe(`${BASE}/start?auth_error=${reason}`);
       const a = await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'auth.fail' AND ip = ?1 ORDER BY id DESC").bind(IP).first();
       expect(a.target).toBe(`${p}:${reason}`);
       expect(await countUsers()).toBe(0);
@@ -192,7 +214,7 @@ describe('callback rejections', () => {
 
   it('token exchange failure', async () => {
     const s = parseStart(await start('google'));
-    expect(await failOf(await callback('google', s))).toBe('/start?auth_error=token_exchange');
+    expect(await failOf(await callback('google', s))).toBe(BASE + '/start?auth_error=token_exchange');
   });
 });
 
@@ -214,19 +236,18 @@ describe('identity linking', () => {
     // step up with google
     r = await api('POST', '/api/auth/google/stepup', a, {});
     expect(r.status).toBe(200);
-    const su = await r.json();
-    const loc = new URL(su.url);
+    const locb = await bound(r); const loc = locb.loc;
     expect(loc.searchParams.get('max_age')).toBe('0');
     nextClaims.google = claimsFor('google', { nonce: loc.searchParams.get('nonce'), auth_time: t0() });
-    r = await callback('google', { state: loc.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
+    r = await callback('google', { state: loc.searchParams.get('state'), oauth: locb.oauth, cookie: a.sid });
     expect(r.headers.get('Location')).toBe('/account');
     // now link microsoft
     r = await api('POST', '/api/account/identities/microsoft/link', a, {});
     expect(r.status).toBe(200);
-    const l = new URL((await r.json()).url);
+    const lb = await bound(r); const l = lb.loc;
     expect(l.searchParams.get('prompt')).toBe('login');
     nextClaims.microsoft = claimsFor('microsoft', { nonce: l.searchParams.get('nonce') });
-    r = await callback('microsoft', { state: l.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
+    r = await callback('microsoft', { state: l.searchParams.get('state'), oauth: lb.oauth, cookie: a.sid });
     expect(r.headers.get('Location')).toBe('/account');
     const me = await (await api('GET', '/api/me', a)).json();
     expect(me.providers.map((x) => x.provider).sort()).toEqual(['google', 'microsoft']);
@@ -238,10 +259,10 @@ describe('identity linking', () => {
     await socialLogin('microsoft', { sub: 'taken' });
     const a = await socialLogin('google');
     const r = await api('POST', '/api/account/identities/microsoft/link', a, {});
-    const l = new URL((await r.json()).url);
+    const lb = await bound(r); const l = lb.loc;
     nextClaims.microsoft = claimsFor('microsoft', { sub: 'taken', nonce: l.searchParams.get('nonce') });
-    const cb = await callback('microsoft', { state: l.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
-    expect(cb.headers.get('Location')).toBe('/start?auth_error=identity_in_use');
+    const cb = await callback('microsoft', { state: l.searchParams.get('state'), oauth: lb.oauth, cookie: a.sid });
+    expect(cb.headers.get('Location')).toBe(BASE + '/start?auth_error=identity_in_use');
   });
 
   it('unlink requires step-up and refuses to remove the last sign-in method', async () => {
@@ -426,7 +447,7 @@ describe('audit IP / user-agent', () => {
       const s = parseStart(await start('google'));
       await callback('google', { ...s, state: 'bad' }); // failure path
       const long = 'L'.repeat(600);
-      await SELF.fetch(`${BASE}/api/auth/google/callback?state=x&code=y`, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': long } });
+      await SELF.fetch(`${ACC}/oauth/google/callback?state=x&code=y`, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': long } });
       const rows = (await env.DB.prepare('SELECT action, user_id, ip, user_agent FROM audit_log WHERE ip = ?1 ORDER BY id').bind(IP).all()).results;
       expect(rows.length).toBeGreaterThan(2);
       const ok = rows.filter((r) => r.action !== 'auth.fail');
@@ -443,7 +464,7 @@ describe('audit IP / user-agent', () => {
     expect(out).not.toContain('ua-marker-7f3a');
   });
   it('ip is NULL when CF-Connecting-IP is absent', async () => {
-    await SELF.fetch(`${BASE}/api/auth/google/callback?state=x&code=y`, { redirect: 'manual' });
+    await SELF.fetch(`${ACC}/oauth/google/callback?state=x&code=y`, { redirect: 'manual' });
     const r = await env.DB.prepare('SELECT ip FROM audit_log ORDER BY id DESC').first();
     expect(r.ip).toBeNull();
   });
@@ -452,29 +473,29 @@ describe('audit IP / user-agent', () => {
 describe('security review fixes', () => {
   const stepUpFlow = async (a, claimOver) => {
     const r = await api('POST', '/api/auth/google/stepup', a, {});
-    const loc = new URL((await r.json()).url);
+    const locb = await bound(r); const loc = locb.loc;
     nextClaims.google = { ...claimsFor('google', { nonce: loc.searchParams.get('nonce') }), ...claimOver };
-    return callback('google', { state: loc.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
+    return callback('google', { state: loc.searchParams.get('state'), oauth: locb.oauth, cookie: a.sid });
   };
 
   it('H1: step-up/link send prompt=login + max_age=0 and require a fresh numeric auth_time', async () => {
     const a = await socialLogin('google');
     let r = await api('POST', '/api/auth/google/stepup', a, {});
-    const loc = new URL((await r.json()).url);
+    const locb = await bound(r); const loc = locb.loc;
     expect(loc.searchParams.get('prompt')).toBe('login');
     expect(loc.searchParams.get('max_age')).toBe('0');
     await expireStepUp();
-    expect((await stepUpFlow(a, { auth_time: undefined })).headers.get('Location')).toBe('/start?auth_error=stale_auth');
-    expect((await stepUpFlow(a, { auth_time: t0() - 601 })).headers.get('Location')).toBe('/start?auth_error=stale_auth');
-    expect((await stepUpFlow(a, { auth_time: String(t0()) })).headers.get('Location')).toBe('/start?auth_error=stale_auth');
+    expect((await stepUpFlow(a, { auth_time: undefined })).headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
+    expect((await stepUpFlow(a, { auth_time: t0() - 601 })).headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
+    expect((await stepUpFlow(a, { auth_time: String(t0()) })).headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
     expect((await api('POST', '/api/account/export', a)).status).toBe(403);
     expect((await stepUpFlow(a, {})).headers.get('Location')).toBe('/account');
     // link without auth_time is refused too
     r = await api('POST', '/api/account/identities/microsoft/link', a, {});
-    const l = new URL((await r.json()).url);
+    const lb = await bound(r); const l = lb.loc;
     nextClaims.microsoft = { ...claimsFor('microsoft', { nonce: l.searchParams.get('nonce') }), auth_time: undefined };
-    r = await callback('microsoft', { state: l.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
-    expect(r.headers.get('Location')).toBe('/start?auth_error=stale_auth');
+    r = await callback('microsoft', { state: l.searchParams.get('state'), oauth: lb.oauth, cookie: a.sid });
+    expect(r.headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
   });
 
   it('Apple sign-in is removed: /api/auth/apple/* and Apple identity routes return 404', async () => {
@@ -490,11 +511,11 @@ describe('security review fixes', () => {
   it('M3: bound flow refuses an idle session', async () => {
     const a = await socialLogin('google');
     const r = await api('POST', '/api/auth/google/stepup', a, {});
-    const loc = new URL((await r.json()).url);
+    const locb = await bound(r); const loc = locb.loc;
     await env.DB.prepare('UPDATE sessions SET last_seen_at = ?1').bind(t0() - 43201).run();
     nextClaims.google = claimsFor('google', { nonce: loc.searchParams.get('nonce') });
-    const cb = await callback('google', { state: loc.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth'), cookie: a.sid });
-    expect(cb.headers.get('Location')).toBe('/start?auth_error=session_mismatch');
+    const cb = await callback('google', { state: loc.searchParams.get('state'), oauth: locb.oauth, cookie: a.sid });
+    expect(cb.headers.get('Location')).toBe(BASE + '/start?auth_error=session_mismatch');
   });
 
   it('M4: export is POST only and needs CSRF', async () => {
@@ -506,5 +527,133 @@ describe('security review fixes', () => {
 
   it('the state cookie is always SameSite=Lax (set and clear)', () => {
     expect(clearOauthCookie()).toContain('SameSite=Lax');
+  });
+});
+
+describe('accounts host + handoff', () => {
+  const hdrs = () => ({ 'CF-Connecting-IP': IP, 'User-Agent': UA });
+
+  for (const p of ['google', 'microsoft']) {
+    it(`${p}: full flow via accounts host and single-use handoff`, async () => {
+      const s = parseStart(await start(p));
+      expect(s.loc.searchParams.get('redirect_uri')).toBe(`${ACC}/oauth/${p}/callback`);
+      expect(s.oauth).toBeTruthy();
+      nextClaims[p] = claimsFor(p, { nonce: s.nonce });
+      const res = await callback(p, s);
+      // accounts host never sets the session cookie; it hands off with a code and clears the state cookie
+      expect(res.first.status).toBe(302);
+      expect(setCookies(res.first).some((c) => c.startsWith('__Host-sid='))).toBe(false);
+      expect(res.first.headers.get('Referrer-Policy')).toBe('no-referrer');
+      expect(res.headers.get('Location')).toBe('/account');
+      const sc = setCookies(res).find((c) => c.startsWith('__Host-sid='));
+      expect(sc).toBeTruthy();
+      expect(sc).not.toMatch(/Domain=/i);
+      const code = new URL(lastHandoff).searchParams.get('code');
+      const row = await env.DB.prepare('SELECT * FROM auth_handoffs').first();
+      expect(JSON.stringify(row)).not.toContain(code); // only the hash is stored
+      expect(row.expires_at - row.auth_at).toBe(60);
+      // reuse is refused
+      const again = await SELF.fetch(lastHandoff, { redirect: 'manual', headers: hdrs() });
+      expect(again.headers.get('Location')).toBe('/start?auth_error=handoff_reused');
+      expect(cookieVal(again, '__Host-sid')).toBeNull();
+    });
+  }
+
+  it('expired, tampered and malformed codes are refused and audited', async () => {
+    const s = parseStart(await start('google'));
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    const first = await SELF.fetch(`${ACC}/oauth/google/callback?state=${encodeURIComponent(s.state)}&code=x`, { redirect: 'manual', headers: { ...hdrs(), Cookie: s.oauth } });
+    const link = first.headers.get('Location');
+    const code = new URL(link).searchParams.get('code');
+    const tampered = code.slice(0, -1) + (code.endsWith('A') ? 'B' : 'A');
+    let r = await SELF.fetch(`${BASE}/api/auth/complete?code=${tampered}`, { redirect: 'manual', headers: hdrs() });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_invalid');
+    r = await SELF.fetch(`${BASE}/api/auth/complete?code=..`, { redirect: 'manual', headers: hdrs() });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_invalid');
+    await env.DB.prepare('UPDATE auth_handoffs SET expires_at = ?1').bind(t0() - 1).run();
+    r = await SELF.fetch(link, { redirect: 'manual', headers: hdrs() });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_expired');
+    expect(cookieVal(r, '__Host-sid')).toBeNull();
+    const fails = (await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'auth.fail' AND ip = ?1").bind(IP).all()).results.map((x) => x.target);
+    expect(fails).toEqual(expect.arrayContaining(['handoff:handoff_invalid', 'handoff:handoff_expired']));
+  });
+
+  it('handoff redemption is rate-limited', async () => {
+    for (let i = 0; i < 30; i++) await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: hdrs() });
+    expect((await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: hdrs() })).status).toBe(429);
+  });
+
+  it('open redirect on return_to is neutralised end to end', async () => {
+    for (const bad of ['https://evil.example/', '//evil.example', '/\\evil.example', 'javascript:alert(1)']) {
+      const r = await SELF.fetch(`${BASE}/api/auth/google/start?return_to=${encodeURIComponent(bad)}`, { redirect: 'manual', headers: hdrs() });
+      expect(new URL(r.headers.get('Location')).searchParams.get('return_to')).toBe('/start');
+    }
+    const s = parseStart(await SELF.fetch(`${ACC}/oauth/google/start?return_to=${encodeURIComponent('https://evil.example')}`, { redirect: 'manual', headers: hdrs() }));
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    const res = await callback('google', s);
+    expect(res.headers.get('Location')).toBe('/start');
+  });
+
+  it('wrong host: accounts routes are 404 on the apex, apex routes are 404 on accounts, old apex callbacks are gone', async () => {
+    for (const path of ['/signin', '/oauth/google/start', '/oauth/google/callback']) {
+      expect((await SELF.fetch(BASE + path, { redirect: 'manual', headers: hdrs() })).status).toBe(404);
+    }
+    for (const path of ['/api/auth/complete?code=x', '/api/me', '/api/auth/google/start', '/account']) {
+      expect((await SELF.fetch(ACC + path, { redirect: 'manual', headers: hdrs() })).status).toBe(404);
+    }
+    for (const p of ['google', 'microsoft']) {
+      expect((await SELF.fetch(`${BASE}/api/auth/${p}/callback?state=x&code=y`, { redirect: 'manual', headers: hdrs() })).status).toBe(404);
+    }
+  });
+
+  it('accounts host: origin allowlist, GET only', async () => {
+    expect((await SELF.fetch(`${ACC}/signin`, { headers: { ...hdrs(), Origin: 'https://evil.example' } })).status).toBe(403);
+    expect((await SELF.fetch(`${ACC}/signin`, { headers: { ...hdrs(), Origin: BASE } })).status).toBe(403);
+    expect((await SELF.fetch(`${ACC}/signin`, { headers: { ...hdrs(), Origin: ACC } })).status).toBe(200);
+    expect((await SELF.fetch(`${ACC}/oauth/google/callback`, { method: 'POST', headers: { ...hdrs(), Origin: ACC } })).status).toBe(405);
+    // the accounts origin is not an API origin
+    expect((await SELF.fetch(`${BASE}/api/me`, { headers: { ...hdrs(), Origin: ACC } })).status).toBe(403);
+  });
+
+  it('sign-in page: two providers, password fallback, strict security headers, no scripts', async () => {
+    const r = await SELF.fetch(`${ACC}/signin?return_to=%2Faccount`, { headers: hdrs() });
+    expect(r.status).toBe(200);
+    const html = await r.text();
+    expect(html).toContain('DROP Texas');
+    expect(html).toContain('Continue with Google');
+    expect(html).toContain('Continue with Microsoft');
+    expect(html).not.toMatch(/oauth\/apple|with apple/i);
+    expect(html).toContain(`${BASE}/account`);
+    expect(html).not.toMatch(/<script/i);
+    const csp = r.headers.get('Content-Security-Policy');
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("script-src 'none'");
+    const nonce = csp.match(/'nonce-([^']+)'/)[1];
+    expect(html).toContain(`<style nonce="${nonce}">`);
+    expect(r.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(r.headers.get('Referrer-Policy')).toBe('no-referrer');
+  });
+
+  it('step-up intent token is single use, provider-bound and tamper-evident; step-up applies only to the same session', async () => {
+    const a = await socialLogin('google');
+    await expireStepUp();
+    const res = await api('POST', '/api/auth/google/stepup', a, {});
+    const { url } = await res.json();
+    expect(url).not.toContain('localhost');
+    const first = await SELF.fetch(url, { redirect: 'manual', headers: hdrs() });
+    expect(first.status).toBe(302);
+    const again = await SELF.fetch(url, { redirect: 'manual', headers: hdrs() });
+    expect(again.headers.get('Location')).toBe(`${BASE}/start?auth_error=intent_reused`);
+    const swapped = await SELF.fetch(url.replace('/oauth/google/', '/oauth/microsoft/'), { redirect: 'manual', headers: hdrs() });
+    expect(swapped.headers.get('Location')).toBe(`${BASE}/start?auth_error=bad_intent`);
+    const tok = new URL(url).searchParams.get('intent');
+    const bad = await SELF.fetch(`${ACC}/oauth/google/start?intent=${encodeURIComponent(tok.slice(0, -2) + 'AA')}`, { redirect: 'manual', headers: hdrs() });
+    expect(bad.headers.get('Location')).toBe(`${BASE}/start?auth_error=bad_intent`);
+    // complete the provider round trip, but redeem without the apex session: refused, no step-up
+    const loc = new URL(first.headers.get('Location'));
+    nextClaims.google = claimsFor('google', { nonce: loc.searchParams.get('nonce') });
+    const r = await callback('google', { state: loc.searchParams.get('state'), oauth: cookieVal(first, '__Host-oauth') });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=session_mismatch');
+    expect((await api('POST', '/api/account/export', a)).status).toBe(403);
   });
 });

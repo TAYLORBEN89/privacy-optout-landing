@@ -1,6 +1,9 @@
 # Copy to .dev.vars (gitignored) for `wrangler dev`. Local throwaway values only.
 ALLOWED_ORIGIN="https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
-OAUTH_REDIRECT_URIS="http://localhost:8787/api/auth/google/callback,http://localhost:8787/api/auth/microsoft/callback"
+# Sign-in host for dev: point a hosts entry / tunnel with HTTPS at `wrangler dev` (__Host- cookies need HTTPS).
+ACCOUNTS_HOST="accounts.dev.example.com"
+APP_ORIGIN="https://dev.example.com"
+OAUTH_REDIRECT_URIS="https://accounts.dev.example.com/oauth/google/callback,https://accounts.dev.example.com/oauth/microsoft/callback"
 API_TOKEN="local-dev-only"
 # Generate with: node -e "console.log(crypto.getRandomValues(Buffer.alloc(32)).toString('base64'))"
 TOTP_ENC_KEY="<base64 32 bytes>"
