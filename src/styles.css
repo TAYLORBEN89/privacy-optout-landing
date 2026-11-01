@@ -1103,6 +1103,90 @@ textarea {
   outline-offset: 3px;
 }
 
+.rights {
+  width: 100vw;
+  margin: 0 0 0 calc(50% - 50vw);
+  padding: 96px 24px;
+  background: #f5f6f8;
+  text-align: center;
+}
+
+.rights h2 {
+  margin: 0 auto;
+  max-width: 16em;
+  color: #010101;
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.rights-body {
+  max-width: 36rem;
+  margin: 20px auto 0;
+  color: #3c3c3c;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.rights-list {
+  width: min(560px, 100%);
+  margin: 28px auto 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.rights-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 7px 0;
+  color: #222;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.rights-check {
+  flex: none;
+  margin-top: 3px;
+}
+
+.rights-note {
+  margin: 22px auto 0;
+  color: #8a8a8a;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.rights-law {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 28px;
+  padding: 14px 22px;
+  border: 1.5px solid #010101;
+  border-radius: 2px;
+  background: transparent;
+  color: #010101;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.rights-law:hover {
+  background: #fff;
+}
+
+.rights-law:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
 @keyframes marquee-slide {
   from {
     transform: translateX(0);
@@ -1256,6 +1340,10 @@ textarea {
 }
 
 @media (min-width: 900px) {
+  .rights {
+    padding: 120px 24px;
+  }
+
   .marquee-section {
     padding: 100px 0;
   }

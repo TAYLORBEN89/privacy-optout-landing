@@ -2,6 +2,7 @@ import { FeaturePanel } from "../components/FeaturePanel";
 import { TopNav } from "../components/TopNav";
 import { PeopleArt } from "../components/Illustrations";
 import { BrokerMarquee } from "../components/Marquee";
+import { RightsSection } from "../components/Rights";
 import { Reveal } from "../components/Reveal";
 import { Stats } from "../components/Stats";
 import { AppLink } from "../router";
@@ -66,6 +67,8 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       </section>
 
       <BrokerMarquee />
+
+      <RightsSection />
 
       <section id="how-drop-works" className="block" aria-labelledby="how-heading">
         <Reveal>
