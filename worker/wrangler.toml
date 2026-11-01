@@ -2,6 +2,10 @@ name = "privacy-dashboard-api"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]   # otplib uses node:crypto HMAC
+
+# Production: no *.workers.dev URL and no per-version preview URLs; the Worker is reachable only via its custom domains.
+workers_dev = false
+preview_urls = false
 # account_id: not tracked; set CLOUDFLARE_ACCOUNT_ID in the environment
 
 [vars]
