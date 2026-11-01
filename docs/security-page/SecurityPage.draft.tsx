@@ -3,7 +3,7 @@
 type Status = "live" | "rolling" | "planned";
 
 function Badge({ s }: { s: Status }) {
-  const label = { live: "Live", rolling: "Rolling out", planned: "Planned" }[s];
+  const label = { live: "Live", rolling: "Planned, not live yet", planned: "Planned" }[s];
   const color = s === "live" ? "var(--blue)" : "var(--danger)";
   return (
     <span style={{ marginLeft: 8, padding: "2px 8px", border: `1px solid ${color}`, color, borderRadius: 999, fontSize: 13, fontWeight: 600 }}>
@@ -27,7 +27,7 @@ export function SecurityPage() {
   return (
     <main>
       <p className="banner" role="note">
-        Account security below is built but not yet in production. Items marked "Rolling out" aren't live yet.
+        Account security below is built but not yet in production. Items marked "Planned, not live yet" are not running in production.
       </p>
       <section className="hero" aria-labelledby="sec-title">
         <div className="hero-inner">
@@ -94,7 +94,7 @@ export function SecurityPage() {
         <ul>
           <li>Prepared statements only, with a check script; CI enforcement planned.</li>
           <li>Dependency scanning (npm audit, Dependabot): planned.</li>
-          <li>Built to SOC 2 standards. Not audited, not certified.</li>
+          <li>Built to SOC 2 standards. It is not audited and not certified.</li>
         </ul>
       </Section>
 

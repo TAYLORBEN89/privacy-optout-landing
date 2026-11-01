@@ -21,7 +21,7 @@ _Last updated: October 31, 2026_
 
 DROP Texas is a free service that helps Texans ask data brokers to delete their personal information. You're trusting us with exactly the kind of data you're trying to get back under control, so this page explains how we protect it. We've tried to be specific, and we tell you plainly what isn't finished yet.
 
-**How to read this page:** each section is marked **Live** (running on droptexas.com today) or **Rolling out** (built or approved, not yet in production). If something is marked Rolling out, don't rely on it yet.
+**How to read this page:** each section is marked **Live** (running on droptexas.com today) or **Planned, not live yet** (built or approved, not yet in production). If something is marked Planned, not live yet, don't rely on it yet.
 
 > **Current status (Oct 31, 2026):** The account system described below (MFA, server-side sessions, automatic deletion, audit log) is built and tested but **not yet in production**. Until it ships, the existing app uses a single shared access key and caches some identifiers in your browser's local storage. We'll update this page when that changes.
 
@@ -32,7 +32,7 @@ DROP Texas is a free service that helps Texans ask data brokers to delete their 
 - Cloudflare connects to our servers over HTTPS with certificate validation ("Full (strict)").
 - Not yet: HSTS (a header telling browsers to always use HTTPS). We'll turn it on once the full site is live.
 
-## What we store, and how — Rolling out
+## What we store, and how — Planned, not live yet
 
 We collect only what an opt-out request needs.
 
@@ -56,7 +56,7 @@ Data is stored in Cloudflare D1 and Workers KV. Cloudflare encrypts these at res
 
 **Known gap (Live today):** the current app caches some identifiers in plain text in your browser's local storage. The new version removes that and keeps them only on the server, encrypted. We don't claim everything is "encrypted everywhere."
 
-## Signing in — Rolling out
+## Signing in — Planned, not live yet
 
 - **Two-step sign-in (MFA) is required.** After your password, you enter a 6-digit code from an authenticator app. You set it up by scanning a QR code, and you get 10 one-time backup codes.
 - **Codes can't be reused.** Each code is accepted once; a replayed code is rejected, even if two requests arrive at the same moment.
@@ -65,15 +65,15 @@ Data is stored in Cloudflare D1 and Workers KV. Cloudflare encrypts these at res
 - **Forged-request protection.** Every change (POST/PUT/PATCH/DELETE) needs a per-session CSRF token and must come from our own site's Origin; requests without one are refused.
 - Sign-in options may change before launch.
 
-## Limits on abuse — partly Rolling out
+## Limits on abuse — partly Planned, not live yet
 
-- **Rolling out:** after 5 failed sign-ins (password or code) from the same IP for the same account in 15 minutes, further attempts are blocked.
-- **Rolling out:** opt-out changes are limited to 30 per hour per account.
+- **Planned, not live yet:** after 5 failed sign-ins (password or code) from the same IP for the same account in 15 minutes, further attempts are blocked.
+- **Planned, not live yet:** opt-out changes are limited to 30 per hour per account.
 - **Planned:** an additional per-account limit, to stop attacks spread across many IP addresses.
 
-## How long we keep things — Rolling out (approved, not yet running)
+## How long we keep things — Planned, not live yet (approved, not yet running)
 
-A daily automatic job deletes data on this schedule:
+Planned, not live yet: a daily automatic job will delete data on this schedule:
 
 - Identifiers used for a request: deleted 30 days after the broker confirms, and never kept more than 90 days.
 - Finished opt-out records: deleted 24 months after completion.
@@ -84,7 +84,7 @@ A daily automatic job deletes data on this schedule:
 
 Backups — **Planned:** scheduled database exports to separate storage. Not running yet.
 
-## Audit log — Rolling out
+## Audit log — Planned, not live yet
 
 We record security-relevant events: sign-ins, MFA changes, backup-code use, profile updates, opt-out status changes, and suspicious session reuse. Each entry has the user, action, target, time, IP address and browser user-agent (recording IP and user-agent is approved but **not yet built**).
 
@@ -95,7 +95,7 @@ The log is append-only: the database itself rejects edits and deletions. The onl
 - **Built, not yet in production:** every database query uses prepared statements with bound parameters, and a check script fails if a query is built by string concatenation. **Planned:** running that check in CI on every change.
 - **Planned:** automated dependency scanning (npm audit and Dependabot).
 - **Process:** changes go through pull requests on a protected main branch (enforced on GitHub today); nothing reaches production without explicit approval.
-- **SOC 2:** Built to SOC 2 standards. Not audited, not certified.
+- **SOC 2:** Built to SOC 2 standards. It is not audited and not certified.
 
 ## If something goes wrong
 
@@ -125,4 +125,4 @@ Server-side accounts with MFA; removing browser-stored identifiers; blocking dev
 
 ## Changelog
 
-- **Oct 31, 2026:** First draft. Transport protections (HTTPS redirect, TLS 1.2+, Full strict) live; account security and retention marked Rolling out.
+- **Oct 31, 2026:** First draft. Transport protections (HTTPS redirect, TLS 1.2+, Full strict) live; account security and retention marked Planned, not live yet.
