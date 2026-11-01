@@ -8,7 +8,6 @@ const DISCLOSURES = [
   "src/pages/HomePage.tsx",
   "src/pages/SecurityPage.tsx",
   "src/pages/topics.tsx",
-  "src/components/FeaturePanel.tsx",
   "src/components/Values.tsx",
   "README.md",
 ];
