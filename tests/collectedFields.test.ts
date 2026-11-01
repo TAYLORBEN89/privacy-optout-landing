@@ -5,7 +5,6 @@ const PHONE = "if you choose to provide it) your phone number";
 
 const DISCLOSURES = [
   "src/pages/PrivacyPage.tsx",
-  "src/pages/HomePage.tsx",
   "src/pages/SecurityPage.tsx",
   "src/pages/topics.tsx",
   "src/components/Values.tsx",
@@ -18,5 +17,18 @@ describe("collected fields", () => {
       const text = readFileSync(file, "utf8").replace(/\s+/g, " ");
       expect(text, file).toContain(PHONE);
     }
+  });
+
+  it("uses Ben's yellow-band body and does not add an at-rest claim", () => {
+    const page = readFileSync("src/pages/HomePage.tsx", "utf8").replace(/\s+/g, " ");
+    expect(page).toContain(
+      "We collect only your name, mailing address, email, Texas residency and your phone number. Everything you send is encrypted in transit, and we never sell your data.",
+    );
+    expect(page).toContain("Your information, protected");
+    expect(page).toContain("Only what we need. Nothing more.");
+    expect(page).toContain("{storageNotice()}");
+    expect(page).not.toContain("Your information is protected.");
+    expect(page).not.toContain("at rest");
+    expect(page).not.toContain("encrypted at rest");
   });
 });
