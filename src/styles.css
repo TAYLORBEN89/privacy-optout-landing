@@ -1016,6 +1016,19 @@ textarea {
     width: auto;
   }
 
+  .stats {
+    padding-inline: 12px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+  }
+
+  .stat-label {
+    max-width: none;
+    font-size: 13px;
+  }
+
   h1 {
     font-size: 32px;
     letter-spacing: -1px;
@@ -1845,16 +1858,35 @@ textarea {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px 20px;
-  width: min(1000px, 100%);
-  margin: 40px auto 0;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 28px 16px;
+  align-items: start;
+  width: min(1100px, 100%);
+  margin: 48px auto 0;
   padding: 0;
   list-style: none;
 }
 
-.stat-grid li:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
+.stat-grid li {
+  grid-column: span 2;
+}
+
+.stat-grid li:nth-child(2) {
+  margin-top: 40px;
+}
+
+.stat-grid li:nth-child(3) {
+  margin-top: 14px;
+}
+
+.stat-grid li:nth-child(4) {
+  grid-column: 2 / span 2;
+  margin-top: 10px;
+}
+
+.stat-grid li:nth-child(5) {
+  grid-column: 4 / span 2;
+  margin-top: 36px;
 }
 
 .stat-value {
@@ -2043,15 +2075,6 @@ textarea {
 
   .stats h2 {
     font-size: 40px;
-  }
-
-  .stat-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    width: min(1240px, 100%);
-  }
-
-  .stat-grid li:last-child:nth-child(odd) {
-    grid-column: auto;
   }
 
   .rights {
