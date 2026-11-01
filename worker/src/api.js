@@ -5,7 +5,7 @@ import {
   checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
-import { isLimited, hit, clientIp } from './ratelimit.js';
+import { isLimited, hit, clientIp, retryHeaders } from './ratelimit.js';
 import {
   PROVIDERS, redirectUriFor, client, authorizationUrl, newFlowSecrets, exchange, verifyIdToken, IdTokenError,
   sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo, sealStart, openStart,
@@ -67,7 +67,7 @@ async function oauthStart(ctx, provider, { intent = 'login', u = null, sh = null
 // Callers must reject HEAD before calling this (no token or rate-limit consumption).
 export async function accountsStart(ctx, provider, mode) {
   const ip = clientIp(ctx.req);
-  if (await isLimited(ctx.env, 'oauth_start', ip)) return json(ctx, { error: 'too many requests' }, 429);
+  { const ra = await isLimited(ctx.env, 'oauth_start', ip); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra)); }
   await hit(ctx.env, 'oauth_start', ip);
   let token = null;
   if (mode === 'get') token = new URL(ctx.req.url).searchParams.get('st');
@@ -130,7 +130,7 @@ export async function callback(ctx, provider) {
     await audit(ctx, userId, 'auth.fail', `${provider}:${reason}`, { ua: userId !== null });
     return redirect(`${appOrigin(ctx.env)}/start?auth_error=${reason}`, [clearOauthCookie()]);
   };
-  if (await isLimited(ctx.env, 'oauth_cb', ip)) return json(ctx, { error: 'too many requests' }, 429);
+  { const ra = await isLimited(ctx.env, 'oauth_cb', ip); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra)); }
   await hit(ctx.env, 'oauth_cb', ip);
 
   const params = new URL(ctx.req.url).searchParams;
@@ -209,7 +209,7 @@ async function complete(ctx) {
     await audit(ctx, userId, 'auth.fail', `handoff:${reason}`, { ua: userId !== null });
     return withHeaders(redirect(`/start?auth_error=${reason}`, [clearLoginCookie()]), { 'Referrer-Policy': 'no-referrer' });
   };
-  if (await isLimited(ctx.env, 'handoff', ip)) return json(ctx, { error: 'too many requests' }, 429, { 'Set-Cookie': clearLoginCookie() });
+  { const ra = await isLimited(ctx.env, 'handoff', ip); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra, { 'Set-Cookie': clearLoginCookie() })); }
   await hit(ctx.env, 'handoff', ip);
   const code = new URL(ctx.req.url).searchParams.get('code') || '';
   if (!/^[A-Za-z0-9_-]{43}$/.test(code)) return fail('handoff_invalid');
@@ -305,7 +305,7 @@ async function stepUpPassword(ctx, cur) {
   const b = await readJson(ctx.req);
   const u = await ctx.env.DB.prepare('SELECT id, pw_hash, totp_enabled, totp_secret_enc, totp_last_step FROM users WHERE id = ?1').bind(cur.session.user_id).first();
   const rlId = `${clientIp(ctx.req)}|stepup|${cur.session.user_id}`;
-  if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
+  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
   const password = typeof b?.password === 'string' ? b.password.slice(0, 1024) : '';
   let ok = false;
   if (u && u.pw_hash !== NO_PASSWORD && u.totp_enabled && password) {
@@ -481,7 +481,7 @@ async function deleteAccount(ctx, cur) {
 // ---------- gate: POST /api/optouts/signup ----------
 async function signup(ctx, cur) {
   const uid = cur.session.user_id;
-  if (await isLimited(ctx.env, 'optout', uid)) return json(ctx, { error: 'too many requests' }, 429);
+  { const ra = await isLimited(ctx.env, 'optout', uid); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra)); }
   const body = await readJson(ctx.req);
   const v = validateSignup(body);
   if (!v.ok) return json(ctx, v, 400); // static messages only; submitted values are never echoed

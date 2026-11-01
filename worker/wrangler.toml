@@ -2,11 +2,15 @@ name = "privacy-dashboard-api"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]   # otplib uses node:crypto HMAC
+
+# Production: no *.workers.dev URL and no per-version preview URLs; the Worker is reachable only via its custom domains.
+workers_dev = false
+preview_urls = false
 # account_id: not tracked; set CLOUDFLARE_ACCOUNT_ID in the environment
 
 [vars]
 # Comma-separated list of exact origins allowed by CORS (no trailing slashes).
-# droptexas.com plan: dashboard https://droptexas.com, API https://api.droptexas.com (same site -> SameSite=Strict).
+# droptexas.com: app + JSON API same-origin at https://droptexas.com/api/* (landing service binding); sign-in at accounts.droptexas.com.
 # The pages.dev origin stays until the dashboard has moved; remove it afterwards.
 # Production origins only. Dev/preview origins (localhost, pages.dev) go in .dev.vars (see .dev.vars.example).
 # `npm run check:origins` fails if anything else appears here.
@@ -35,7 +39,7 @@ APP_ORIGIN = "https://droptexas.com"
 
 [[kv_namespaces]]
 binding = "RECORDS"
-# KV namespace privacy-dashboard-api-RECORDS (also holds rl:* rate-limit counters)
+# KV namespace privacy-dashboard-api-RECORDS (legacy records; rate limits moved to D1 in 0008)
 id = "00000000000000000000000000000000"
 
 # Production D1 (created 2026-10-31 on the project Cloudflare account, region ENAM).
@@ -54,12 +58,13 @@ crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expire
 #   { pattern = "api.droptexas.com", custom_domain = true }
 # ]
 
-# NOT ATTACHED. Sign-in host accounts.droptexas.com, served by this same Worker (branching on the request Host).
-# A Workers Custom Domain creates its own DNS record on deploy, so uncomment ONLY with the owner's explicit yes.
-# (If the api.droptexas.com list above is enabled too, merge both entries into one routes list.)
-# [[routes]]
-# pattern = "accounts.droptexas.com"
-# custom_domain = true
+# ATTACHED (live since deploy 4736795c). Sign-in host accounts.droptexas.com, served by this same Worker
+# (branching on the request Host). The JSON API is reached same-origin at https://droptexas.com/api/* through the
+# landing site's service binding, so it needs no route here. With workers_dev = false this is the only public URL.
+# (If the api.droptexas.com list above is ever enabled, merge both entries into one routes list.)
+[[routes]]
+pattern = "accounts.droptexas.com"
+custom_domain = true
 
 # Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
 # ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists).

@@ -4,7 +4,7 @@ import {
   randomToken, sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptStr, decryptStr,
   encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
-import { isLimited, hit, clientIp } from './ratelimit.js';
+import { isLimited, hit, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
 
 const COOKIE = '__Host-sid';
 const STEP = 30;
@@ -144,7 +144,7 @@ async function login(ctx) {
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase().slice(0, 254) : '';
   const password = typeof body?.password === 'string' ? body.password.slice(0, 1024) : '';
   const rlId = `${clientIp(ctx.req)}|${email}`;
-  if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
+  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
 
   const user = email
     ? await ctx.env.DB.prepare('SELECT id, pw_hash, totp_enabled FROM users WHERE email = ?1').bind(email).first()
@@ -219,7 +219,7 @@ export async function useBackupCode(env, userId, code) {
 async function regenerateBackupCodes(ctx, cur) {
   if (!cur.session.mfa) return json(ctx, { error: 'mfa required' }, 403);
   const rlId = `${clientIp(ctx.req)}|backup-regen|${cur.session.user_id}`;
-  if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
+  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
   await hit(ctx.env, 'login', rlId);
   const codes = await issueBackupCodes(ctx.env, cur.session.user_id);
   await audit(ctx, cur.session.user_id, 'backup_codes.regenerated');
@@ -236,7 +236,7 @@ async function totpVerify(ctx) {
   ).bind(preHash).first();
   if (!p || p.revoked || now() >= p.expires_at || !p.totp_secret_enc) return INVALID(ctx);
   const rlId = `${clientIp(ctx.req)}|${p.email}`;
-  if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
+  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
 
   let ok;
   let method = 'totp';
@@ -312,7 +312,7 @@ async function listOptouts(ctx, cur) {
 
 async function createOptout(ctx, cur) {
   const uid = cur.session.user_id;
-  if (await isLimited(ctx.env, 'optout', uid)) return json(ctx, { error: 'too many requests' }, 429);
+  { const ra = await isLimited(ctx.env, 'optout', uid); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra)); }
   const b = await readJson(ctx.req);
   if (!b) return json(ctx, { error: 'bad request' }, 400);
   const status = b.status ?? 'queued';
@@ -368,7 +368,7 @@ const optNum = (v) => (v === null ? null : Number.isInteger(v) && v >= 0 ? v : u
 
 async function patchOptout(ctx, cur, id) {
   const uid = cur.session.user_id;
-  if (await isLimited(ctx.env, 'optout', uid)) return json(ctx, { error: 'too many requests' }, 429);
+  { const ra = await isLimited(ctx.env, 'optout', uid); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra)); }
   const b = await readJson(ctx.req);
   if (!b) return json(ctx, { error: 'bad request' }, 400);
   const row = await ctx.env.DB.prepare('SELECT * FROM optout_requests WHERE id = ?1 AND user_id = ?2').bind(id, uid).first();
@@ -463,7 +463,7 @@ async function putProfile(ctx, cur) {
 // Only succeeds while the users table is empty (atomic INSERT ... WHERE NOT EXISTS), so it self-disables.
 async function bootstrap(ctx) {
   const rlId = `${clientIp(ctx.req)}|bootstrap`;
-  if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
+  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
   const h = ctx.req.headers.get('Authorization') || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : '';
   const expected = ctx.env.ADMIN_BOOTSTRAP_TOKEN || '';
@@ -563,6 +563,7 @@ export async function purge(env, at = now()) {
     // Cascades to confirmations and pii_payloads.
     env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'optout' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.finishedDays * day),
     env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'tx' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.txDays * day),
+    purgeRateLimitsStmt(env, at), // all[7]: rate-limit windows that have ended (not reported)
   ]);
   const all = res.map((x) => x.meta.changes);
   const counts = [all[0], all[1], all[2], all[5], all[6]]; // all[3] oauth_states_used, all[4] auth_handoffs (not reported)

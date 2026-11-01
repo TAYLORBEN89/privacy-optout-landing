@@ -6,7 +6,7 @@ Vite + React frontend, Cloudflare Worker + D1/KV backend (source of truth), loca
 ## Frontend setup
 ```bash
 npm install
-cp .env.example .env   # set VITE_API_URL (the Worker URL)
+cp .env.example .env   # VITE_API_URL: empty for same-origin /api/* (production); http://localhost:8787 for wrangler dev
 npm run dev            # http://localhost:5173
 npm run build          # production build to dist/
 ```
@@ -19,13 +19,18 @@ Consider also putting the dashboard behind Cloudflare Access.
 
 ### Deploy frontend (Cloudflare Pages)
 ```bash
-VITE_API_URL=https://privacy-dashboard-api.<your-subdomain>.workers.dev npm run build
+VITE_API_URL= npm run build   # empty = same-origin: the app calls /api/* on its own origin (see "Topology")
 npx wrangler pages deploy dist --project-name <project> --branch main
 ```
 
 ## Worker (Cloudflare) setup
 
-The API is one Worker (`privacy-dashboard-api`, `worker/`) with a D1 database (binding `DB`) and a KV namespace (binding `RECORDS`, legacy records + `rl:*` rate-limit counters). It serves two hosts, picked by the request `Host`: the sign-in host (`ACCOUNTS_HOST`, e.g. `accounts.droptexas.com`) and the API on the app origin (`APP_ORIGIN`, e.g. `https://droptexas.com/api/*`). During development it is reachable at `https://privacy-dashboard-api.<your-subdomain>.workers.dev` or a custom domain such as `privacy-api.example.com` in your zone.
+The API is one Worker (`privacy-dashboard-api`, `worker/`) with a D1 database (binding `DB`) and a KV namespace (binding `RECORDS`, legacy records). It serves two hosts, picked by the request `Host`: the sign-in host (`ACCOUNTS_HOST`, e.g. `accounts.droptexas.com`) and the API on the app origin (`APP_ORIGIN`, e.g. `https://droptexas.com/api/*`). 
+**Topology (production).** `workers_dev = false` and `preview_urls = false`, so there is no `*.workers.dev` URL. The Worker's only route is the custom domain `accounts.droptexas.com` (`[[routes]]` in `wrangler.toml`), which serves the sign-in and OAuth pages. The JSON API is same-origin at `https://droptexas.com/api/*`: the landing site forwards `/api/*` to this Worker through its `env.API` service binding. Frontend builds therefore leave `VITE_API_URL` empty (`src/authApi.js` then calls `/api/*` on its own origin). For a different setup, use your own custom domain in your zone (e.g. `privacy-api.example.com`) and set `VITE_API_URL` to it.
+
+The legacy KV dashboard client (`src/storage.js`: `/records`, `/txrequests`, `/settings`) requires a non-empty `VITE_API_URL` pointing at a host that routes *all* paths to this Worker. Production has no such host, so use it only against `wrangler dev` (below) or a custom domain you attach for it.
+
+**Development.** `cd worker && npx wrangler dev` serves the Worker at `http://localhost:8787` with local D1/KV (put secrets in `worker/.dev.vars`, and dev origins in `ALLOWED_ORIGIN` there). Point the frontend at it with `VITE_API_URL=http://localhost:8787`.
 
 ### 1. Install and create storage
 ```bash
@@ -45,6 +50,7 @@ npx wrangler d1 create privacy-dashboard            # paste database_id into [[d
 | `0003_in_progress_status.sql` | adds the `in_progress` request status |
 | `0004_audit_append_only.sql` | append-only triggers on audit_log, the expiry gate and maintenance_log (idempotent) |
 | `0007_social_auth.sql` | user_identities (google/microsoft), oauth_states_used, auth_handoffs, step-up columns, audit ip/user_agent |
+| `0008_rate_limits.sql` | strongly consistent fixed-window rate-limit counters (replaces the old KV limiter) |
 
 There are no 0005/0006 files (numbers were skipped). Wrangler applies whatever is unapplied, in file order:
 ```bash
@@ -79,7 +85,13 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 npm test && npm run check:sql && npm run check:origins
 npx wrangler deploy
 ```
-The sign-in host is attached as a Workers Custom Domain (commented `[[routes]]` block in `wrangler.toml`). Attaching a custom domain creates a DNS record in your zone, so only enable it deliberately.
+The sign-in host `accounts.droptexas.com` is a live Workers Custom Domain, declared in the `[[routes]]` block of `wrangler.toml`; `wrangler deploy` keeps the attachment and manages its DNS record. If you fork this, change that pattern to a host in your zone before deploying.
+
+### Rate limits (`rate_limits`, migration 0008)
+- Columns: `key` (sha256 of `scope|id`, where id is IP + account identifier or user id; no raw IPs or emails), `window_start`, `count`, `expires_at` (window end). Primary key `(key, window_start)`, index on `expires_at`.
+- Fixed windows (`LIMITS` in `worker/src/ratelimit.js`, e.g. login: 5 failures / 15 min per IP+account, shared by password, TOTP and step-up, and also used for backup-code regen and admin bootstrap). Each counted request is one atomic `INSERT ... ON CONFLICT DO UPDATE SET count = count + 1 RETURNING count`; D1 is strongly consistent.
+- Over the limit: `429` with the usual body and `Retry-After` = seconds until the window ends. Because windows are fixed, up to 2x the limit can land across a window boundary (the old KV TTL restarted on every hit).
+- The daily cron deletes ended windows. Old `rl:*` keys in KV are no longer read or written and expire on their own TTL.
 
 ### Admin bootstrap (password + TOTP fallback account)
 1. `npx wrangler secret put ADMIN_BOOTSTRAP_TOKEN`
@@ -89,7 +101,7 @@ The sign-in host is attached as a Workers Custom Domain (commented `[[routes]]` 
 
 ### Cron
 `crons = ["0 8 * * *"]` (daily 08:00 UTC) runs two separate jobs:
-- **purge**: deletes PII past its hard max (`purge_after`) or `PII_RETENTION_DAYS` after confirmation; sessions `SESSION_PURGE_DAYS` after expiry/revocation; used OAuth states (>1 day) and expired handoff codes; finished opt-out records after 730 days and Texas requests after 1095 days (cascades to confirmations and PII).
+- **purge**: deletes PII past its hard max (`purge_after`) or `PII_RETENTION_DAYS` after confirmation; sessions `SESSION_PURGE_DAYS` after expiry/revocation; used OAuth states (>1 day) and expired handoff codes; finished opt-out records after 730 days and Texas requests after 1095 days (cascades to confirmations and PII). Ended rate-limit windows are deleted too.
 - **audit expiry** (`expireAudit`): the only path that deletes audit rows. In one D1 transaction it opens the expiry gate, records the run in `maintenance_log` (job, ran_at, cutoff, rows deleted), deletes rows older than `AUDIT_RETENTION_DAYS` (min 365), and closes the gate.
 
 ### Audit log
@@ -147,7 +159,7 @@ The **Texas broker requests** tab lists every broker in the [Texas SOS data brok
 
 ```bash
 cd worker && npx wrangler deploy && cd ..
-# .env must contain VITE_API_URL=https://privacy-dashboard-api.<your-subdomain>.workers.dev
+# production build: leave VITE_API_URL empty (same-origin /api/* on droptexas.com via the service binding)
 npm run build && npx wrangler pages deploy dist --project-name <project> --branch main
 ```
 
