@@ -8,8 +8,11 @@ function Mark({ size }: { size: number }) {
   return (
     <svg className="mark" viewBox="0 0 32 32" width={size} height={size} aria-hidden="true">
       <rect width="32" height="32" rx="8" fill="#ee0014" />
-      <rect x="7" y="8" width="8" height="16" rx="2" fill="#ffffff" />
-      <circle cx="20" cy="16" r="6.5" fill="#ffffff" />
+      <path
+        fill="#ffffff"
+        d="M11.2 14.2V11.6a4.8 4.8 0 0 1 9.6 0v2.6h-2.4V11.6a2.4 2.4 0 0 0-4.8 0v2.6h-2.4z"
+      />
+      <rect x="8" y="14" width="16" height="12" rx="2" fill="#ffffff" />
     </svg>
   );
 }
