@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { SignupForm } from "../SignupForm";
 import { DISCLAIMER } from "../copy";
 import { type StartAction, signInHrefFor } from "../authGate";
+import { AuthErrorNotice } from "../components/AuthErrorNotice";
 
 function assignLocation(url: string): void {
   window.location.assign(url);
@@ -18,21 +19,26 @@ export function StartPage({
     if (action === "redirect") goTo(signInHrefFor("/start"));
   }, [action, goTo]);
 
-  if (action === "loading") return <p className="panel">Checking sign-in…</p>;
-  if (action === "redirect") return <p className="panel">Sending you to sign in…</p>;
-  if (action === "unavailable") {
-    return (
+  let body = (
+    <section className="form-section" aria-labelledby="form-heading">
+      <p className="note">{DISCLAIMER}</p>
+      <SignupForm />
+    </section>
+  );
+  if (action === "loading") body = <p className="panel">Checking sign-in…</p>;
+  else if (action === "redirect") body = <p className="panel">Sending you to sign in…</p>;
+  else if (action === "unavailable") {
+    body = (
       <p className="panel">
-        Sign-in could not be checked. You can try{" "}
-        <a href={signInHrefFor("/start")}>sign in</a> again.
+        Sign-in could not be checked. You can try <a href={signInHrefFor("/start")}>sign in</a> again.
       </p>
     );
   }
 
   return (
-    <section className="form-section" aria-labelledby="form-heading">
-      <p className="note">{DISCLAIMER}</p>
-      <SignupForm />
-    </section>
+    <>
+      <AuthErrorNotice />
+      {body}
+    </>
   );
 }

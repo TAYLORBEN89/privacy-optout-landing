@@ -9,6 +9,7 @@ import {
   formatUnix,
   linkIdentity,
   optOutLabel,
+  submitStart,
   patchDisplayName,
   revokeSession,
   startPasswordStepUp,
@@ -21,6 +22,7 @@ import {
 import type { ApiErr, ApiOk } from "../api/http";
 import { stepUpChoices } from "../api/stepUp";
 import type { MeOk } from "../authGate";
+import { AuthErrorNotice } from "../components/AuthErrorNotice";
 import { type StartAction, signInHrefFor } from "../authGate";
 
 const EMPTY_PROFILE: AccountProfile = { display_name: null, identifiers_locked: true };
@@ -478,11 +480,9 @@ export function AccountPage({
       return;
     }
     const result = await startProviderStepUp(provider, csrfToken, fetchImpl);
-    if (!result.ok || typeof result.data?.url !== "string" || result.data.url.length === 0) {
+    if (!result.ok || !submitStart(result.data)) {
       setStepUpError("Could not start confirmation. Try again.");
-      return;
     }
-    goTo(result.data.url);
   }
 
   async function onPasswordStepUp(password: string, code: string) {
@@ -494,10 +494,6 @@ export function AccountPage({
     const result = await startPasswordStepUp(password, code, csrfToken, fetchImpl);
     if (!result.ok) {
       setStepUpError(result.status === 429 ? "Too many attempts." : "That did not match.");
-      return;
-    }
-    if (typeof result.data?.url === "string" && result.data.url.length > 0) {
-      goTo(result.data.url);
       return;
     }
     setStepUp(false);
@@ -515,11 +511,7 @@ export function AccountPage({
       else setActionError("Could not link that sign-in.");
       return;
     }
-    if (typeof result.data?.url !== "string" || result.data.url.length === 0) {
-      setActionError("Could not link that sign-in.");
-      return;
-    }
-    goTo(result.data.url);
+    if (!submitStart(result.data)) setActionError("Could not link that sign-in.");
   }
 
   async function onUnlink(provider: string) {
@@ -537,19 +529,7 @@ export function AccountPage({
     setLinkedProviders((current) => current.filter((item) => item !== provider));
   }
 
-  if (action === "loading") return <p className="panel">Checking sign-in…</p>;
-  if (action === "redirect") return <p className="panel">Sending you to sign in…</p>;
-  if (action === "unavailable") {
-    return (
-      <p className="panel">
-        Sign-in could not be checked. You can try <a href={signInHrefFor("/account")}>sign in</a> again.
-      </p>
-    );
-  }
-  if (!loaded) return <p className="panel">Loading your account…</p>;
-
-  return (
-    <AccountView
+  let body = <AccountView
       profile={profile}
       optouts={optouts}
       sessions={sessions}
@@ -583,6 +563,21 @@ export function AccountPage({
       onPasswordStepUp={(password, code) => void onPasswordStepUp(password, code)}
       onLink={(provider) => void onLink(provider)}
       onUnlink={(provider) => void onUnlink(provider)}
-    />
+    />;
+  if (action === "loading") body = <p className="panel">Checking sign-in…</p>;
+  else if (action === "redirect") body = <p className="panel">Sending you to sign in…</p>;
+  else if (action === "unavailable") {
+    body = (
+      <p className="panel">
+        Sign-in could not be checked. You can try <a href={signInHrefFor("/account")}>sign in</a> again.
+      </p>
+    );
+  } else if (!loaded) body = <p className="panel">Loading your account…</p>;
+
+  return (
+    <>
+      <AuthErrorNotice />
+      {body}
+    </>
   );
 }

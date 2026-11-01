@@ -1,6 +1,11 @@
 import { apiUrl } from "../api";
 import { apiRequest, csrfHeaders, type ApiErr, type ApiOk } from "./http";
-import type { StepUpStart } from "./stepUp";
+
+export interface StartHandoff {
+  action: string;
+  method: string;
+  fields: Record<string, string>;
+}
 
 export const PASSWORD_STEPUP_PATH = "/api/auth/stepup/password";
 
@@ -167,7 +172,7 @@ export async function startProviderStepUp(
   provider: string,
   csrfToken: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<ApiOk<StepUpStart> | ApiErr> {
+): Promise<ApiOk<StartHandoff> | ApiErr> {
   if (!isAccountProvider(provider)) return unsupportedProvider();
   return apiRequest(stepUpPath(provider), {
     method: "POST",
@@ -176,11 +181,55 @@ export async function startProviderStepUp(
   }, fetchImpl);
 }
 
+/** https on droptexas.com or accounts.droptexas.com, with no embedded credentials. */
+export function isAllowedStartAction(action: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(action);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:") return false;
+  if (url.username !== "" || url.password !== "") return false;
+  return url.hostname === "droptexas.com" || url.hostname === "accounts.droptexas.com";
+}
+
+/**
+ * Posts the step-up or link handoff as a real form so the token is not placed in a URL.
+ * Returns false when the action host is not allowed.
+ */
+export function submitStart(
+  payload: { action?: unknown; method?: unknown; fields?: unknown },
+  doc: Document = document,
+): boolean {
+  if (typeof payload.action !== "string" || !isAllowedStartAction(payload.action)) return false;
+  if (typeof payload.method !== "string" || payload.method.toUpperCase() !== "POST") return false;
+  if (!payload.fields || typeof payload.fields !== "object" || Array.isArray(payload.fields)) return false;
+  const entries = Object.entries(payload.fields as Record<string, unknown>).filter(
+    (entry): entry is [string, string] => typeof entry[1] === "string",
+  );
+  if (!entries.some(([name, value]) => name === "st" && value.length > 0)) return false;
+
+  const form = doc.createElement("form");
+  form.method = "POST";
+  form.action = payload.action;
+  for (const [name, value] of entries) {
+    const input = doc.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  }
+  doc.body.appendChild(form);
+  form.submit();
+  return true;
+}
+
 export async function linkIdentity(
   provider: string,
   csrfToken: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<ApiOk<{ url?: string }> | ApiErr> {
+): Promise<ApiOk<StartHandoff> | ApiErr> {
   if (!isAccountProvider(provider)) return unsupportedProvider();
   return apiRequest(`/api/account/identities/${provider}/link`, {
     method: "POST",

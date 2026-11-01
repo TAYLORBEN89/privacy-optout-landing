@@ -4,10 +4,6 @@ export function isStepUpRequired(status: number, body: unknown): boolean {
   return (body as { error?: unknown }).error === "step_up_required";
 }
 
-export interface StepUpStart {
-  url: string;
-}
-
 export interface StepUpChoices {
   providers: string[];
   offerPassword: boolean;

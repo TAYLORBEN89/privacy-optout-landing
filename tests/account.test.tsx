@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { exportAccount, linkIdentity, optOutLabel, patchDisplayName, unlinkIdentity, type OptOutRecord } from "../src/api/account";
+import { exportAccount, linkIdentity, optOutLabel, patchDisplayName, submitStart, unlinkIdentity, type OptOutRecord } from "../src/api/account";
 import { isStepUpRequired, stepUpChoices } from "../src/api/stepUp";
 import { LOGOUT_PATH } from "../src/api";
 import { fetchMe, signInHrefFor, type MeOk } from "../src/authGate";
@@ -156,13 +156,20 @@ describe("step-up", () => {
     const user = userEvent.setup();
     const calls: { url: string; init?: RequestInit }[] = [];
     const goTo = vi.fn();
+    const submit = vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(() => undefined);
     const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       calls.push({ url, init });
       if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
       if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
       if (url.endsWith("/api/account/optouts")) return json(403, { error: "step_up_required" });
-      if (url.endsWith("/api/auth/google/stepup")) return json(200, { url: "https://accounts.example/stepup" });
+      if (url.endsWith("/api/auth/google/stepup")) {
+        return json(200, {
+          action: "https://accounts.droptexas.com/oauth/google/bound",
+          method: "POST",
+          fields: { st: "step-token" },
+        });
+      }
       return json(404, { error: "not_found" });
     }) as typeof fetch;
 
@@ -178,7 +185,13 @@ describe("step-up", () => {
     expect(step?.init?.credentials).toBe("same-origin");
     expect(step?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
     expect(String(step?.init?.body)).toContain("/account");
-    expect(goTo).toHaveBeenCalledWith("https://accounts.example/stepup");
+    expect(goTo).not.toHaveBeenCalled();
+    const form = document.body.querySelector("form");
+    expect(form?.getAttribute("action")).toBe("https://accounts.droptexas.com/oauth/google/bound");
+    expect(form?.method.toLowerCase()).toBe("post");
+    expect((form?.querySelector("input[name=st]") as HTMLInputElement | null)?.value).toBe("step-token");
+    expect(submit).toHaveBeenCalled();
+    form?.remove();
   });
 
   it("posts the password and authenticator code, then clears the fields", async () => {
@@ -260,11 +273,53 @@ describe("step-up", () => {
   });
 });
 
+describe("submitStart", () => {
+  it("posts hidden fields to an allowed host and refuses anything else", () => {
+    const submit = vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(() => undefined);
+    const assign = vi.spyOn(window.location, "assign").mockImplementation(() => undefined);
+    expect(
+      submitStart({
+        action: "https://droptexas.com/oauth/google/bound",
+        method: "POST",
+        fields: { st: "token-1", extra: "yes" },
+      }),
+    ).toBe(true);
+    const form = document.body.querySelector("form");
+    expect(form?.getAttribute("action")).toBe("https://droptexas.com/oauth/google/bound");
+    expect(form?.method.toLowerCase()).toBe("post");
+    expect((form?.querySelector("input[name=st]") as HTMLInputElement | null)?.value).toBe("token-1");
+    expect((form?.querySelector("input[name=extra]") as HTMLInputElement | null)?.value).toBe("yes");
+    expect(submit).toHaveBeenCalledOnce();
+    expect(assign).not.toHaveBeenCalled();
+    form?.remove();
+
+    for (const action of [
+      "http://droptexas.com/oauth/google/bound",
+      "https://evil.example/oauth/google/bound",
+      "https://droptexas.com.evil.com/oauth/google/bound",
+      "https://accounts.droptexas.com.evil.com/bound",
+      "javascript:alert(1)",
+    ]) {
+      expect(submitStart({ action, method: "POST", fields: { st: "t" } })).toBe(false);
+    }
+    expect(
+      submitStart({
+        action: "https://accounts.droptexas.com/oauth/microsoft/bound",
+        method: "GET",
+        fields: { st: "t" },
+      }),
+    ).toBe(false);
+    expect(document.body.querySelector("form")).toBeNull();
+    expect(submit).toHaveBeenCalledOnce();
+  });
+});
+
 describe("linked identities", () => {
   it("links and unlinks Google or Microsoft, and asks for step-up", async () => {
     const user = userEvent.setup();
     const calls: { url: string; init?: RequestInit }[] = [];
     const goTo = vi.fn();
+    const submit = vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(() => undefined);
     let unlinked = false;
     const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -273,7 +328,11 @@ describe("linked identities", () => {
       if (url.endsWith("/api/account/optouts")) return json(200, { optouts: [] });
       if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
       if (url.endsWith("/api/account/identities/microsoft/link")) {
-        return json(200, { url: "https://accounts.example/link" });
+        return json(200, {
+          action: "https://accounts.droptexas.com/oauth/microsoft/bound",
+          method: "POST",
+          fields: { st: "link-token" },
+        });
       }
       if (url.endsWith("/api/account/identities/google")) {
         if (!unlinked) {
@@ -299,7 +358,12 @@ describe("linked identities", () => {
     expect(link?.init?.credentials).toBe("same-origin");
     expect(link?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
     expect(String(link?.init?.body)).toBe(JSON.stringify({ return_to: "/account" }));
-    expect(goTo).toHaveBeenCalledWith("https://accounts.example/link");
+    expect(goTo).not.toHaveBeenCalled();
+    const form = document.body.querySelector("form");
+    expect(form?.getAttribute("action")).toBe("https://accounts.droptexas.com/oauth/microsoft/bound");
+    expect((form?.querySelector("input[name=st]") as HTMLInputElement | null)?.value).toBe("link-token");
+    expect(submit).toHaveBeenCalled();
+    form?.remove();
     expect(screen.queryByRole("button", { name: /Apple/ })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Unlink Google" }));
