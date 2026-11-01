@@ -4,8 +4,7 @@ import { DISCLAIMER } from "../copy";
  * REVIEW: Cybersecurity and Compliance Agents must review this copy before launch.
  * Only claims that are true of this stack belong here. HSTS is not set in this
  * Worker, so it is omitted. Do not write "certified".
- * TODO(retention): no concrete retention period is stated for form fields.
- * Phone is kept on the same terms as the other form fields. Do not invent a number of days.
+ * Retention values come from the approved schedule in compliance/data-retention.md.
  */
 
 const COLLECTED =
@@ -17,7 +16,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
     paragraphs: [
       `The form asks for ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
       "If you provide a phone number, it is used only to match and locate your records in the opt-out, do-not-sell, and deletion requests you send to data brokers. DROP Texas does not send requests for you today. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers you choose to send those requests to.",
-      "A phone number you provide is kept on the same terms as your name, mailing address, email, and Texas residency.",
+      "An account phone number is kept while your account is active and deleted with the account, either when you ask or after 24 months without a sign-in (with a warning email 30 days before). A phone number copied into a specific broker request is deleted 30 days after the broker confirms, and never kept more than 90 days.",
     ],
   },
   {
@@ -35,6 +34,18 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
   {
     title: "Your controls",
     paragraphs: ["Planned, not live yet: exporting your data, deleting your account, signing out of other sessions, and a daily job that deletes data when its retention period ends."],
+  },
+  {
+    title: "How long we keep things",
+    paragraphs: [
+      "Planned, not yet automated. This is the approved schedule; the daily job that enforces it is approved but not live yet.",
+      "An account phone number is kept while your account is active and deleted with the account, either when you ask or after 24 months without a sign-in (with a warning email 30 days before). A phone number copied into a specific broker request is deleted 30 days after the broker confirms, and never kept more than 90 days.",
+      "Other identifiers copied into a request (name, addresses, emails) are deleted 30 days after the broker confirms, and never kept more than 90 days.",
+      "Finished opt-out records are kept 24 months. Texas request records are kept 3 years.",
+      "Inactive accounts are deleted after 24 months without a sign-in, with a warning email 30 days before.",
+      "The security audit log is kept 12 months and is append-only.",
+      "Worker logs are kept for Cloudflare's default retention period and never include request bodies or personal information.",
+    ],
   },
   {
     title: "What we don't do",

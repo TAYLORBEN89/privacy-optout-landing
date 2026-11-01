@@ -26,7 +26,7 @@ export const CITED_STATS: readonly CitedStat[] = [
   // Privacy Rights Clearinghouse, posted 20 June 2025, with EFF.
   // "A unified database of 750+ data brokers" and "A total of 750 data brokers
   // have registered in at least one state." Snapshot collected 4–8 April 2025
-  // from the California, Vermont, Texas, and Oregon registries.
+  // from five state data broker registries.
   {
     id: "registered-brokers",
     value: 750,
@@ -48,7 +48,7 @@ export const CITED_STATS: readonly CitedStat[] = [
     prefix: "~",
     suffix: "",
     decimals: 0,
-    label: "cybersecurity events per second",
+    label: "cybersecurity events per second detected across Comcast Business customers (2025-26)",
     sourceName: "Comcast Business 2026 Cybersecurity Threat Report",
     sourceUrl: "https://business.comcast.com/about-us/press-releases/2026/cb-2026-cybersecurity-threat-report",
     sourceDate: "2026-10-05",
@@ -77,7 +77,7 @@ export const CITED_STATS: readonly CitedStat[] = [
     prefix: "~$",
     suffix: "B",
     decimals: 0,
-    label: "data broker market size in 2026",
+    label: "estimated data broker market size in 2026 (projection)",
     sourceName: "Grand View Research",
     sourceUrl: "https://www.grandviewresearch.com/industry-analysis/data-broker-market-report",
     sourceDate: "2026-07",
@@ -109,7 +109,7 @@ export const CITED_STATS: readonly CitedStat[] = [
     prefix: "",
     suffix: "M+",
     decimals: 1,
-    label: "ad bid requests per second exposing data about people",
+    label: "ad bid broadcasts per second in the U.S. and Europe (ICCL, 2022)",
     sourceName: "Irish Council for Civil Liberties",
     sourceUrl: "https://www.iccl.ie/digital-data/iccl-report-on-the-scale-of-real-time-bidding-data-broadcasts-in-the-u-s-and-europe/",
     sourceDate: "2022-05-16",

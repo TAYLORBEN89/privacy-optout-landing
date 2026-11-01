@@ -20,8 +20,8 @@ describe("privacy page", () => {
     expect(html).toContain("independent, free service");
     expect(html).toContain("used only to match and locate your records");
     expect(html).toContain("not used for marketing, calls, or texts");
-    expect(html).toContain("kept on the same terms as your name, mailing address, email, and Texas residency");
-    expect(html).not.toMatch(/\d+\s+days/);
+    expect(html).toContain("An account phone number is kept while your account is active");
+    expect(html).toContain("Planned, not yet automated");
     expect(html).toContain("privacy-page");
     const css = readFileSync("src/styles.css", "utf8");
     const rule = css.slice(css.indexOf(".privacy-page {"), css.indexOf(".privacy-list"));
@@ -35,7 +35,7 @@ describe("privacy page", () => {
   it("keeps the review note in the source and out of the page", () => {
     const source = readFileSync("src/pages/PrivacyPage.tsx", "utf8");
     expect(source).toContain("Cybersecurity and Compliance Agents must review this copy");
-    expect(source).toContain("TODO(retention): no concrete retention period");
+    expect(source).not.toContain("TODO(retention)");
     const html = renderToStaticMarkup(createElement(PrivacyPage));
     expect(html).not.toContain("Cybersecurity and Compliance Agents");
   });

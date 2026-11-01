@@ -56,7 +56,8 @@ export const TDPSA_POINTS: readonly TdpsaPoint[] = [
   {
     id: "response",
     cite: "541.052(b)",
-    consumerRight: true,
+    // A business obligation on the company, not a consumer right.
+    consumerRight: false,
     text: `A company must respond within ${TDPSA_RESPONSE_DAYS} days, and may extend that once by ${TDPSA_RESPONSE_DAYS} days if it tells you why during the first ${TDPSA_RESPONSE_DAYS} days.`,
   },
   // Tex. Bus. & Com. Code § 541.053(a): a consumer may appeal a controller's refusal to take action.
@@ -82,6 +83,7 @@ export const TDPSA_POINTS: readonly TdpsaPoint[] = [
   },
 ];
 
+/** 5 rights under § 541.051(b) plus appeal under § 541.053 = 6. */
 export function tdpsaRightCount(points: readonly TdpsaPoint[] = TDPSA_POINTS): number {
   return points.filter((point) => point.consumerRight).length;
 }

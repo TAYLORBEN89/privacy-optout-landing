@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DISCLAIMER } from "../src/copy";
 
 const EXACT =
-  "DROP Texas is an independent, free service run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.";
+  "DROP Texas is an independent, free service run by Benjamin Taylor, an individual in Texas. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.";
 
 function sourceFiles(dir: string): string[] {
   const found: string[] = [];
@@ -18,7 +18,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe("disclaimer", () => {
-  it("uses the approved private-enterprise wording", () => {
+  it("uses the approved independent-service wording", () => {
     expect(DISCLAIMER).toBe(EXACT);
     expect(DISCLAIMER).not.toMatch(/California|CalPrivacy/);
   });
