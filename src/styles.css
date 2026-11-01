@@ -61,7 +61,7 @@ body {
 }
 
 .topbar-inner {
-  padding: 16px 0;
+  padding: 12px 0;
 }
 
 .brand-lockup {
@@ -108,7 +108,7 @@ body {
 }
 
 .hero {
-  padding: 80px 0 64px;
+  padding: 32px 0 64px;
   background: #f8f9fb;
   text-align: center;
 }
@@ -466,7 +466,16 @@ textarea {
   }
 
   .hero {
-    padding: 48px 0 40px;
+    padding: 20px 0 40px;
+  }
+
+  .topbar-inner {
+    padding: 6px 0;
+  }
+
+  .menu-button {
+    flex: none;
+    width: 40px;
   }
 
   .hero h1 {
@@ -500,7 +509,8 @@ textarea {
   }
 
   .tagline {
-    white-space: normal;
+    font-size: 11px;
+    white-space: nowrap;
   }
 }
 
@@ -636,13 +646,13 @@ textarea {
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 28px;
   width: min(1040px, calc(100% - 48px));
-  margin: 28px auto 0;
+  margin: 8px auto 0;
   align-items: start;
 }
 
 .solo {
   width: min(720px, calc(100% - 48px));
-  margin: 28px auto 0;
+  margin: 8px auto 0;
 }
 
 .content .hero-inner,
@@ -918,9 +928,14 @@ textarea {
     display: none;
   }
 
+  .topbar-inner,
+  .shell,
+  .solo {
+    width: min(720px, calc(100% - 32px));
+  }
+
   .shell {
     grid-template-columns: minmax(0, 1fr);
-    width: min(720px, calc(100% - 32px));
   }
 
   .overlap-card,
