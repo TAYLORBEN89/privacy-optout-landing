@@ -22,7 +22,8 @@ const CARDS = [
     id: "overview",
     tag: "Control",
     headline: "More control of your data",
-    description: "Limit the information data brokers collect and sell about you.",
+    description:
+      "Using DROP helps you limit what data brokers collect and sell about you. A profile may include contact details and people in your household.",
     button: "See how control works",
     href: "/benefits/control",
   },
@@ -30,7 +31,8 @@ const CARDS = [
     id: "how-drop-works",
     tag: "Spam",
     headline: "Reduced spam and scams",
-    description: "Fewer sold lists can mean fewer unwanted calls, texts, and emails.",
+    description:
+      "Limiting how your data gets sold can reduce unwanted texts, calls, and emails. Results vary by person and can take time to notice a change.",
     button: "See how this helps",
     href: "/benefits/spam",
   },
@@ -38,7 +40,8 @@ const CARDS = [
     id: "personal-information",
     tag: "Security",
     headline: "Greater security",
-    description: "Less of your information in circulation can lower the risk of fraud.",
+    description:
+      "Less of your information in circulation can lower the risk of identity theft and targeted fraud. This does not freeze your credit or stop every scam.",
     button: "See the security benefit",
     href: "/benefits/security",
   },
@@ -46,7 +49,8 @@ const CARDS = [
     id: "data-brokers",
     tag: "Time",
     headline: "Hours back from paperwork",
-    description: "One form, instead of a separate opt-out at each broker.",
+    description:
+      "Each broker has its own opt-out form. DROP Texas sends those requests from the one form you fill out, so you are not repeating yourself.",
     button: "See the time you save",
     href: "/benefits/time",
   },
@@ -54,7 +58,8 @@ const CARDS = [
     id: "unique-identifiers",
     tag: "Cost",
     headline: "Free to make the request",
-    description: "DROP Texas does not charge you to send opt-out requests.",
+    description:
+      "DROP Texas does not charge a fee to send opt-out requests. You can also ask each broker yourself. There is no subscription for the ask.",
     button: "See what is free",
     href: "/benefits/cost",
   },
@@ -62,7 +67,8 @@ const CARDS = [
     id: "tdpsa",
     tag: "Texas law",
     headline: "A right you can use",
-    description: "Texas law lets you opt out of the sale of your personal data.",
+    description:
+      "Texas law lets you opt out of the sale of your personal data. DROP Texas sends that request. Each broker still decides how it responds to you.",
     button: "See the right",
     href: "/benefits/rights",
   },
@@ -70,7 +76,8 @@ const CARDS = [
     id: "children",
     tag: "Children",
     headline: "Protection for your children",
-    description: "A parent can ask brokers not to sell a child's information.",
+    description:
+      "A parent or guardian can ask brokers not to sell a child's information. DROP Texas sends that request at no cost for any child under 13.",
     button: "See children's protection",
     href: "/benefits/children",
   },

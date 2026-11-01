@@ -1472,6 +1472,7 @@ textarea {
 }
 
 .tile-blurb {
+  max-width: 15em;
   color: #6f6f6f;
   font-size: 16px;
   font-weight: 400;
@@ -1582,7 +1583,7 @@ textarea {
 
 .feature-card p {
   margin: 0;
-  max-width: 38ch;
+  max-width: 17.5em;
   color: #3a3a3a;
   font-size: 17px;
   line-height: 1.5;

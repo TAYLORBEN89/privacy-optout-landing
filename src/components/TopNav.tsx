@@ -10,14 +10,14 @@ import { NAV_ITEMS } from "../navItems";
 import { AppLink } from "../router";
 
 const BLURBS: Record<string, string> = {
-  overview: "No catch, no fees.",
-  "how-drop-works": "One form, then we take it from there.",
-  "personal-information": "Only what's needed. Never sold.",
-  "data-brokers": "Major brokers, one request.",
-  "unique-identifiers": "Matched to your record.",
-  tdpsa: "Backed by Texas law.",
-  help: "Answers to common questions.",
-  share: "Pass it on to a fellow Texan.",
+  overview: "Ask brokers to stop selling your information. No fee to send it.",
+  "how-drop-works": "Fill out one form. We send the opt-out requests to the brokers.",
+  "personal-information": "We ask only for what a broker needs, and we never sell it.",
+  "data-brokers": "One request goes to companies that trade your name and phone.",
+  "unique-identifiers": "Your name, birth date, and address help match your record.",
+  tdpsa: "Texas law gives you the right to opt out of the sale of your data.",
+  help: "Answers on what we send, what we keep, and what we skip.",
+  share: "Pass this page to a Texan who wants their data sold less often.",
 };
 
 const ART: Record<string, string> = {

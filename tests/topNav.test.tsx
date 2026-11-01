@@ -8,14 +8,14 @@ import { TopNav } from "../src/components/TopNav";
 import { NAV_ITEMS } from "../src/navItems";
 
 const BLURBS = [
-  "No catch, no fees.",
-  "One form, then we take it from there.",
-  "Only what's needed. Never sold.",
-  "Major brokers, one request.",
-  "Matched to your record.",
-  "Backed by Texas law.",
-  "Answers to common questions.",
-  "Pass it on to a fellow Texan.",
+  "Ask brokers to stop selling your information. No fee to send it.",
+  "Fill out one form. We send the opt-out requests to the brokers.",
+  "We ask only for what a broker needs, and we never sell it.",
+  "One request goes to companies that trade your name and phone.",
+  "Your name, birth date, and address help match your record.",
+  "Texas law gives you the right to opt out of the sale of your data.",
+  "Answers on what we send, what we keep, and what we skip.",
+  "Pass this page to a Texan who wants their data sold less often.",
 ];
 
 afterEach(() => {
