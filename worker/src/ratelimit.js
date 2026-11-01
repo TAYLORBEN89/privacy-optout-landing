@@ -7,6 +7,9 @@ import { sha256Hex } from './crypto.js';
 export const LIMITS = {
   login: { max: 5, windowSec: 900 },    // 5 failures / 15 min per IP+account (password, TOTP/backup code, step-up, bootstrap); backup-code regen counts every call
   optout: { max: 30, windowSec: 3600 }, // 30 writes / hour per user
+  // Texas broker request edits (PUT /tx-requests/:id) have their own bucket: a full pass over the 445-broker registry
+  // is ~445 status changes plus some notes; the client debounces each broker's edits, so 1000/hour covers a whole session.
+  tx: { max: 1000, windowSec: 3600 },
   oauth_start: { max: 30, windowSec: 600 }, // OAuth flow starts / 10 min per IP
   oauth_cb: { max: 30, windowSec: 600 },    // OAuth callbacks / 10 min per IP
   handoff: { max: 30, windowSec: 600 },     // handoff code redemptions / 10 min per IP

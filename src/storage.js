@@ -2,8 +2,9 @@
 // localStorage is only an offline cache used when the API is unreachable.
 import { SERVICES } from './services.js';
 import { call, ApiError } from './authApi.js';
+import { SessionAuthError, sessionReason } from './sessionErrors.js';
 
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '');
 const KEY_STORAGE = 'privacy-dashboard:access-key';
 
 // The access key is entered at runtime (never baked into the bundle) and kept in localStorage.
@@ -67,29 +68,40 @@ export async function deleteRecord(id) {
   catch (e) { if (e instanceof AuthError) throw e; return false; }
 }
 
-// ---- Texas TDPSA broker requests: per-user D1 rows via the session API (GET /tx-requests, PUT /tx-requests/:id) ----
-// Not cached in localStorage (PR #7's no-plaintext rule). These calls use the session cookie, not the legacy key,
-// so a 401/403 means "not signed in (with MFA)": it throws SessionAuthError, never the legacy AuthError (which
-// would clear the legacy key) and is never reported as "offline".
-export class SessionAuthError extends Error {}
-const isSessionAuth = (e) => e instanceof ApiError && (e.status === 401 || e.status === 403);
+// ---- Texas TDPSA broker requests: per-user D1 rows via the same-origin session API (/api/tx-requests) ----
+// Not cached in localStorage (PR #7's no-plaintext rule). These use the session cookie, not the legacy key.
+// Failures are typed so the UI never mistakes them for "offline":
+//   SessionAuthError(reason)  401/403: signed_out | mfa_required | step_up_required | forbidden (see sessionErrors.js)
+//   TxRateLimitError          429: retryAfter seconds; the caller keeps the edit and retries
+//   false from saveTxRequest  network failure / 5xx: offline
+export { SessionAuthError };
+export class TxRateLimitError extends Error {
+  constructor(retryAfter) { super('too many requests'); this.retryAfter = retryAfter || 60; }
+}
+const txErr = (e) => {
+  const r = sessionReason(e);
+  if (r) return new SessionAuthError(r);
+  if (e instanceof ApiError && e.status === 429) return new TxRateLimitError(e.retryAfter);
+  return null;
+};
 
 /** Returns { map: {id: request}, online }. */
 export async function loadTxRequests() {
   try {
-    await call('/me'); // signed-in session (restores CSRF token)
-    const list = await call('/tx-requests');
+    await call('/api/me'); // signed-in session (restores CSRF token)
+    const list = await call('/api/tx-requests');
     const map = Object.fromEntries(list.map((r) => [r.id, r]));
     return { map, online: true };
   } catch (e) {
-    if (isSessionAuth(e)) throw new SessionAuthError('sign in required');
+    const t = txErr(e); if (t) throw t;
     return { map: {}, online: false };
   }
 }
 
+/** true when stored, false when the server is unreachable; throws SessionAuthError / TxRateLimitError. */
 export async function saveTxRequest(req) {
-  try { await call(`/tx-requests/${encodeURIComponent(req.id)}`, { method: 'PUT', body: req }); return true; }
-  catch (e) { if (isSessionAuth(e)) throw new SessionAuthError('sign in required'); return false; }
+  try { await call(`/api/tx-requests/${encodeURIComponent(req.id)}`, { method: 'PUT', body: req }); return true; }
+  catch (e) { const t = txErr(e); if (t) throw t; return false; }
 }
 
 // ---- Profile (identifiers for request emails). Worker: /settings/profile. Cached locally for offline use. ----

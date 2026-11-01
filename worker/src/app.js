@@ -137,7 +137,7 @@ export const sessionResponse = (ctx, s, body, status = 200) =>
 // Step-up: re-authentication within the last 10 minutes (social re-auth, password+TOTP, or a fresh login).
 export const STEP_UP_SECONDS = 600;
 export const isSteppedUp = (s) => !!s.stepped_up_at && now() - s.stepped_up_at <= STEP_UP_SECONDS;
-const STEP_UP_REQUIRED = (ctx) => json(ctx, { error: 'step_up_required' }, 403);
+const STEP_UP_REQUIRED = (ctx) => json(ctx, { error: 'step_up_required', code: 'step_up_required' }, 403);
 
 // ---------- handlers ----------
 async function login(ctx) {
@@ -220,7 +220,7 @@ export async function useBackupCode(env, userId, code) {
 }
 
 async function regenerateBackupCodes(ctx, cur) {
-  if (!cur.session.mfa) return json(ctx, { error: 'mfa required' }, 403);
+  if (!cur.session.mfa) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403);
   const rlId = `${clientIp(ctx.req)}|backup-regen|${cur.session.user_id}`;
   const rlRes = await reserve(ctx.env, 'login', rlId);
   if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
@@ -477,8 +477,9 @@ async function getTx(ctx, cur, sid) {
 }
 async function putTx(ctx, cur, sid) {
   const uid = cur.session.user_id;
-  // Same limiter as the other opt-out writes: reserved up front, rejected 400s count too (no refund).
-  const rlRes = await reserve(ctx.env, 'optout', uid);
+  // Own limiter bucket ('tx', LIMITS.tx), separate from the 30/hour opt-out writes so working through the
+  // broker list never locks out opt-outs (or vice versa). Reserved up front; rejected 400s count too (no refund).
+  const rlRes = await reserve(ctx.env, 'tx', uid);
   if (rlRes.limited) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(rlRes.limited));
   const b = await readJson(ctx.req);
   if (!b || !Object.hasOwn(TX_TO_DB, b.status)) return json(ctx, { error: 'bad request' }, 400);
@@ -567,8 +568,9 @@ export async function handleApp(req, env) {
   if (m === 'GET' && path === '/me') return me(ctx, cur);
   if (m === 'POST' && path === '/auth/backup-codes/regenerate') return regenerateBackupCodes(ctx, cur);
 
-  // Everything below requires a TOTP-verified session.
-  if (!cur.session.mfa) return json(ctx, { error: 'mfa required' }, 403);
+  // Everything below requires a TOTP-verified password session or a provider (social) session, matching api.js
+  // requireSession: social sign-in is not gated on TOTP there, so it is not here either.
+  if ((cur.session.auth_method || 'password') === 'password' && !cur.session.mfa) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403);
   if (m === 'GET' && path === '/optouts') return listOptouts(ctx, cur);
   if (m === 'POST' && path === '/optouts') return createOptout(ctx, cur);
   const cm = path.match(/^\/optouts\/([0-9a-f-]{36})\/confirmations$/);
