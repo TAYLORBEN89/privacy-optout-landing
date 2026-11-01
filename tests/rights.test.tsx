@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { RightsSection } from "../src/components/Rights";
+import { TDPSA_POINTS, tdpsaRightCount } from "../src/data/rights";
 
 const STATUTE = "https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm";
 
@@ -13,6 +14,19 @@ afterEach(() => {
 });
 
 describe("your rights", () => {
+  it("counts five access rights plus the appeal, and not the 45-day response", () => {
+    expect(tdpsaRightCount()).toBe(6);
+    expect(TDPSA_POINTS.filter((point) => point.consumerRight).map((point) => point.id)).toEqual([
+      "access",
+      "correct",
+      "delete",
+      "portable",
+      "opt-out",
+      "appeal",
+    ]);
+    expect(TDPSA_POINTS.find((point) => point.id === "response")?.consumerRight).toBe(false);
+  });
+
   it("lists only verified TDPSA points and links to the statute", () => {
     render(<RightsSection />);
     expect(screen.getByRole("heading", { name: "Your rights under the TDPSA" })).toBeTruthy();

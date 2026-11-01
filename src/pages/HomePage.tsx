@@ -53,8 +53,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <p className="personal-body">
             We ask for your name, mailing address, email, Texas residency, and, if you choose, your
             phone number. We use them to find your listings and to fill in the opt-out requests you send to
-            brokers. Your account also keeps sign-in, security, and request-tracking records; the privacy
-            policy lists them all. We never sell your data.
+            brokers. We never sell your data.
           </p>
           <p className="personal-preview">{storageNotice()}</p>
           <AppLink className="cta" href="/privacy">

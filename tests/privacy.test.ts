@@ -20,8 +20,11 @@ describe("privacy page", () => {
     expect(html).toContain("independent, free service");
     expect(html).toContain("used only to match and locate your records");
     expect(html).toContain("not used for marketing, calls, or texts");
-    expect(html).toContain("An account phone number is kept while your account is active");
     expect(html).toContain("Planned, not yet automated");
+    const plannedAt = html.indexOf("Planned, not yet automated");
+    const phoneKeptAt = html.indexOf("An account phone number is kept while your account is active");
+    expect(phoneKeptAt).toBeGreaterThan(plannedAt);
+    expect(html.indexOf("An account phone number is kept while your account is active", phoneKeptAt + 1)).toBe(-1);
     expect(html).toContain("privacy-page");
     const css = readFileSync("src/styles.css", "utf8");
     const rule = css.slice(css.indexOf(".privacy-page {"), css.indexOf(".privacy-list"));
