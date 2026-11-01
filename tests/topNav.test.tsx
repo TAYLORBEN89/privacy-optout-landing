@@ -49,8 +49,15 @@ describe("explore list", () => {
     expect(page).toContain("Explore DROP Texas");
     expect(css).toContain("width: 32px");
     expect(css).toContain("min-height: 110px");
-    expect(css).toContain("gap: 16px");
-    expect(css).toContain("font-size: 22px");
+    const tileLink = css.slice(css.indexOf(".nav-tiles a {"), css.indexOf(".nav-tiles a:hover"));
+    expect(tileLink).toContain("align-items: flex-start");
+    expect(tileLink).toContain("gap: 12px");
+    const tileTitle = css.slice(css.indexOf(".tile-title {"), css.indexOf(".tile-blurb"));
+    expect(tileTitle).toContain("font-size: 20px");
+    expect(tileTitle).toContain("font-weight: 400");
+    expect(tileTitle).toContain("line-height: 1.2");
+    expect(tileTitle).toContain("text-box-trim: trim-start");
+    expect(tileTitle).toContain("text-box-edge: cap alphabetic");
     expect(css).toContain(".explore {\n  width: 100%;");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(css).toContain(".nav-tiles a:focus-visible");
