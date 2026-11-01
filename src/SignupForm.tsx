@@ -1,14 +1,42 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { PHONE_FIELD_HINT, PHONE_FIELD_LABEL, type FieldIssue, type SignupIssues } from "../shared/signup";
+import {
+  PHONE_FIELD_LABEL,
+  US_STATES,
+  type FieldIssue,
+  type SignupField,
+  type SignupIssues,
+} from "../shared/signup";
 import { storageNotice, submissionConfirmation } from "../worker/storage";
 import { fieldErrorEvents, track } from "./analytics";
 import { submitSignup } from "./submitSignup";
 
 const EMPTY_ERRORS: SignupIssues = {};
+const FOCUS_ORDER = [
+  "firstName",
+  "middleName",
+  "lastName",
+  "addressLine1",
+  "addressLine2",
+  "city",
+  "state",
+  "zip",
+  "email",
+  "phone",
+  "texasResident",
+] as const satisfies readonly SignupField[];
+
+const TEXAS_HINT =
+  "Check this if you live in Texas. An unchecked box still uses TDPSA for now and is marked non-Texas.";
 
 export function SignupForm() {
-  const [fullName, setFullName] = useState("");
-  const [mailingAddress, setMailingAddress] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("TX");
+  const [zip, setZip] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [texasResident, setTexasResident] = useState(false);
@@ -19,9 +47,7 @@ export function SignupForm() {
   const started = useRef(false);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
-  const focusTarget = useRef<"status" | "form" | "fullName" | "mailingAddress" | "email" | "phone" | "texasResident" | null>(
-    null,
-  );
+  const focusTarget = useRef<"status" | "form" | SignupField | null>(null);
   const [focusToken, setFocusToken] = useState(0);
 
   useEffect(() => {
@@ -44,13 +70,18 @@ export function SignupForm() {
     setSubmitting(true);
     setSuccess(false);
 
-    const trimmedPhone = phone.trim();
     const result = await submitSignup({
-      fullName,
-      mailingAddress,
+      firstName,
+      middleName,
+      lastName,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      zip,
       email,
+      phone,
       texasResident,
-      ...(trimmedPhone ? { phone: trimmedPhone } : {}),
     });
 
     setSubmitting(false);
@@ -72,9 +103,7 @@ export function SignupForm() {
       track(analyticsEvent);
     }
 
-    const firstInvalid = (["fullName", "mailingAddress", "email", "phone", "texasResident"] as const).find(
-      (field) => result.errors[field],
-    );
+    const firstInvalid = FOCUS_ORDER.find((field) => result.errors[field]);
     focusTarget.current = firstInvalid ?? "form";
     setFocusToken((token) => token + 1);
   }
@@ -100,115 +129,132 @@ export function SignupForm() {
         </p>
       ) : null}
 
-      <div className="field">
-        <label htmlFor="fullName">
-          Full name <span className="req">(required)</span>
-        </label>
-        <input
-          id="fullName"
-          name="fullName"
-          type="text"
-          autoComplete="name"
-          value={fullName}
-          aria-required="true"
-          aria-invalid={errors.fullName ? true : undefined}
-          aria-describedby={errors.fullName ? "fullName-error fullName-hint" : "fullName-hint"}
-          onChange={(event) => {
-            markStarted();
-            setFullName(event.target.value);
-          }}
+      <TextControl
+        id="firstName"
+        label="First name"
+        required
+        autoComplete="given-name"
+        value={firstName}
+        error={errors.firstName}
+        onChange={setFirstName}
+        onStart={markStarted}
+      />
+      <TextControl
+        id="middleName"
+        label="Middle name"
+        optional
+        autoComplete="additional-name"
+        value={middleName}
+        error={errors.middleName}
+        onChange={setMiddleName}
+        onStart={markStarted}
+      />
+      <TextControl
+        id="lastName"
+        label="Last name"
+        required
+        autoComplete="family-name"
+        value={lastName}
+        error={errors.lastName}
+        onChange={setLastName}
+        onStart={markStarted}
+      />
+      <TextControl
+        id="addressLine1"
+        label="Street address"
+        required
+        autoComplete="address-line1"
+        value={addressLine1}
+        error={errors.addressLine1}
+        onChange={setAddressLine1}
+        onStart={markStarted}
+      />
+      <TextControl
+        id="addressLine2"
+        label="Apt, suite, unit"
+        optional
+        autoComplete="address-line2"
+        value={addressLine2}
+        error={errors.addressLine2}
+        onChange={setAddressLine2}
+        onStart={markStarted}
+      />
+      <TextControl
+        id="city"
+        label="City"
+        required
+        autoComplete="address-level2"
+        value={city}
+        error={errors.city}
+        onChange={setCity}
+        onStart={markStarted}
+      />
+      <div className="address-row">
+        <div className="field">
+          <label htmlFor="state">
+            State <span className="req">(required)</span>
+          </label>
+          <select
+            id="state"
+            className="control"
+            name="state"
+            autoComplete="address-level1"
+            value={state}
+            aria-required="true"
+            aria-invalid={errors.state ? true : undefined}
+            aria-describedby={errors.state ? "state-error" : undefined}
+            onChange={(event) => {
+              markStarted();
+              setState(event.target.value);
+            }}
+          >
+            {US_STATES.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+          {errors.state ? (
+            <p className="error" id="state-error" role="alert">
+              {errors.state.message}
+            </p>
+          ) : null}
+        </div>
+        <TextControl
+          id="zip"
+          label="ZIP code"
+          required
+          autoComplete="postal-code"
+          inputMode="numeric"
+          value={zip}
+        error={errors.zip}
+        onChange={setZip}
+          onStart={markStarted}
         />
-        <p className="hint" id="fullName-hint">
-          First and last name.
-        </p>
-        {errors.fullName ? (
-          <p className="error" id="fullName-error" role="alert">
-            {errors.fullName.message}
-          </p>
-        ) : null}
       </div>
-
-      <div className="field">
-        <label htmlFor="mailingAddress">
-          Mailing address <span className="req">(required)</span>
-        </label>
-        <textarea
-          id="mailingAddress"
-          name="mailingAddress"
-          autoComplete="street-address"
-          value={mailingAddress}
-          aria-required="true"
-          aria-invalid={errors.mailingAddress ? true : undefined}
-          aria-describedby={
-            errors.mailingAddress ? "mailingAddress-error mailingAddress-hint" : "mailingAddress-hint"
-          }
-          onChange={(event) => {
-            markStarted();
-            setMailingAddress(event.target.value);
-          }}
-        />
-        <p className="hint" id="mailingAddress-hint">
-          Street, city, state, and ZIP code. Most broker opt-out forms require a physical address.
-        </p>
-        {errors.mailingAddress ? (
-          <p className="error" id="mailingAddress-error" role="alert">
-            {errors.mailingAddress.message}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="field">
-        <label htmlFor="email">
-          Email <span className="req">(required)</span>
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          inputMode="email"
-          spellCheck={false}
-          value={email}
-          aria-required="true"
-          aria-invalid={errors.email ? true : undefined}
-          aria-describedby={errors.email ? "email-error" : undefined}
-          onChange={(event) => {
-            markStarted();
-            setEmail(event.target.value);
-          }}
-        />
-        {errors.email ? (
-          <p className="error" id="email-error" role="alert">
-            {errors.email.message}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="field">
-        <label htmlFor="phone">{PHONE_FIELD_LABEL}</label>
-        <input
-          id="phone"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
-          value={phone}
-          aria-invalid={errors.phone ? true : undefined}
-          aria-describedby={errors.phone ? "phone-error phone-hint" : "phone-hint"}
-          onChange={(event) => {
-            markStarted();
-            setPhone(event.target.value);
-          }}
-        />
-        <p className="hint" id="phone-hint">
-          {PHONE_FIELD_HINT}
-        </p>
-        {errors.phone ? (
-          <p className="error" id="phone-error" role="alert">
-            {errors.phone.message}
-          </p>
-        ) : null}
-      </div>
+      <TextControl
+        id="email"
+        label="Email"
+        required
+        type="email"
+        autoComplete="email"
+        inputMode="email"
+        value={email}
+        error={errors.email}
+        onChange={setEmail}
+        onStart={markStarted}
+      />
+      <TextControl
+        id="phone"
+        label={PHONE_FIELD_LABEL}
+        type="tel"
+        autoComplete="tel"
+        inputMode="tel"
+        value={phone}
+        error={errors.phone}
+        onChange={setPhone}
+        onStart={markStarted}
+      />
 
       <div className="field check">
         <input
@@ -217,9 +263,7 @@ export function SignupForm() {
           type="checkbox"
           checked={texasResident}
           aria-invalid={errors.texasResident ? true : undefined}
-          aria-describedby={
-            errors.texasResident ? "texasResident-error texasResident-hint" : "texasResident-hint"
-          }
+          aria-describedby={errors.texasResident ? "texasResident-error texasResident-hint" : "texasResident-hint"}
           onChange={(event) => {
             markStarted();
             setTexasResident(event.target.checked);
@@ -228,9 +272,7 @@ export function SignupForm() {
         <div>
           <label htmlFor="texasResident">I live in Texas</label>
           <p className="hint" id="texasResident-hint">
-            Check this if you live in Texas. A checked box means the Texas Data Privacy and
-            Security Act (TDPSA). Leave it unchecked if you live somewhere else. You can still
-            submit. An unchecked box still uses TDPSA for now and is marked non-Texas.
+            {TEXAS_HINT}
           </p>
           {errors.texasResident ? (
             <p className="error" id="texasResident-error" role="alert">
@@ -245,5 +287,62 @@ export function SignupForm() {
       </button>
       <p className="fine-print">{storageNotice()}</p>
     </form>
+  );
+}
+
+function TextControl({
+  id,
+  label,
+  required = false,
+  optional = false,
+  type = "text",
+  autoComplete,
+  inputMode,
+  value,
+  error,
+  onChange,
+  onStart,
+}: {
+  id: SignupField;
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+  type?: "text" | "email" | "tel";
+  autoComplete: string;
+  inputMode?: "numeric" | "email" | "tel";
+  value: string;
+  error?: FieldIssue;
+  onChange: (value: string) => void;
+  onStart: () => void;
+}) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>
+        {label} {required ? <span className="req">(required)</span> : null}
+        {optional ? <span className="req">(optional)</span> : null}
+      </label>
+      <input
+        id={id}
+        className="control"
+        name={id}
+        type={type}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        spellCheck={type === "email" ? false : undefined}
+        value={value}
+        aria-required={required ? true : undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        onChange={(event) => {
+          onStart();
+          onChange(event.target.value);
+        }}
+      />
+      {error ? (
+        <p className="error" id={`${id}-error`} role="alert">
+          {error.message}
+        </p>
+      ) : null}
+    </div>
   );
 }

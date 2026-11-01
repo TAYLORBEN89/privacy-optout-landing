@@ -9,10 +9,10 @@ describe("analytics", () => {
   it("records field codes and not messages or values", () => {
     const events = fieldErrorEvents({
       email: { code: "invalid", message: "bad-email@example.com was rejected" },
-      fullName: { code: "incomplete", message: "Enter a first and last name." },
+      firstName: { code: "required", message: "Enter your first name." },
     });
     expect(events).toEqual([
-      { event: "field_error", field: "fullName", code: "incomplete" },
+      { event: "field_error", field: "firstName", code: "required" },
       { event: "field_error", field: "email", code: "invalid" },
     ]);
     expect(JSON.stringify(events)).not.toContain("bad-email@example.com");

@@ -85,10 +85,34 @@ npm test
 
 ## What the form does
 
-The form collects your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
+The form collects your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to provide it) your phone number. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
 
 `STORAGE_LIVE` in `worker/storage.ts` is false. The page says the preview does not store submissions. Set that constant to true only when D1 is actually saving records. The replacement sentence is `STORAGE_LIVE_NOTE`.
 
 The browser and the Worker both use `shared/signup.ts`. Bad input returns per-field errors. The Worker does not log field values.
+
+### Signup payload
+
+`POST /api/signup` accepts and revalidates this JSON shape. Empty optional fields are `null`. `jurisdiction` and `nonTexasFlag` are derived from `texasResident` and are included in the posted body. The Worker still validates and discards the value. Nothing is stored.
+
+```json
+{
+  "firstName": "Ada",
+  "middleName": null,
+  "lastName": "Lovelace",
+  "addressLine1": "123 Main St",
+  "addressLine2": null,
+  "city": "Austin",
+  "state": "TX",
+  "zip": "78701",
+  "email": "ada@example.com",
+  "phone": null,
+  "texasResident": true,
+  "jurisdiction": "TDPSA",
+  "nonTexasFlag": false
+}
+```
+
+`state` is a USPS abbreviation for a state or the District of Columbia. `zip` matches `^\d{5}(-\d{4})?$`. `phone`, when present, is E.164 (`+1` and 10 digits). The old keys `fullName` and `mailingAddress` are not accepted.
 
 `src/analytics.ts` has a no-op `track()` for `form_started`, `field_error`, and `submitted`. Events carry a field name and error code, never the value typed into the form. Vite dev logs only the event name.

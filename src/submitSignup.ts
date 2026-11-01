@@ -23,7 +23,6 @@ export async function submitSignup(
   }
 
   const body: Record<string, unknown> = { ...clientResult.value };
-  if (body.phone == null || body.phone === "") delete body.phone;
 
   let response: Response;
   try {

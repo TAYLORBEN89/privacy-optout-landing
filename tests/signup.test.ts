@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { validateSignup } from "../shared/signup";
-import { PHONE_FIELD_LABEL } from "../shared/signup";
+import { PHONE_FIELD_LABEL, US_STATES, validateSignup } from "../shared/signup";
 
 const valid = {
-  fullName: "Ada Lovelace",
-  mailingAddress: "123 Main St, Austin, TX 78701",
+  firstName: "Ada",
+  lastName: "Lovelace",
+  addressLine1: "123 Main St",
+  city: "Austin",
+  state: "TX",
+  zip: "78701",
   email: "ada@example.com",
   texasResident: true,
 };
@@ -14,18 +17,36 @@ describe("validateSignup", () => {
     expect(PHONE_FIELD_LABEL).toBe("Phone number (optional)");
   });
 
-  it("accepts a Texan and normalizes whitespace and email case", () => {
+  it("lists each US state and the District of Columbia once", () => {
+    expect(US_STATES).toHaveLength(51);
+    expect(new Set(US_STATES.map((state) => state.code)).size).toBe(51);
+    expect(US_STATES.some((state) => state.code === "TX" && state.name === "Texas")).toBe(true);
+  });
+
+  it("accepts a Texan and normalizes whitespace, state, and email case", () => {
     const result = validateSignup({
-      fullName: "  Ada   Lovelace ",
-      mailingAddress: "  123 Main St, Austin, TX 78701  ",
+      firstName: "  Ada ",
+      middleName: "  Augusta  ",
+      lastName: " Lovelace ",
+      addressLine1: "  123 Main St ",
+      addressLine2: "  Apt 4 ",
+      city: "  Austin ",
+      state: " tx ",
+      zip: "78701-1234",
       email: "  Ada@Example.com ",
       texasResident: true,
     });
     expect(result).toEqual({
       ok: true,
       value: {
-        fullName: "Ada Lovelace",
-        mailingAddress: "123 Main St, Austin, TX 78701",
+        firstName: "Ada",
+        middleName: "Augusta",
+        lastName: "Lovelace",
+        addressLine1: "123 Main St",
+        addressLine2: "Apt 4",
+        city: "Austin",
+        state: "TX",
+        zip: "78701-1234",
         email: "ada@example.com",
         phone: null,
         texasResident: true,
@@ -33,6 +54,19 @@ describe("validateSignup", () => {
         nonTexasFlag: false,
       },
     });
+  });
+
+  it("treats a missing, empty, or null middle name and apartment as blank", () => {
+    for (const middleName of [undefined, "", null]) {
+      for (const addressLine2 of [undefined, "", null]) {
+        const result = validateSignup({ ...valid, middleName, addressLine2 });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.value.middleName).toBeNull();
+          expect(result.value.addressLine2).toBeNull();
+        }
+      }
+    }
   });
 
   it("accepts a non-Texan under TDPSA and marks the non-Texas flag", () => {
@@ -45,41 +79,54 @@ describe("validateSignup", () => {
     }
   });
 
-  it("rejects a missing or single-word name", () => {
-    expect(validateSignup({ ...valid, fullName: "   " }).ok).toBe(false);
-    const single = validateSignup({ ...valid, fullName: "Cher" });
-    expect(single.ok).toBe(false);
-    if (!single.ok) {
-      expect(single.errors.fullName).toEqual({
-        code: "incomplete",
-        message: "Enter a first and last name.",
+  it("rejects a missing required name or street", () => {
+    const result = validateSignup({ ...valid, firstName: "   ", lastName: "", addressLine1: "" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.firstName?.code).toBe("required");
+      expect(result.errors.lastName?.code).toBe("required");
+      expect(result.errors.addressLine1?.code).toBe("required");
+      expect(result.errors.firstName?.message).not.toContain("Ada");
+    }
+  });
+
+  it("rejects markup in a name and a street", () => {
+    const result = validateSignup({
+      ...valid,
+      firstName: "Ada <script>",
+      addressLine1: "123 Main <b>St</b>",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.firstName?.code).toBe("invalid");
+      expect(result.errors.addressLine1?.code).toBe("invalid");
+    }
+  });
+
+  it("rejects a bad ZIP code and a state that is not a USPS code", () => {
+    const result = validateSignup({ ...valid, zip: "7870", state: "Texas" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.zip).toEqual({
+        code: "invalid",
+        message: "Enter a 5-digit ZIP code, or ZIP+4.",
       });
-      expect(single.errors.fullName?.message).not.toContain("Cher");
+      expect(result.errors.state).toEqual({
+        code: "invalid",
+        message: "Choose a US state.",
+      });
+      expect(result.errors.zip?.message).not.toContain("7870");
+      expect(result.errors.state?.message).not.toContain("Texas");
     }
+    const unknown = validateSignup({ ...valid, state: "XX" });
+    expect(unknown.ok).toBe(false);
+    if (!unknown.ok) expect(unknown.errors.state?.code).toBe("invalid");
   });
 
-  it("rejects markup in the name and address", () => {
-    const result = validateSignup({
-      ...valid,
-      fullName: "Ada <script>",
-      mailingAddress: "123 Main <b>St</b>, Austin, TX 78701",
-    });
+  it("rejects an invalid email", () => {
+    const result = validateSignup({ ...valid, email: "not-an-email" });
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.fullName?.code).toBe("invalid");
-      expect(result.errors.mailingAddress?.code).toBe("invalid");
-    }
-  });
-
-  it("rejects a short address and an invalid email", () => {
-    const result = validateSignup({
-      ...valid,
-      mailingAddress: "nope",
-      email: "not-an-email",
-    });
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.errors.mailingAddress?.code).toBe("too_short");
       expect(result.errors.email?.code).toBe("invalid");
       expect(result.errors.email?.message).not.toContain("not-an-email");
     }
@@ -105,8 +152,17 @@ describe("validateSignup", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value).toEqual({
-        ...valid,
+        firstName: "Ada",
+        middleName: null,
+        lastName: "Lovelace",
+        addressLine1: "123 Main St",
+        addressLine2: null,
+        city: "Austin",
+        state: "TX",
+        zip: "78701",
+        email: "ada@example.com",
         phone: null,
+        texasResident: true,
         jurisdiction: "TDPSA",
         nonTexasFlag: false,
       });
