@@ -46,9 +46,33 @@ export async function dummyVerify(password) {
   return false;
 }
 
-async function aesKey(env) {
-  if (!env.TOTP_ENC_KEY) throw new Error('TOTP_ENC_KEY not configured');
-  return crypto.subtle.importKey('raw', unb64(env.TOTP_ENC_KEY), 'AES-GCM', false, ['encrypt', 'decrypt']);
+async function importAes(keyB64, name) {
+  if (!keyB64) throw new Error(`${name} not configured`);
+  const raw = unb64(keyB64);
+  if (raw.length !== 32) throw new Error(`${name} must be 32 bytes (base64)`);
+  return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+const aesKey = (env) => importAes(env.TOTP_ENC_KEY, 'TOTP_ENC_KEY');
+
+// ---- PII encryption: separate key (PII_ENC_KEY), versioned, AAD binds ciphertext to its row. ----
+// Rotation: set PII_ENC_KEY to the new key, bump PII_KEY_VERSION, and move the old key to
+// PII_ENC_KEY_PREV / PII_PREV_KEY_VERSION until every row has been re-encrypted.
+export const piiKeyVersion = (env) => Number(env.PII_KEY_VERSION || 1);
+function piiKeyFor(env, version) {
+  if (version === piiKeyVersion(env)) return importAes(env.PII_ENC_KEY, 'PII_ENC_KEY');
+  if (env.PII_ENC_KEY_PREV && version === Number(env.PII_PREV_KEY_VERSION)) return importAes(env.PII_ENC_KEY_PREV, 'PII_ENC_KEY_PREV');
+  throw new Error(`no PII key for version ${version}`);
+}
+export async function encryptPii(env, plain, aad) {
+  const iv = randomBytes(12); // fresh random 96-bit IV per write
+  const version = piiKeyVersion(env);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: enc.encode(aad) }, await piiKeyFor(env, version), enc.encode(plain));
+  return { blob: `${b64(iv)}.${b64(ct)}`, version };
+}
+export async function decryptPii(env, blob, version, aad) {
+  const [iv, ct] = blob.split('.');
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv), additionalData: enc.encode(aad) }, await piiKeyFor(env, version), unb64(ct));
+  return new TextDecoder().decode(pt);
 }
 export async function encryptStr(env, plain) {
   const iv = randomBytes(12);

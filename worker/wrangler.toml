@@ -6,21 +6,27 @@ compatibility_flags = ["nodejs_compat"]   # otplib uses node:crypto HMAC
 
 [vars]
 # Comma-separated list of exact origins allowed by CORS (no trailing slashes).
-ALLOWED_ORIGIN = "https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
+# droptexas.com plan: dashboard https://droptexas.com, API https://api.droptexas.com (same site -> SameSite=Strict).
+# The pages.dev origin stays until the dashboard has moved; remove it afterwards.
+ALLOWED_ORIGIN = "https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
+SESSION_COOKIE_SAMESITE = "Strict"    # "None" only while the dashboard is still on pages.dev
 SESSION_IDLE_SECONDS = "43200"        # 12h idle
-SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (decision pending)
+SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (approved)
 PREAUTH_SECONDS = "300"
-PII_RETENTION_DAYS = "30"             # after confirmation (decision pending)
-PII_HARD_MAX_DAYS = "90"
-AUDIT_RETENTION_DAYS = "180"
+# Retention (days). audit_log retention is handled by a separate PR (not in this cron).
+PII_RETENTION_DAYS = "30"                 # PII deleted 30 days after confirmation
+PII_HARD_MAX_DAYS = "90"                  # PII hard max from first write
+SESSION_PURGE_DAYS = "7"                  # session rows deleted 7 days after expiry/revocation
+FINISHED_RECORD_RETENTION_DAYS = "730"    # Compliance: finished opt-out records kept 24 months
+TX_RECORD_RETENTION_DAYS = "1095"         # Compliance: Texas requests kept 3 years
+PII_KEY_VERSION = "1"
 
 [[kv_namespaces]]
 binding = "RECORDS"
 # KV namespace privacy-dashboard-api-RECORDS (also holds rl:* rate-limit counters)
 id = "00000000000000000000000000000000"
 
-# TODO(owner): LOCAL-ONLY placeholder. No remote D1 exists yet. Before any deploy, run
-# `npx wrangler d1 create privacy-dashboard` and replace database_id with the real one.
+# Production D1 (created 2026-10-31 on the project Cloudflare account, region ENAM).
 [[d1_databases]]
 binding = "DB"
 database_name = "privacy-dashboard"
@@ -30,10 +36,12 @@ migrations_dir = "migrations"
 [triggers]
 crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expired sessions, old audit rows
 
-# PLACEHOLDER route on your zone. Uncomment when ready.
+# NOT ATTACHED. Uncomment only when the owner approves moving the API to the droptexas.com zone.
+# A custom_domain route creates its own DNS record for api.droptexas.com on deploy; it does not touch MX/mail records.
 # routes = [
-#   { pattern = "privacy-api.example.com", custom_domain = true }
+#   { pattern = "api.droptexas.com", custom_domain = true }
 # ]
 
-# Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY (base64 32 bytes)
+# Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
+# ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists). Optional during PII key rotation: PII_ENC_KEY_PREV + PII_PREV_KEY_VERSION.
 # Local dev values go in .dev.vars (gitignored).

@@ -2,6 +2,7 @@
 import { authenticator } from 'otplib';
 import {
   randomToken, sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptStr, decryptStr,
+  encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
 import { isLimited, hit, clientIp } from './ratelimit.js';
 
@@ -41,12 +42,14 @@ function json(ctx, body, status = 200, extra = {}) {
 const INVALID = (ctx) => json(ctx, { error: 'invalid credentials' }, 401);
 const UNAUTH = (ctx) => json(ctx, { error: 'unauthorized' }, 401);
 
-// Frontend (pages.dev) and API (workers.dev) are different sites, so the cookie is third-party:
-// SameSite=None is required, and Partitioned (CHIPS) keeps it working in Chrome with 3P cookies blocked.
-// CSRF protection therefore comes from the per-session X-CSRF-Token + strict Origin allowlist.
-const ATTRS = 'Path=/; HttpOnly; Secure; SameSite=None; Partitioned';
-const setCookie = (token, maxAge) => `${COOKIE}=${token}; ${ATTRS}; Max-Age=${maxAge}`;
-const clearCookie = () => `${COOKIE}=; ${ATTRS}; Max-Age=0`;
+// SESSION_COOKIE_SAMESITE: "Strict" (default) when dashboard and API share a site (droptexas.com + api.droptexas.com).
+// "None" only for the cross-site pages.dev/workers.dev setup; then Partitioned (CHIPS) is added.
+// Either way CSRF protection also comes from the per-session X-CSRF-Token + strict Origin allowlist.
+const cookieAttrs = (env) => (String(env.SESSION_COOKIE_SAMESITE || 'Strict').toLowerCase() === 'none'
+  ? 'Path=/; HttpOnly; Secure; SameSite=None; Partitioned'
+  : 'Path=/; HttpOnly; Secure; SameSite=Strict');
+const setCookie = (env, token, maxAge) => `${COOKIE}=${token}; ${cookieAttrs(env)}; Max-Age=${maxAge}`;
+const clearCookie = (env) => `${COOKIE}=; ${cookieAttrs(env)}; Max-Age=0`;
 function readCookie(req) {
   const m = (req.headers.get('Cookie') || '').match(/(?:^|;\s*)__Host-sid=([A-Za-z0-9_-]+)/);
   return m ? m[1] : null;
@@ -109,7 +112,7 @@ async function rotate(ctx, cur, mfa) {
 }
 
 const sessionResponse = (ctx, s, body, status = 200) =>
-  json(ctx, { ...body, csrf_token: s.csrf }, status, { 'Set-Cookie': setCookie(s.token, s.maxAge) });
+  json(ctx, { ...body, csrf_token: s.csrf }, status, { 'Set-Cookie': setCookie(ctx.env, s.token, s.maxAge) });
 
 // ---------- handlers ----------
 async function login(ctx) {
@@ -158,6 +161,46 @@ async function claimStep(env, userId, step) {
   return r.meta.changes === 1;
 }
 
+// ---------- backup codes ----------
+const BACKUP_COUNT = 10;
+const B32 = 'abcdefghijkmnpqrstuvwxyz23456789'; // 32 symbols, no 0/1/l/o
+function newBackupCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const chars = [...bytes].map((b) => B32[b & 31]); // 16 chars x 5 bits = 80 bits
+  return `${chars.slice(0, 4).join('')}-${chars.slice(4, 8).join('')}-${chars.slice(8, 12).join('')}-${chars.slice(12).join('')}`;
+}
+const normBackup = (c) => String(c || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const isBackupShape = (c) => normBackup(c).length === 16;
+
+async function issueBackupCodes(env, userId) {
+  const codes = Array.from({ length: BACKUP_COUNT }, newBackupCode);
+  const t = now();
+  const stmts = [env.DB.prepare('DELETE FROM backup_codes WHERE user_id = ?1').bind(userId)];
+  for (const c of codes) {
+    stmts.push(env.DB.prepare('INSERT INTO backup_codes (user_id, code_hash, created_at) VALUES (?1, ?2, ?3)')
+      .bind(userId, await sha256Hex(normBackup(c)), t));
+  }
+  await env.DB.batch(stmts);
+  return codes; // plaintext returned once; only hashes are stored
+}
+
+// Atomically consume one unused backup code. Returns true on success.
+async function useBackupCode(env, userId, code) {
+  const r = await env.DB.prepare('UPDATE backup_codes SET used_at = ?1 WHERE user_id = ?2 AND code_hash = ?3 AND used_at IS NULL')
+    .bind(now(), userId, await sha256Hex(normBackup(code))).run();
+  return r.meta.changes === 1;
+}
+
+async function regenerateBackupCodes(ctx, cur) {
+  if (!cur.session.mfa) return json(ctx, { error: 'mfa required' }, 403);
+  const rlId = `${clientIp(ctx.req)}|backup-regen|${cur.session.user_id}`;
+  if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
+  await hit(ctx.env, 'login', rlId);
+  const codes = await issueBackupCodes(ctx.env, cur.session.user_id);
+  await audit(ctx.env, cur.session.user_id, 'backup_codes.regenerated');
+  return json(ctx, { backup_codes: codes });
+}
+
 async function totpVerify(ctx) {
   const body = await readJson(ctx.req);
   const pre = typeof body?.preauth_token === 'string' ? body.preauth_token : '';
@@ -170,16 +213,24 @@ async function totpVerify(ctx) {
   const rlId = `${clientIp(ctx.req)}|${p.email}`;
   if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
 
-  const secret = await decryptStr(ctx.env, p.totp_secret_enc);
-  const step = await checkTotp(secret, body.code, p.totp_last_step);
-  if (step === null || !(await claimStep(ctx.env, p.user_id, step))) {
+  let ok;
+  let method = 'totp';
+  if (isBackupShape(body.code)) {
+    method = 'backup_code';
+    ok = await useBackupCode(ctx.env, p.user_id, body.code);
+  } else {
+    const secret = await decryptStr(ctx.env, p.totp_secret_enc);
+    const step = await checkTotp(secret, body.code, p.totp_last_step);
+    ok = step !== null && (await claimStep(ctx.env, p.user_id, step));
+  }
+  if (!ok) {
     await hit(ctx.env, 'login', rlId);
     await audit(ctx.env, p.user_id, 'totp.fail');
     return INVALID(ctx);
   }
   await revoke(ctx.env, preHash); // pre-auth token is single-use
   const s = await createSession(ctx.env, p.user_id, true);
-  await audit(ctx.env, p.user_id, 'login.mfa');
+  await audit(ctx.env, p.user_id, method === 'backup_code' ? 'login.backup_code' : 'login.mfa');
   return sessionResponse(ctx, s, { ok: true });
 }
 
@@ -205,8 +256,9 @@ async function totpConfirm(ctx, cur) {
     'UPDATE users SET totp_secret_enc = totp_pending_enc, totp_pending_enc = NULL, totp_enabled = 1 WHERE id = ?1',
   ).bind(cur.session.user_id).run();
   await audit(ctx.env, cur.session.user_id, 'totp.enabled');
+  const backupCodes = await issueBackupCodes(ctx.env, cur.session.user_id); // shown once
   const s = await rotate(ctx, cur, true); // privilege change -> new token
-  return sessionResponse(ctx, s, { ok: true, totp_enabled: true });
+  return sessionResponse(ctx, s, { ok: true, totp_enabled: true, backup_codes: backupCodes });
 }
 
 async function refresh(ctx, cur) {
@@ -217,7 +269,7 @@ async function refresh(ctx, cur) {
 async function logout(ctx, cur) {
   await revoke(ctx.env, cur.idHash);
   await audit(ctx.env, cur.session.user_id, 'logout');
-  return json(ctx, { ok: true }, 200, { 'Set-Cookie': clearCookie() });
+  return json(ctx, { ok: true }, 200, { 'Set-Cookie': clearCookie(ctx.env) });
 }
 
 async function me(ctx, cur) {
@@ -225,7 +277,7 @@ async function me(ctx, cur) {
   return json(ctx, { ...u, mfa: !!cur.session.mfa, csrf_token: cur.session.csrf });
 }
 
-const STATUSES = ['queued', 'submitted', 'pending', 'confirmed', 'denied', 'reverify'];
+const STATUSES = ['queued', 'submitted', 'in_progress', 'pending', 'confirmed', 'denied', 'reverify'];
 
 async function listOptouts(ctx, cur) {
   const r = await ctx.env.DB.prepare('SELECT * FROM optout_requests WHERE user_id = ?1 ORDER BY created_at DESC LIMIT 500')
@@ -239,7 +291,8 @@ async function createOptout(ctx, cur) {
   const b = await readJson(ctx.req);
   if (!b) return json(ctx, { error: 'bad request' }, 400);
   const status = b.status ?? 'queued';
-  if (!STATUSES.includes(status)) return json(ctx, { error: 'bad request' }, 400);
+  const kind = b.kind ?? 'optout';
+  if (!STATUSES.includes(status) || !['optout', 'tx'].includes(kind)) return json(ctx, { error: 'bad request' }, 400);
   const brokerId = typeof b.broker_id === 'string' ? b.broker_id.slice(0, 64) : null;
   if (brokerId && !(await ctx.env.DB.prepare('SELECT 1 FROM brokers WHERE id = ?1').bind(brokerId).first())) {
     return json(ctx, { error: 'unknown broker' }, 400);
@@ -247,10 +300,10 @@ async function createOptout(ctx, cur) {
   const id = crypto.randomUUID();
   const t = now();
   await ctx.env.DB.prepare(
-    `INSERT INTO optout_requests (id, user_id, broker_id, status, notes, created_at, updated_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)`,
+    `INSERT INTO optout_requests (id, user_id, broker_id, status, notes, created_at, updated_at, kind, finished_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7, ?8)`,
   ).bind(id, uid, brokerId, status,
-    typeof b.notes === 'string' ? b.notes.slice(0, 2000) : null, t).run();
+    typeof b.notes === 'string' ? b.notes.slice(0, 2000) : null, t, kind, FINISHED.has(status) ? t : null).run();
   await hit(ctx.env, 'optout', uid);
   await audit(ctx.env, uid, 'optout.create', id);
   return json(ctx, { id, status }, 201);
@@ -266,10 +319,143 @@ async function addConfirmation(ctx, cur, reqId) {
   await ctx.env.DB.batch([
     ctx.env.DB.prepare('INSERT INTO confirmations (request_id, confirmation_no, channel, received_at) VALUES (?1, ?2, ?3, ?4)')
       .bind(reqId, no, typeof b.channel === 'string' ? b.channel.slice(0, 32) : null, t),
-    ctx.env.DB.prepare("UPDATE optout_requests SET status = 'confirmed', confirmed_at = ?1, updated_at = ?1 WHERE id = ?2").bind(t, reqId),
+    ctx.env.DB.prepare("UPDATE optout_requests SET status = 'confirmed', confirmed_at = ?1, finished_at = ?1, updated_at = ?1 WHERE id = ?2").bind(t, reqId),
   ]);
   await audit(ctx.env, cur.session.user_id, 'confirmation.add', reqId);
   return json(ctx, { ok: true }, 201);
+}
+
+// Allowed status transitions (same value = no-op allowed).
+export const TRANSITIONS = {
+  queued: ['submitted', 'in_progress'],
+  submitted: ['in_progress', 'pending', 'confirmed', 'denied'],
+  in_progress: ['submitted', 'pending', 'confirmed', 'denied'],
+  pending: ['submitted', 'in_progress', 'confirmed', 'denied'],
+  confirmed: ['reverify'],
+  denied: ['submitted', 'in_progress', 'pending'],
+  reverify: ['queued', 'submitted', 'in_progress', 'confirmed'],
+};
+// "Finished" = a final response was received (confirmed, incl. TX no_record; or denied, incl. AG complaint filed).
+// finished_at starts the 24-month (optout) / 3-year (tx) retention clocks; it is cleared if the record is reopened.
+const FINISHED = new Set(['confirmed', 'denied']);
+const ID_RE = /^[0-9a-f-]{36}$/;
+const optNum = (v) => (v === null ? null : Number.isInteger(v) && v >= 0 ? v : undefined);
+
+async function patchOptout(ctx, cur, id) {
+  const uid = cur.session.user_id;
+  if (await isLimited(ctx.env, 'optout', uid)) return json(ctx, { error: 'too many requests' }, 429);
+  const b = await readJson(ctx.req);
+  if (!b) return json(ctx, { error: 'bad request' }, 400);
+  const row = await ctx.env.DB.prepare('SELECT * FROM optout_requests WHERE id = ?1 AND user_id = ?2').bind(id, uid).first();
+  if (!row) return json(ctx, { error: 'not found' }, 404);
+
+  let status = row.status;
+  if (b.status !== undefined && b.status !== row.status) {
+    if (!STATUSES.includes(b.status) || !TRANSITIONS[row.status].includes(b.status)) {
+      return json(ctx, { error: 'invalid status transition', from: row.status, allowed: TRANSITIONS[row.status] }, 409);
+    }
+    status = b.status;
+  }
+  const notes = b.notes === undefined ? row.notes : typeof b.notes === 'string' ? b.notes.slice(0, 2000) : null;
+  const subStatus = b.sub_status === undefined ? row.sub_status : typeof b.sub_status === 'string' ? b.sub_status.slice(0, 32) : null;
+  const nextReverify = b.next_reverify === undefined ? row.next_reverify : optNum(b.next_reverify);
+  const deadline = b.deadline === undefined ? row.deadline : optNum(b.deadline);
+  if (nextReverify === undefined || deadline === undefined) return json(ctx, { error: 'bad request' }, 400);
+
+  const t = now();
+  const changed = status !== row.status;
+  const submittedAt = changed && status === 'submitted' ? t : row.submitted_at;
+  const confirmedAt = changed && status === 'confirmed' ? t : row.confirmed_at;
+  const finishedAt = changed ? (FINISHED.has(status) ? t : null) : row.finished_at;
+  const stmts = [ctx.env.DB.prepare(
+    `UPDATE optout_requests SET status = ?1, notes = ?2, sub_status = ?3, next_reverify = ?4, deadline = ?5,
+       submitted_at = ?6, confirmed_at = ?7, finished_at = ?8, updated_at = ?9 WHERE id = ?10 AND user_id = ?11`,
+  ).bind(status, notes, subStatus, nextReverify, deadline, submittedAt, confirmedAt, finishedAt, t, id, uid),
+  ctx.env.DB.prepare('INSERT INTO audit_log (user_id, action, target, at) VALUES (?1, ?2, ?3, ?4)')
+    .bind(uid, changed ? `optout.status:${row.status}->${status}` : 'optout.update', id, t)];
+  if (b.pii !== undefined) {
+    if (b.pii === null) {
+      stmts.push(ctx.env.DB.prepare('DELETE FROM pii_payloads WHERE request_id = ?1').bind(id));
+    } else {
+      const plain = JSON.stringify(b.pii);
+      if (plain.length > 8192) return json(ctx, { error: 'pii too large' }, 413);
+      const { blob, version } = await encryptPii(ctx.env, plain, `pii:${id}`);
+      const hardMax = num(ctx.env.PII_HARD_MAX_DAYS, 90) * 86400;
+      stmts.push(ctx.env.DB.prepare(
+        `INSERT INTO pii_payloads (request_id, payload_enc, key_version, created_at, purge_after) VALUES (?1, ?2, ?3, ?4, ?5)
+         ON CONFLICT(request_id) DO UPDATE SET payload_enc = excluded.payload_enc, key_version = excluded.key_version`,
+      ).bind(id, blob, version, t, t + hardMax)); // hard max counts from the first write; updates don't extend it
+    }
+  }
+  await ctx.env.DB.batch(stmts);
+  await hit(ctx.env, 'optout', uid);
+  const out = await ctx.env.DB.prepare('SELECT * FROM optout_requests WHERE id = ?1').bind(id).first();
+  return json(ctx, out);
+}
+
+async function getOptoutPii(ctx, cur, id) {
+  const r = await ctx.env.DB.prepare(
+    'SELECT p.payload_enc, p.key_version, p.purge_after FROM pii_payloads p JOIN optout_requests o ON o.id = p.request_id WHERE p.request_id = ?1 AND o.user_id = ?2',
+  ).bind(id, cur.session.user_id).first();
+  if (!r) return json(ctx, { error: 'not found' }, 404);
+  const pii = JSON.parse(await decryptPii(ctx.env, r.payload_enc, r.key_version, `pii:${id}`));
+  return json(ctx, { pii, purge_after: r.purge_after });
+}
+
+async function listBrokers(ctx) {
+  const r = await ctx.env.DB.prepare('SELECT id, name, url, method, category, reverify_days FROM brokers ORDER BY name LIMIT 1000').all();
+  return json(ctx, r.results);
+}
+
+async function getProfile(ctx, cur) {
+  const uid = cur.session.user_id;
+  const r = await ctx.env.DB.prepare('SELECT payload_enc, key_version, updated_at FROM profiles WHERE user_id = ?1').bind(uid).first();
+  if (!r) return json(ctx, {});
+  return json(ctx, JSON.parse(await decryptPii(ctx.env, r.payload_enc, r.key_version, `profile:${uid}`)));
+}
+
+async function putProfile(ctx, cur) {
+  const uid = cur.session.user_id;
+  const b = await readJson(ctx.req);
+  if (!b) return json(ctx, { error: 'bad request' }, 400);
+  const plain = JSON.stringify(b);
+  if (plain.length > 8192) return json(ctx, { error: 'profile too large' }, 413);
+  const { blob, version } = await encryptPii(ctx.env, plain, `profile:${uid}`);
+  const t = now();
+  await ctx.env.DB.batch([
+    ctx.env.DB.prepare(
+      `INSERT INTO profiles (user_id, payload_enc, key_version, updated_at) VALUES (?1, ?2, ?3, ?4)
+       ON CONFLICT(user_id) DO UPDATE SET payload_enc = excluded.payload_enc, key_version = excluded.key_version, updated_at = excluded.updated_at`,
+    ).bind(uid, blob, version, t),
+    ctx.env.DB.prepare('INSERT INTO audit_log (user_id, action, target, at) VALUES (?1, ?2, ?3, ?4)').bind(uid, 'profile.update', null, t),
+  ]);
+  return json(ctx, b);
+}
+
+// ---------- first-user bootstrap ----------
+// POST /admin/bootstrap  Authorization: Bearer <ADMIN_BOOTSTRAP_TOKEN>  {email, password}
+// Only succeeds while the users table is empty (atomic INSERT ... WHERE NOT EXISTS), so it self-disables.
+async function bootstrap(ctx) {
+  const rlId = `${clientIp(ctx.req)}|bootstrap`;
+  if (await isLimited(ctx.env, 'login', rlId)) return json(ctx, { error: 'too many attempts' }, 429);
+  const h = ctx.req.headers.get('Authorization') || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
+  const expected = ctx.env.ADMIN_BOOTSTRAP_TOKEN || '';
+  if (expected.length < 32 || !timingSafeEqual(token, expected)) { await hit(ctx.env, 'login', rlId); return json(ctx, { error: 'not found' }, 404); }
+  if (await ctx.env.DB.prepare('SELECT 1 FROM users LIMIT 1').first()) return json(ctx, { error: 'not found' }, 404);
+  const b = await readJson(ctx.req);
+  const email = typeof b?.email === 'string' ? b.email.trim().toLowerCase() : '';
+  const password = typeof b?.password === 'string' ? b.password : '';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 254) return json(ctx, { error: 'invalid email' }, 400);
+  if (password.length < 12 || password.length > 1024) return json(ctx, { error: 'password must be 12-1024 characters' }, 400);
+  const id = crypto.randomUUID();
+  const t = now();
+  const r = await ctx.env.DB.prepare(
+    'INSERT INTO users (id, email, pw_hash, created_at) SELECT ?1, ?2, ?3, ?4 WHERE NOT EXISTS (SELECT 1 FROM users)',
+  ).bind(id, email, await hashPassword(password), t).run();
+  if (r.meta.changes !== 1) return json(ctx, { error: 'not found' }, 404);
+  await audit(ctx.env, id, 'user.bootstrap');
+  return json(ctx, { ok: true, user_id: id, next: 'log in, then enroll TOTP' }, 201);
 }
 
 // ---------- router ----------
@@ -287,6 +473,7 @@ export async function handleApp(req, env) {
 
   if (m === 'POST' && path === '/auth/login') return login(ctx);
   if (m === 'POST' && path === '/auth/totp/verify') return totpVerify(ctx);
+  if (m === 'POST' && path === '/admin/bootstrap') return bootstrap(ctx);
 
   const cur = await loadSession(ctx);
   if (!cur) return UNAUTH(ctx);
@@ -300,6 +487,7 @@ export async function handleApp(req, env) {
   if (m === 'POST' && path === '/auth/totp/enroll') return totpEnroll(ctx, cur);
   if (m === 'POST' && path === '/auth/totp/confirm') return totpConfirm(ctx, cur);
   if (m === 'GET' && path === '/me') return me(ctx, cur);
+  if (m === 'POST' && path === '/auth/backup-codes/regenerate') return regenerateBackupCodes(ctx, cur);
 
   // Everything below requires a TOTP-verified session.
   if (!cur.session.mfa) return json(ctx, { error: 'mfa required' }, 403);
@@ -307,24 +495,47 @@ export async function handleApp(req, env) {
   if (m === 'POST' && path === '/optouts') return createOptout(ctx, cur);
   const cm = path.match(/^\/optouts\/([0-9a-f-]{36})\/confirmations$/);
   if (cm && m === 'POST') return addConfirmation(ctx, cur, cm[1]);
+  if (m === 'GET' && path === '/brokers') return listBrokers(ctx);
+  if (m === 'GET' && path === '/profile') return getProfile(ctx, cur);
+  if (m === 'PUT' && path === '/profile') return putProfile(ctx, cur);
+  const om = path.match(/^\/optouts\/([^/]+)(\/pii)?$/);
+  if (om && ID_RE.test(om[1])) {
+    if (!om[2] && m === 'PATCH') return patchOptout(ctx, cur, om[1]);
+    if (om[2] && m === 'GET') return getOptoutPii(ctx, cur, om[1]);
+  }
   return json(ctx, { error: 'not found' }, 404);
 }
 
-export const isAppPath = (pathname) => /^\/(auth|me|optouts)(\/|$)/.test(pathname);
+export const isAppPath = (pathname) => /^\/(auth|me|optouts|brokers|profile|admin)(\/|$)/.test(pathname);
 
 // ---------- scheduled purge ----------
-export async function purge(env) {
-  const t = now();
+// Retention (env vars, days): PII_RETENTION_DAYS (after confirmation, 30), PII_HARD_MAX_DAYS (90, enforced via purge_after),
+// SESSION_PURGE_DAYS (after expiry/revocation, 7), FINISHED_RECORD_RETENTION_DAYS (optout kind, 730 = 24 months),
+// TX_RECORD_RETENTION_DAYS (Texas kind, 1095 = 3 years). Record retention counts from finished_at (confirmed/denied).
+// audit_log retention is intentionally NOT handled here (owned by a separate PR).
+export function retention(env) {
+  return {
+    piiDays: num(env.PII_RETENTION_DAYS, 30),
+    sessionDays: num(env.SESSION_PURGE_DAYS, 7),
+    finishedDays: num(env.FINISHED_RECORD_RETENTION_DAYS, 730),
+    txDays: num(env.TX_RECORD_RETENTION_DAYS, 1095),
+  };
+}
+
+export async function purge(env, at = now()) {
   const day = 86400;
-  const piiDays = num(env.PII_RETENTION_DAYS, 30);
-  const auditDays = num(env.AUDIT_RETENTION_DAYS, 180);
-  await env.DB.batch([
-    // PII: gone at purge_after (set to creation + PII_HARD_MAX_DAYS), or piiDays after confirmation, whichever first.
-    env.DB.prepare('DELETE FROM pii_payloads WHERE purge_after < ?1').bind(t),
+  const r = retention(env);
+  const res = await env.DB.batch([
+    env.DB.prepare('DELETE FROM pii_payloads WHERE purge_after < ?1').bind(at),
     env.DB.prepare(
       'DELETE FROM pii_payloads WHERE request_id IN (SELECT id FROM optout_requests WHERE confirmed_at IS NOT NULL AND confirmed_at < ?1)',
-    ).bind(t - piiDays * day),
-    env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?1 OR (revoked = 1 AND last_seen_at < ?1)').bind(t - 7 * day),
-    env.DB.prepare('DELETE FROM audit_log WHERE at < ?1').bind(t - auditDays * day),
+    ).bind(at - r.piiDays * day),
+    env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?1 OR (revoked = 1 AND last_seen_at < ?1)').bind(at - r.sessionDays * day),
+    // Cascades to confirmations and pii_payloads.
+    env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'optout' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.finishedDays * day),
+    env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'tx' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.txDays * day),
   ]);
+  const counts = res.map((x) => x.meta.changes);
+  console.log('purge', JSON.stringify({ pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] }));
+  return counts;
 }

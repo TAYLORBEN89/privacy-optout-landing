@@ -16,6 +16,8 @@ export default defineWorkersConfig(async () => {
               TEST_MIGRATIONS: migrations,
               API_TOKEN: 'test-legacy-token',
               TOTP_ENC_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+              PII_ENC_KEY: 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
+              ADMIN_BOOTSTRAP_TOKEN: 'test-bootstrap-token-0123456789abcdef',
             },
             kvNamespaces: ['RECORDS'],
             d1Databases: ['DB'],
