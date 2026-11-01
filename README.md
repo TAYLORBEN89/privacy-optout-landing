@@ -91,6 +91,7 @@ The sign-in host `accounts.droptexas.com` is a live Workers Custom Domain, decla
 - Columns: `key` (sha256 of `scope|id`, where id is IP + account identifier or user id; no raw IPs or emails), `window_start`, `count`, `expires_at` (window end). Primary key `(key, window_start)`, index on `expires_at`.
 - Fixed windows (`LIMITS` in `worker/src/ratelimit.js`, e.g. login: 5 failures / 15 min per IP+account, shared by password, TOTP and step-up, and also used for backup-code regen and admin bootstrap). Each counted request is one atomic `INSERT ... ON CONFLICT DO UPDATE SET count = count + 1 RETURNING count`; D1 is strongly consistent.
 - Over the limit: `429` with the usual body and `Retry-After` = seconds until the window ends. Because windows are fixed, up to 2x the limit can land across a window boundary (the old KV TTL restarted on every hit).
+- Reserve-then-verify: every limited request first increments the counter atomically and decides from the returned count; above the limit it gets 429 without any password/TOTP/token verification, so at most `max` attempts per window reach a verifier even under parallel bursts. Credential checks (password login, TOTP/backup code, step-up password, admin bootstrap) refund their slot on success, so only failures stay counted. Other scopes (OAuth start/callback, handoff, opt-out writes, backup-code regen) count every attempt.
 - The daily cron deletes ended windows. Old `rl:*` keys in KV are no longer read or written and expire on their own TTL.
 
 ### Admin bootstrap (password + TOTP fallback account)
