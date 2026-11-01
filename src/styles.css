@@ -736,7 +736,8 @@ button[type="submit"]:disabled {
   border-right: 1.5px solid #010101;
   border-bottom: 1.5px solid #010101;
   transform: rotate(45deg);
-  transition: transform 0.2s ease;
+  transform-origin: center;
+  transition: transform 0.35s ease;
 }
 
 .footer-toggle[aria-expanded="true"]::after {
@@ -746,6 +747,20 @@ button[type="submit"]:disabled {
 .footer-toggle:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: -3px;
+}
+
+.footer-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
+}
+
+.footer-panel.is-open {
+  grid-template-rows: 1fr;
+}
+
+.footer-panel-inner {
+  overflow: hidden;
 }
 
 .footer-panel ul {
@@ -2221,6 +2236,11 @@ textarea {
   .hero h1,
   .hero-sub {
     animation: none;
+  }
+
+  .footer-toggle::after,
+  .footer-panel {
+    transition: none;
   }
 
   .cta,
