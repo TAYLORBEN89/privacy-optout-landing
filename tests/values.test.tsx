@@ -49,7 +49,7 @@ describe("about us values", () => {
     const page = readFileSync("src/pages/HomePage.tsx", "utf8");
     const rights = page.indexOf("<RightsSection");
     const values = page.indexOf("<ValuesSection");
-    const how = page.indexOf('id="how-drop-works"');
+    const how = page.indexOf("<Stats");
     expect(rights).toBeGreaterThan(-1);
     expect(rights).toBeLessThan(values);
     expect(values).toBeLessThan(how);

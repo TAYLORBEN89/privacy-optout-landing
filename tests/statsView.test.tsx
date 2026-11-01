@@ -101,7 +101,7 @@ describe("stats rendering", () => {
     const page = readFileSync("src/pages/HomePage.tsx", "utf8");
     const values = page.indexOf("<ValuesSection");
     const stats = page.indexOf("<Stats");
-    const how = page.indexOf('id="how-drop-works"');
+    const how = page.indexOf('className="closing"');
     expect(values).toBeGreaterThan(-1);
     expect(values).toBeLessThan(stats);
     expect(stats).toBeLessThan(how);

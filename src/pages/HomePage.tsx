@@ -3,7 +3,6 @@ import { TopNav } from "../components/TopNav";
 import { BrokerMarquee } from "../components/Marquee";
 import { RightsSection } from "../components/Rights";
 import { ValuesSection } from "../components/Values";
-import { Reveal } from "../components/Reveal";
 import { Stats } from "../components/Stats";
 import { AppLink } from "../router";
 import { storageNotice } from "../../worker/storage";
@@ -72,109 +71,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       <ValuesSection />
 
       <Stats />
-
-      <section id="how-drop-works" className="block" aria-labelledby="how-heading">
-        <Reveal>
-          <div className="panel nest">
-            <h2 id="how-heading">How DROP Works</h2>
-            <p>Three steps. You can stop at any time before you submit.</p>
-            <div className="inner-card">
-              <ol className="steps">
-                <li>
-                  <h3>
-                    <span className="step-label">Step 1</span>
-                    Say whether you live in Texas
-                  </h3>
-                  <p>Checked means TDPSA. Unchecked still uses TDPSA for now and is marked non-Texas.</p>
-                </li>
-                <li>
-                  <h3>
-                    <span className="step-label">Step 2</span>
-                    Enter your name, mailing address, and email
-                  </h3>
-                  <p>Most broker opt-out forms require a physical address.</p>
-                </li>
-                <li>
-                  <h3>
-                    <span className="step-label">Step 3</span>
-                    Submit the form
-                  </h3>
-                  <p>{storageNotice()}</p>
-                </li>
-              </ol>
-            </div>
-            <AppLink className="cta" href={getStartedHref}>
-              Start Removing Me
-            </AppLink>
-          </div>
-        </Reveal>
-      </section>
-
-      <section id="data-brokers" className="block" aria-labelledby="brokers-heading">
-        <Reveal>
-          <div className="panel nest">
-            <h2 id="brokers-heading">Data Brokers</h2>
-            <div className="inner-card">
-              <p>
-                An opt-out request asks a data broker not to sell your personal information. DROP Texas
-                does not check that a broker deleted a record.
-              </p>
-              <p>
-                If a status is shown later, it is one of Submitted, Confirmed, Pending, Not completed, or
-                No record found.
-              </p>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      <section id="unique-identifiers" className="block" aria-labelledby="ids-heading">
-        <Reveal>
-          <div className="panel">
-            <h2 id="ids-heading">Unique Identifiers</h2>
-            <p>
-              Some brokers match people with extra identifiers. This form does not ask for device IDs,
-              account passwords, or government ID numbers. Your name, mailing address, and email are
-              the details the request uses.
-            </p>
-          </div>
-        </Reveal>
-      </section>
-
-      <section id="tdpsa" className="block" aria-labelledby="tdpsa-heading">
-        <Reveal>
-          <div className="panel">
-            <h2 id="tdpsa-heading">TDPSA</h2>
-            <p>
-              DROP Texas is a private service. The Texas box records the Texas Data Privacy and
-              Security Act (TDPSA). An unchecked box still uses TDPSA for now and is marked
-              non-Texas. No government agency reviews this form.
-            </p>
-          </div>
-        </Reveal>
-      </section>
-
-      <section id="help" className="block" aria-labelledby="help-heading">
-        <Reveal>
-          <div className="panel">
-            <h2 id="help-heading">Help with DROP</h2>
-            <p>
-              Choose Start Removing Me, sign in if asked, then send your name, mailing address, and
-              email. You should see confirmation received. {storageNotice()} The page needs JavaScript
-              to show the form.
-            </p>
-          </div>
-        </Reveal>
-      </section>
-
-      <section id="share" className="block" aria-labelledby="share-heading">
-        <Reveal>
-          <div className="panel">
-            <h2 id="share-heading">Share DROP</h2>
-            <p>You can share this private service at https://droptexas.com.</p>
-          </div>
-        </Reveal>
-      </section>
 
       <section className="closing" aria-labelledby="closing-heading">
         <h2 id="closing-heading">Ready to take back your privacy?</h2>

@@ -12,7 +12,7 @@ describe("hero copy", () => {
     );
     expect(source).not.toContain("You can ask data brokers to delete");
     expect(source).toContain("Texas Data Privacy and Security Act");
-    const hero = source.slice(source.indexOf('id="overview"'), source.indexOf('id="how-drop-works"'));
+    const hero = source.slice(source.indexOf('id="overview"'), source.indexOf('className="explore"'));
     expect(hero).not.toContain("<Reveal");
     expect(hero).toContain('id="page-title"');
   });

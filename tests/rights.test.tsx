@@ -62,7 +62,7 @@ describe("your rights", () => {
     const page = readFileSync("src/pages/HomePage.tsx", "utf8");
     const marquee = page.indexOf("<BrokerMarquee");
     const rights = page.indexOf("<RightsSection");
-    const how = page.indexOf('id="how-drop-works"');
+    const how = page.indexOf("<ValuesSection");
     expect(marquee).toBeGreaterThan(-1);
     expect(marquee).toBeLessThan(rights);
     expect(rights).toBeLessThan(how);
