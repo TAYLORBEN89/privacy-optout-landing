@@ -1013,18 +1013,44 @@ textarea {
 }
 
 .marquee-section {
-  margin: 8px 0 24px;
-  max-width: 100%;
+  width: 100vw;
+  margin: 0 0 0 calc(50% - 50vw);
+  padding: 80px 0;
+  background: #fff;
+  text-align: center;
+}
+
+.marquee-label {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.marquee-label::after {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 2px;
+  margin: 12px auto 0;
+  background: var(--red);
 }
 
 .marquee {
   overflow: hidden;
   max-width: 100%;
+  margin-top: 36px;
+  mask-image: linear-gradient(to right, transparent 0, #000 15%, #000 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 15%, #000 85%, transparent 100%);
 }
 
 .marquee-track {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 56px;
   width: max-content;
   margin: 0;
   padding: 0;
@@ -1036,14 +1062,45 @@ textarea {
   animation-play-state: paused;
 }
 
-.chip {
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid var(--line);
-  color: var(--ink);
-  font-weight: 600;
+.broker-name {
+  color: #010101;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
+}
+
+.broker-name:nth-child(4n + 2) {
+  color: #1c2430;
+}
+
+.broker-name:nth-child(4n + 3) {
+  color: #3a2a2a;
+}
+
+.broker-name:nth-child(4n) {
+  color: #1a2744;
+}
+
+.marquee-more {
+  display: inline-block;
+  margin-top: 36px;
+  color: var(--red);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.marquee-more:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.marquee-more:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 @keyframes marquee-slide {
@@ -1195,6 +1252,20 @@ textarea {
 
   .nav-tiles li:nth-child(odd) {
     box-shadow: inset -1px 0 0 #eee;
+  }
+}
+
+@media (min-width: 900px) {
+  .marquee-section {
+    padding: 100px 0;
+  }
+
+  .broker-name {
+    font-size: 32px;
+  }
+
+  .marquee-track {
+    gap: 64px;
   }
 }
 
@@ -1391,8 +1462,6 @@ textarea {
 
   .marquee-track {
     animation: none;
-    flex-wrap: wrap;
-    width: auto;
   }
 
   .marquee-track [data-clone] {
