@@ -2,7 +2,7 @@ import { NAV_ITEMS } from "../navItems";
 import { AppLink } from "../router";
 
 const BLURBS: Record<string, string> = {
-  overview: "What DROP Texas is and how it helps you.",
+  overview: "Drop Texas is a free service for Texans to request data brokers not sell their personal information.",
   "how-drop-works": "The steps from signup to opt-out requests.",
   "personal-information": "What we collect and why.",
   "data-brokers": "The companies we send opt-out requests to.",

@@ -12,13 +12,19 @@ describe("hero copy", () => {
     expect(hero).not.toContain("Demanding privacy");
     expect(hero).not.toContain("by the people");
     expect(hero).toContain(
-      "DROP Texas gives you more control over your data. You can demand data brokers delete your personal information and not sell it.",
+      "Drop Texas is a free service for Texans to request data brokers not sell their personal information.",
     );
     expect(hero).not.toContain("You can ask data brokers to delete");
     expect(hero).toContain("Texas Data Privacy and Security Act");
     expect(hero).not.toContain("<Reveal");
     expect(hero).toContain('id="page-title"');
     expect(hero).toContain('className="hero-sub"');
+    const html = readFileSync("index.html", "utf8");
+    const sentence =
+      "Drop Texas is a free service for Texans to request data brokers not sell their personal information.";
+    expect(html).toContain(`name="description"\n      content="${sentence}"`);
+    expect(html).toContain(`property="og:description"\n      content="${sentence}"`);
+    expect(html).toContain(`name="twitter:description"\n      content="${sentence}"`);
     const brand = readFileSync("src/Brand.tsx", "utf8");
     expect(brand).toContain("Demanding privacy for the people, by the people");
   });

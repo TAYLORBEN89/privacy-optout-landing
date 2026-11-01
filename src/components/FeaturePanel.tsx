@@ -7,7 +7,7 @@ const CARDS = [
     tag: "Overview",
     headline: "What DROP Texas is",
     description:
-      "DROP Texas is a free, private way to ask data brokers not to sell your personal information.",
+      "Drop Texas is a free service for Texans to request data brokers not sell their personal information.",
     button: "See the overview",
     href: "/#overview",
   },

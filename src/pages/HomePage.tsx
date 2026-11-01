@@ -15,7 +15,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <h1 id="page-title">Privacy is a right.</h1>
             <p className="hero-sub">Let's get you started.</p>
             <p className="lede">
-              DROP Texas gives you more control over your data. You can demand data brokers delete your personal information and not sell it.
+              Drop Texas is a free service for Texans to request data brokers not sell their personal information.
             </p>
             <p className="lede note">
               If you live in Texas, check the box. That means the Texas Data Privacy and Security Act
