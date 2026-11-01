@@ -49,7 +49,8 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <p className="personal-sub">Only what we need. Nothing more.</p>
           <p className="personal-body">
             We collect only your name, date of birth, mailing address, email, Texas residency and your phone number. Everything you
-            send is encrypted in transit, and we never sell your data.
+            send is encrypted in transit, and we never sell your data. For a child request, a parent or guardian also
+            provides the child's name, date of birth and, if different, address.
           </p>
           <p className="personal-preview">{storageNotice()}</p>
           <AppLink className="cta" href="/privacy">

@@ -81,7 +81,7 @@ export function HowItWorksPage() {
           <h2>Enter the details the request uses</h2>
           <p>
             The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-            provide it) your phone number. Most broker opt-out forms require a physical address. The form
+            provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. Most broker opt-out forms require a physical address. The form
             does not ask for a device ID, a password, or a government ID number.
           </p>
         </li>
@@ -100,11 +100,11 @@ export function PersonalInformationPage() {
       title="Personal information"
       heading="Personal information"
       tone="personal"
-      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
+      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address."
     >
       <p>
         The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-        provide it) your phone number.
+        provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.
       </p>
       <p>DROP Texas does not sell that information.</p>
       <p>
@@ -154,7 +154,7 @@ export function UniqueIdentifiersPage() {
       title="Unique identifiers"
       heading="Unique identifiers"
       tone="identifiers"
-      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
+      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address."
     >
       <p>
         Some brokers match people with extra identifiers. This form does not ask for device IDs, account
@@ -162,7 +162,7 @@ export function UniqueIdentifiersPage() {
       </p>
       <p>
         The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-        provide it) your phone number.
+        provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.
       </p>
       <p>
         The <AppLink href="/brokers">brokers page</AppLink> lists categories each company names in its own
@@ -258,7 +258,7 @@ export function HelpPage() {
           <summary>What do I enter?</summary>
           <p>
             The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-            provide it) your phone number. The page needs JavaScript to show the form.
+            provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. The page needs JavaScript to show the form.
           </p>
         </details>
         <details>

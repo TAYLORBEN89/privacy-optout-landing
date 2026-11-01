@@ -941,6 +941,78 @@ textarea {
   margin: 0;
 }
 
+.submitter-field {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+}
+
+.submitter-field legend {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.segmented label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin: 0;
+  border: 1px solid var(--field);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.segmented label:has(input:checked) {
+  border-color: var(--red);
+  background: #fff5f6;
+  font-weight: 600;
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.child-details {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 18px;
+  margin: 8px 0 0;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.child-details > legend {
+  margin: 0 0 2px;
+  padding: 0;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 500;
+}
+
 @media (min-width: 640px) {
   .form-card {
     padding: 40px 32px 36px;
@@ -962,7 +1034,17 @@ textarea {
   .form-grid .field-street,
   .form-grid .field-apt,
   .form-grid .field-check,
-  .form-grid > button {
+  .form-grid > button,
+  .form-grid > .child-details {
+    grid-column: 1 / -1;
+  }
+
+  .child-details {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 16px;
+  }
+
+  .child-details > legend {
     grid-column: 1 / -1;
   }
 

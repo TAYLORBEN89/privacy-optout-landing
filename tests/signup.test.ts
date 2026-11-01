@@ -55,6 +55,9 @@ describe("validateSignup", () => {
         texasResident: true,
         jurisdiction: "TDPSA",
         nonTexasFlag: false,
+        submitter: "self",
+        child: null,
+        guardianAttestation: false,
       },
     });
   });
@@ -209,6 +212,147 @@ describe("validateSignup", () => {
     }
   });
 
+  it("accepts a parent submitting for a child under 13 at the same address", () => {
+    const { earliest } = dobRange();
+    const parentDob = earliest;
+    const childDob = dobRange().latest;
+    const result = validateSignup({
+      ...valid,
+      dob: parentDob,
+      submitter: "child",
+      guardianAttestation: true,
+      child: {
+        firstName: "Grace",
+        middleName: "",
+        lastName: "Hopper",
+        dob: childDob,
+        sameAddress: true,
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.submitter).toBe("child");
+      expect(result.value.guardianAttestation).toBe(true);
+      expect(result.value.child).toEqual({
+        firstName: "Grace",
+        middleName: null,
+        lastName: "Hopper",
+        dob: childDob,
+        sameAddress: true,
+      });
+      expect(result.value.child).not.toHaveProperty("addressLine1");
+    }
+  });
+
+  it("requires a separate child address, an under-13 child, an adult parent, and the attestation", () => {
+    const { latest } = dobRange();
+    const adult = "1990-01-15";
+    const turned13 = (() => {
+      const today = new Date();
+      const date = new Date(today.getFullYear() - 13, today.getMonth(), today.getDate());
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    })();
+    const baseChild = {
+      firstName: "Grace",
+      lastName: "Hopper",
+      dob: latest,
+      sameAddress: false,
+      addressLine1: "9 Oak St",
+      city: "Austin",
+      state: "TX",
+      zip: "78702",
+    };
+
+    const youngParent = validateSignup({
+      ...valid,
+      dob: latest,
+      submitter: "child",
+      guardianAttestation: true,
+      child: { ...baseChild, sameAddress: true },
+    });
+    expect(youngParent.ok).toBe(false);
+    if (!youngParent.ok) expect(youngParent.errors.dob?.code).toBe("underage");
+
+    const olderChild = validateSignup({
+      ...valid,
+      dob: adult,
+      submitter: "child",
+      guardianAttestation: true,
+      child: { ...baseChild, dob: turned13, sameAddress: true },
+    });
+    expect(olderChild.ok).toBe(false);
+    if (!olderChild.ok) expect(olderChild.errors.childDob?.message).toBe("The child must be under 13.");
+
+    const futureChild = validateSignup({
+      ...valid,
+      dob: adult,
+      submitter: "child",
+      guardianAttestation: true,
+      child: {
+        ...baseChild,
+        dob: (() => {
+          const today = new Date();
+          today.setDate(today.getDate() + 1);
+          const y = today.getFullYear();
+          const m = String(today.getMonth() + 1).padStart(2, "0");
+          const d = String(today.getDate()).padStart(2, "0");
+          return `${y}-${m}-${d}`;
+        })(),
+        sameAddress: true,
+      },
+    });
+    expect(futureChild.ok).toBe(false);
+    if (!futureChild.ok) expect(futureChild.errors.childDob?.code).toBe("future");
+
+    const missingAttestation = validateSignup({
+      ...valid,
+      dob: adult,
+      submitter: "child",
+      child: { ...baseChild, sameAddress: true },
+    });
+    expect(missingAttestation.ok).toBe(false);
+    if (!missingAttestation.ok) expect(missingAttestation.errors.guardianAttestation?.code).toBe("required");
+
+    const missingAddress = validateSignup({
+      ...valid,
+      dob: adult,
+      submitter: "child",
+      guardianAttestation: true,
+      child: { firstName: "Grace", lastName: "Hopper", dob: latest, sameAddress: false },
+    });
+    expect(missingAddress.ok).toBe(false);
+    if (!missingAddress.ok) {
+      expect(missingAddress.errors.childAddressLine1?.code).toBe("required");
+      expect(missingAddress.errors.childCity?.code).toBe("required");
+      expect(missingAddress.errors.childZip?.code).toBe("required");
+    }
+
+    const differentAddress = validateSignup({
+      ...valid,
+      dob: adult,
+      submitter: "child",
+      guardianAttestation: true,
+      child: baseChild,
+    });
+    expect(differentAddress.ok).toBe(true);
+    if (differentAddress.ok && differentAddress.value.child && differentAddress.value.child.sameAddress === false) {
+      expect(differentAddress.value.child.addressLine1).toBe("9 Oak St");
+      expect(differentAddress.value.child.state).toBe("TX");
+    }
+
+    const selfWithChild = validateSignup({
+      ...valid,
+      submitter: "self",
+      guardianAttestation: true,
+      child: { ...baseChild, sameAddress: true },
+    });
+    expect(selfWithChild.ok).toBe(false);
+    if (!selfWithChild.ok) expect(selfWithChild.errors.submitter?.code).toBe("unexpected");
+  });
+
   it("ignores extra keys in the stored value", () => {
     const result = validateSignup({ ...valid, ssn: "123-45-6789" });
     expect(result.ok).toBe(true);
@@ -228,6 +372,9 @@ describe("validateSignup", () => {
         texasResident: true,
         jurisdiction: "TDPSA",
         nonTexasFlag: false,
+        submitter: "self",
+        child: null,
+        guardianAttestation: false,
       });
       expect(JSON.stringify(result.value)).not.toContain("123-45-6789");
     }

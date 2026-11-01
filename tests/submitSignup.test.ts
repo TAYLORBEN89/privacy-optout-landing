@@ -31,6 +31,9 @@ const normalized = {
   texasResident: false,
   jurisdiction: "TDPSA",
   nonTexasFlag: true,
+  submitter: "self",
+  child: null,
+  guardianAttestation: false,
 };
 
 describe("submitSignup", () => {

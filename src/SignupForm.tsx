@@ -25,6 +25,16 @@ const FOCUS_ORDER = [
   "email",
   "phone",
   "texasResident",
+  "childFirstName",
+  "childMiddleName",
+  "childLastName",
+  "childDob",
+  "childAddressLine1",
+  "childAddressLine2",
+  "childCity",
+  "childState",
+  "childZip",
+  "guardianAttestation",
 ] as const satisfies readonly SignupField[];
 
 export function SignupForm() {
@@ -40,6 +50,18 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [texasResident, setTexasResident] = useState(false);
+  const [submitter, setSubmitter] = useState<"self" | "child">("self");
+  const [childFirstName, setChildFirstName] = useState("");
+  const [childMiddleName, setChildMiddleName] = useState("");
+  const [childLastName, setChildLastName] = useState("");
+  const [childDob, setChildDob] = useState("");
+  const [sameAddress, setSameAddress] = useState(true);
+  const [childAddressLine1, setChildAddressLine1] = useState("");
+  const [childAddressLine2, setChildAddressLine2] = useState("");
+  const [childCity, setChildCity] = useState("");
+  const [childState, setChildState] = useState("TX");
+  const [childZip, setChildZip] = useState("");
+  const [guardianAttestation, setGuardianAttestation] = useState(false);
   const [errors, setErrors] = useState<SignupIssues>(EMPTY_ERRORS);
   const [formError, setFormError] = useState<FieldIssue | null>(null);
   const [success, setSuccess] = useState(false);
@@ -83,6 +105,27 @@ export function SignupForm() {
       email,
       phone,
       texasResident,
+      submitter,
+      guardianAttestation: submitter === "child" ? guardianAttestation : false,
+      child:
+        submitter === "child"
+          ? {
+              firstName: childFirstName,
+              middleName: childMiddleName,
+              lastName: childLastName,
+              dob: childDob,
+              sameAddress,
+              ...(sameAddress
+                ? {}
+                : {
+                    addressLine1: childAddressLine1,
+                    addressLine2: childAddressLine2,
+                    city: childCity,
+                    state: childState,
+                    zip: childZip,
+                  }),
+            }
+          : null,
     });
 
     setSubmitting(false);
@@ -118,7 +161,38 @@ export function SignupForm() {
       onFocus={markStarted}
       onSubmit={onSubmit}
     >
-      <h2 id="form-heading">Send your request</h2>
+      <fieldset className="submitter-field">
+        <legend>I&apos;m submitting for</legend>
+        <div className="segmented">
+          <label>
+            <input
+              type="radio"
+              name="submitter"
+              value="self"
+              checked={submitter === "self"}
+              onChange={() => {
+                markStarted();
+                setSubmitter("self");
+              }}
+            />
+            <span>Myself</span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="submitter"
+              value="child"
+              checked={submitter === "child"}
+              onChange={() => {
+                markStarted();
+                setSubmitter("child");
+              }}
+            />
+            <span>My child</span>
+          </label>
+        </div>
+      </fieldset>
+      <h2 id="form-heading">{submitter === "child" ? "Your details (parent or guardian)" : "Send your request"}</h2>
       {success ? (
         <p className="status" role="status" tabIndex={-1} ref={statusRef}>
           {submissionConfirmation()} {storageNotice()}
@@ -300,6 +374,182 @@ export function SignupForm() {
           ) : null}
         </div>
       </div>
+
+      {submitter === "child" ? (
+        <fieldset className="child-details">
+          <legend>Child&apos;s details</legend>
+          <TextControl
+            id="childFirstName"
+            className="field-first"
+            label="First name"
+            required
+            autoComplete="off"
+            value={childFirstName}
+            error={errors.childFirstName}
+            onChange={setChildFirstName}
+            onStart={markStarted}
+          />
+          <TextControl
+            id="childMiddleName"
+            className="field-middle"
+            label="Middle name"
+            optional
+            autoComplete="off"
+            value={childMiddleName}
+            error={errors.childMiddleName}
+            onChange={setChildMiddleName}
+            onStart={markStarted}
+          />
+          <TextControl
+            id="childLastName"
+            className="field-last"
+            label="Last name"
+            required
+            autoComplete="off"
+            value={childLastName}
+            error={errors.childLastName}
+            onChange={setChildLastName}
+            onStart={markStarted}
+          />
+          <TextControl
+            id="childDob"
+            className="field-dob"
+            label="Date of birth"
+            required
+            type="date"
+            autoComplete="off"
+            value={childDob}
+            error={errors.childDob}
+            onChange={setChildDob}
+            onStart={markStarted}
+          />
+          <div className="field check field-check">
+            <input
+              id="childSameAddress"
+              name="childSameAddress"
+              type="checkbox"
+              checked={sameAddress}
+              aria-invalid={errors.childSameAddress ? true : undefined}
+              aria-describedby={errors.childSameAddress ? "childSameAddress-error" : undefined}
+              onChange={(event) => {
+                markStarted();
+                setSameAddress(event.target.checked);
+              }}
+            />
+            <div>
+              <label htmlFor="childSameAddress">My child lives at the address above</label>
+              {errors.childSameAddress ? (
+                <p className="error" id="childSameAddress-error" role="alert">
+                  {errors.childSameAddress.message}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          {sameAddress ? null : (
+            <>
+              <TextControl
+                id="childAddressLine1"
+                className="field-street"
+                label="Street address"
+                required
+                autoComplete="off"
+                value={childAddressLine1}
+                error={errors.childAddressLine1}
+                onChange={setChildAddressLine1}
+                onStart={markStarted}
+              />
+              <TextControl
+                id="childAddressLine2"
+                className="field-apt"
+                label="Apt, suite, unit"
+                optional
+                autoComplete="off"
+                value={childAddressLine2}
+                error={errors.childAddressLine2}
+                onChange={setChildAddressLine2}
+                onStart={markStarted}
+              />
+              <TextControl
+                id="childCity"
+                className="field-city"
+                label="City"
+                required
+                autoComplete="off"
+                value={childCity}
+                error={errors.childCity}
+                onChange={setChildCity}
+                onStart={markStarted}
+              />
+              <div className="field field-state">
+                <label htmlFor="childState">
+                  State <span className="req">(required)</span>
+                </label>
+                <select
+                  id="childState"
+                  className="control"
+                  name="childState"
+                  value={childState}
+                  aria-required="true"
+                  aria-invalid={errors.childState ? true : undefined}
+                  aria-describedby={errors.childState ? "childState-error" : undefined}
+                  onChange={(event) => {
+                    markStarted();
+                    setChildState(event.target.value);
+                  }}
+                >
+                  {US_STATES.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.childState ? (
+                  <p className="error" id="childState-error" role="alert">
+                    {errors.childState.message}
+                  </p>
+                ) : null}
+              </div>
+              <TextControl
+                id="childZip"
+                className="field-zip"
+                label="ZIP code"
+                required
+                autoComplete="off"
+                inputMode="numeric"
+                value={childZip}
+                error={errors.childZip}
+                onChange={setChildZip}
+                onStart={markStarted}
+              />
+            </>
+          )}
+          <div className="field check field-check">
+            <input
+              id="guardianAttestation"
+              name="guardianAttestation"
+              type="checkbox"
+              checked={guardianAttestation}
+              aria-required="true"
+              aria-invalid={errors.guardianAttestation ? true : undefined}
+              aria-describedby={errors.guardianAttestation ? "guardianAttestation-error" : undefined}
+              onChange={(event) => {
+                markStarted();
+                setGuardianAttestation(event.target.checked);
+              }}
+            />
+            <div>
+              <label htmlFor="guardianAttestation">
+                I am this child&apos;s parent or legal guardian and am authorized to make this request on their behalf.
+              </label>
+              {errors.guardianAttestation ? (
+                <p className="error" id="guardianAttestation-error" role="alert">
+                  {errors.guardianAttestation.message}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </fieldset>
+      ) : null}
 
       <button type="submit" disabled={submitting}>
         {submitting ? "Submitting…" : "Submit opt-out request"}

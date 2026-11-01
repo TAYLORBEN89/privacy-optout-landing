@@ -85,7 +85,7 @@ npm test
 
 ## What the form does
 
-The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
+The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
 
 `STORAGE_LIVE` in `worker/storage.ts` is false. The page says the preview does not store submissions. Set that constant to true only when D1 is actually saving records. The replacement sentence is `STORAGE_LIVE_NOTE`.
 
@@ -109,6 +109,9 @@ The browser and the Worker both use `shared/signup.ts`. Bad input returns per-fi
   "email": "ada@example.com",
   "phone": null,
   "texasResident": true,
+  "submitter": "self",
+  "child": null,
+  "guardianAttestation": false,
   "jurisdiction": "TDPSA",
   "nonTexasFlag": false
 }

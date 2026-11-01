@@ -62,6 +62,36 @@ describe("POST /api/signup", () => {
     }
   });
 
+  it("rejects a child request that breaks the age or attestation rules", async () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const latest = `${y}-${m}-${d}`;
+    const body = {
+      ...valid,
+      dob: latest,
+      submitter: "child",
+      guardianAttestation: false,
+      child: { firstName: "Grace", lastName: "Hopper", dob: latest, sameAddress: true },
+    };
+    const expected = validateSignup(body);
+    const response = await handleRequest(post(body), assets());
+    const payload = (await response.json()) as { errors: Record<string, { code: string }> };
+    expect(response.status).toBe(400);
+    expect(expected.ok).toBe(false);
+    if (!expected.ok) {
+      expect(payload.errors.dob?.code).toBe(expected.errors.dob?.code);
+      expect(payload.errors.guardianAttestation?.code).toBe(expected.errors.guardianAttestation?.code);
+    }
+
+    const selfBody = { ...valid, submitter: "self", child: { firstName: "Grace" } };
+    const selfResponse = await handleRequest(post(selfBody), assets());
+    const selfPayload = (await selfResponse.json()) as { errors: { submitter?: { code: string } } };
+    expect(selfResponse.status).toBe(400);
+    expect(selfPayload.errors.submitter?.code).toBe("unexpected");
+  });
+
   it("returns the shared schema errors for a bad body", async () => {
     const body = {
       firstName: "",

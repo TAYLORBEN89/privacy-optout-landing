@@ -16,6 +16,18 @@ export const SIGNUP_FIELDS = [
   "email",
   "phone",
   "texasResident",
+  "submitter",
+  "guardianAttestation",
+  "childFirstName",
+  "childMiddleName",
+  "childLastName",
+  "childDob",
+  "childSameAddress",
+  "childAddressLine1",
+  "childAddressLine2",
+  "childCity",
+  "childState",
+  "childZip",
 ] as const;
 
 /** USPS abbreviations for the 50 states and the District of Columbia. */
@@ -107,6 +119,24 @@ export interface SignupInput {
   jurisdiction: Jurisdiction;
   /** True when the person said they do not live in Texas. */
   nonTexasFlag: boolean;
+  submitter: "self" | "child";
+  /** Present only when submitter is "child". */
+  child: ChildSignup | null;
+  /** True only when a parent or guardian attests for a child. */
+  guardianAttestation: boolean;
+}
+
+export interface ChildSignup {
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  dob: string;
+  sameAddress: boolean;
+  addressLine1?: string;
+  addressLine2?: string | null;
+  city?: string;
+  state?: string;
+  zip?: string;
 }
 
 export interface FieldIssue {
@@ -296,6 +326,119 @@ function validateDob(value: unknown, now = new Date()): { value: string } | { er
   return { value: dob };
 }
 
+function ageReached(dob: string, years: number, now = new Date()): boolean {
+  const threshold = new Date(now.getFullYear() - years, now.getMonth(), now.getDate());
+  return dob <= calendarIso(threshold);
+}
+
+function childNameError(result: { error: FieldIssue }, field: "first" | "middle" | "last"): FieldIssue {
+  const label = field === "first" ? "first name" : field === "last" ? "last name" : "middle name";
+  if (result.error.code === "required") return issue("required", `Enter the child's ${label}.`);
+  if (result.error.code === "too_long") {
+    return issue("too_long", `Enter a shorter ${label} for the child (${NAME_MAX} characters or fewer).`);
+  }
+  return issue("invalid", `Use letters in the child's ${label}.`);
+}
+
+function validateChild(child: unknown, now: Date, errors: SignupIssues): ChildSignup | null {
+  if (!isRecord(child)) {
+    errors.childFirstName = issue("required", "Enter the child's first name.");
+    errors.childLastName = issue("required", "Enter the child's last name.");
+    errors.childDob = issue("required", "Enter the child's date of birth.");
+    return null;
+  }
+  const firstName = validateNamePart(child.firstName, "first");
+  const middleName = validateNamePart(child.middleName, "middle");
+  const lastName = validateNamePart(child.lastName, "last");
+  if ("error" in firstName) errors.childFirstName = childNameError(firstName, "first");
+  if ("error" in middleName) errors.childMiddleName = childNameError(middleName, "middle");
+  if ("error" in lastName) errors.childLastName = childNameError(lastName, "last");
+
+  let childDob: string | null = null;
+  if (isBlank(child.dob)) {
+    errors.childDob = issue("required", "Enter the child's date of birth.");
+  } else if (typeof child.dob !== "string") {
+    errors.childDob = issue("invalid", "Enter a real date of birth for the child.");
+  } else {
+    const parsed = validateDob(child.dob, now);
+    if ("error" in parsed) {
+      if (parsed.error.code === "future") {
+        errors.childDob = issue("future", "The child's date of birth cannot be in the future.");
+      } else if (parsed.error.code === "too_old" || parsed.error.code === "future") {
+        errors.childDob = issue("underage", "The child must be under 13.");
+      } else if (parsed.error.code === "required") {
+        errors.childDob = issue("required", "Enter the child's date of birth.");
+      } else {
+        errors.childDob = issue("invalid", "Enter a real date of birth for the child.");
+      }
+    } else if (ageReached(parsed.value, 13, now)) {
+      errors.childDob = issue("underage", "The child must be under 13.");
+    } else {
+      childDob = parsed.value;
+    }
+  }
+
+  if (typeof child.sameAddress !== "boolean") {
+    errors.childSameAddress = issue("invalid", "Say whether your child lives at the address above.");
+    return null;
+  }
+  if (child.sameAddress) {
+    const stray = ["addressLine1", "addressLine2", "city", "state", "zip"].some((key) => !isBlank(child[key]));
+    if (stray) {
+      errors.childSameAddress = issue(
+        "unexpected",
+        "Remove the child's address when the child lives at the address above.",
+      );
+    }
+    if ("error" in firstName || "error" in middleName || "error" in lastName || !childDob || errors.childSameAddress) {
+      return null;
+    }
+    return {
+      firstName: firstName.value as string,
+      middleName: middleName.value,
+      lastName: lastName.value as string,
+      dob: childDob,
+      sameAddress: true,
+    };
+  }
+
+  const street = validateStreet(child.addressLine1);
+  const line2 = validateLine2(child.addressLine2);
+  const city = validateCity(child.city);
+  const state = validateState(child.state);
+  const zip = validateZip(child.zip);
+  if ("error" in street) errors.childAddressLine1 = issue(street.error.code, "Enter the child's street address.");
+  if ("error" in line2) errors.childAddressLine2 = issue(line2.error.code, "Enter the child's apartment, suite, or unit.");
+  if ("error" in city) errors.childCity = issue(city.error.code, "Enter the child's city.");
+  if ("error" in state) errors.childState = issue(state.error.code, "Choose the child's state.");
+  if ("error" in zip) errors.childZip = issue(zip.error.code, "Enter the child's ZIP code.");
+  if (
+    "error" in firstName ||
+    "error" in middleName ||
+    "error" in lastName ||
+    !childDob ||
+    "error" in street ||
+    "error" in line2 ||
+    "error" in city ||
+    "error" in state ||
+    "error" in zip
+  ) {
+    return null;
+  }
+  return {
+    firstName: firstName.value as string,
+    middleName: middleName.value,
+    lastName: lastName.value as string,
+    dob: childDob,
+    sameAddress: false,
+    addressLine1: street.value,
+    addressLine2: line2.value,
+    city: city.value,
+    state: state.value,
+    zip: zip.value,
+  };
+}
+
 function validateTexasResident(value: unknown): { value: boolean } | { error: FieldIssue } {
   if (typeof value !== "boolean") {
     return { error: issue("invalid", "Say whether you live in Texas.") };
@@ -347,6 +490,31 @@ export function validateSignup(input: unknown): SignupResult {
   if ("error" in phone) errors.phone = phone.error;
   if ("error" in texasResident) errors.texasResident = texasResident.error;
 
+  const submitter =
+    input.submitter === undefined ? "self" : input.submitter === "self" || input.submitter === "child" ? input.submitter : null;
+  if (!submitter) {
+    errors.submitter = issue("invalid", "Choose whether you are submitting for yourself or your child.");
+  }
+  const childSent = input.child !== undefined && input.child !== null;
+  const attested = input.guardianAttestation === true;
+  if (submitter === "self" && (childSent || attested)) {
+    errors.submitter = issue("unexpected", "Remove the child details when submitting for yourself.");
+  }
+
+  let child: ChildSignup | null = null;
+  if (submitter === "child") {
+    if (!attested) {
+      errors.guardianAttestation = issue(
+        "required",
+        "Confirm you are this child's parent or legal guardian.",
+      );
+    }
+    child = validateChild(input.child, new Date(), errors);
+    if (!("error" in dob) && !ageReached(dob.value as string, 18)) {
+      errors.dob = issue("underage", "You must be 18 or older to submit for a child.");
+    }
+  }
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 
   if (
@@ -384,6 +552,9 @@ export function validateSignup(input: unknown): SignupResult {
       // Derived here so a client cannot swap in another law label.
       jurisdiction: JURISDICTION_TDPSA,
       nonTexasFlag: !texasResident.value,
+      submitter: submitter === "child" ? "child" : "self",
+      child: submitter === "child" ? child : null,
+      guardianAttestation: submitter === "child",
     },
   };
 }
