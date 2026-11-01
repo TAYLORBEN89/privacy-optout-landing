@@ -6,6 +6,8 @@ export default defineWorkersConfig(async () => {
   return {
     test: {
       setupFiles: ['./test/apply-migrations.js'],
+      // Rate-limit tests make 30+ requests with password hashing; 5s default flakes on a loaded box.
+      testTimeout: 30_000,
       poolOptions: {
         workers: {
           singleWorker: true,

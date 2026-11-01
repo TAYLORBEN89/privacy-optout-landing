@@ -4,7 +4,7 @@ import {
   randomToken, sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptStr, decryptStr,
   encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
-import { isLimited, hit, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
+import { reserve, refund, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
 
 const COOKIE = '__Host-sid';
 const STEP = 30;
@@ -144,14 +144,16 @@ async function login(ctx) {
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase().slice(0, 254) : '';
   const password = typeof body?.password === 'string' ? body.password.slice(0, 1024) : '';
   const rlId = `${clientIp(ctx.req)}|${email}`;
-  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
+  const rlRes = await reserve(ctx.env, 'login', rlId);
+  if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
 
   const user = email
     ? await ctx.env.DB.prepare('SELECT id, pw_hash, totp_enabled FROM users WHERE email = ?1').bind(email).first()
     : null;
   // Social-only users have the sentinel pw_hash '!' and can never pass password login.
   const ok = user && user.pw_hash !== '!' ? await verifyPassword(password, user.pw_hash) : await dummyVerify(password);
-  if (!ok || !password) { await hit(ctx.env, 'login', rlId); return INVALID(ctx); }
+  if (!ok || !password) return INVALID(ctx);
+  await refund(ctx.env, rlRes); // success: only failures stay counted
 
   if (!user.totp_enabled) {
     // No MFA yet: limited session that may only enroll TOTP / logout / read /me.
@@ -219,8 +221,8 @@ export async function useBackupCode(env, userId, code) {
 async function regenerateBackupCodes(ctx, cur) {
   if (!cur.session.mfa) return json(ctx, { error: 'mfa required' }, 403);
   const rlId = `${clientIp(ctx.req)}|backup-regen|${cur.session.user_id}`;
-  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
-  await hit(ctx.env, 'login', rlId);
+  const rlRes = await reserve(ctx.env, 'login', rlId);
+  if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
   const codes = await issueBackupCodes(ctx.env, cur.session.user_id);
   await audit(ctx, cur.session.user_id, 'backup_codes.regenerated');
   return json(ctx, { backup_codes: codes });
@@ -236,7 +238,8 @@ async function totpVerify(ctx) {
   ).bind(preHash).first();
   if (!p || p.revoked || now() >= p.expires_at || !p.totp_secret_enc) return INVALID(ctx);
   const rlId = `${clientIp(ctx.req)}|${p.email}`;
-  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
+  const rlRes = await reserve(ctx.env, 'login', rlId);
+  if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
 
   let ok;
   let method = 'totp';
@@ -249,10 +252,10 @@ async function totpVerify(ctx) {
     ok = step !== null && (await claimStep(ctx.env, p.user_id, step));
   }
   if (!ok) {
-    await hit(ctx.env, 'login', rlId);
     await audit(ctx, p.user_id, 'totp.fail');
     return INVALID(ctx);
   }
+  await refund(ctx.env, rlRes);
   await revoke(ctx.env, preHash); // pre-auth token is single-use
   const s = await createSession(ctx.env, p.user_id, true, { steppedUpAt: now() }); // fresh password+2FA = step-up
   await audit(ctx, p.user_id, method === 'backup_code' ? 'login.backup_code' : 'login.mfa');
@@ -312,7 +315,8 @@ async function listOptouts(ctx, cur) {
 
 async function createOptout(ctx, cur) {
   const uid = cur.session.user_id;
-  { const ra = await isLimited(ctx.env, 'optout', uid); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra)); }
+  const rlRes = await reserve(ctx.env, 'optout', uid);
+  if (rlRes.limited) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(rlRes.limited));
   const b = await readJson(ctx.req);
   if (!b) return json(ctx, { error: 'bad request' }, 400);
   const status = b.status ?? 'queued';
@@ -329,7 +333,6 @@ async function createOptout(ctx, cur) {
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7, ?8)`,
   ).bind(id, uid, brokerId, status,
     typeof b.notes === 'string' ? b.notes.slice(0, 2000) : null, t, kind, FINISHED.has(status) ? t : null).run();
-  await hit(ctx.env, 'optout', uid);
   await audit(ctx, uid, 'optout.create', id);
   return json(ctx, { id, status }, 201);
 }
@@ -368,7 +371,8 @@ const optNum = (v) => (v === null ? null : Number.isInteger(v) && v >= 0 ? v : u
 
 async function patchOptout(ctx, cur, id) {
   const uid = cur.session.user_id;
-  { const ra = await isLimited(ctx.env, 'optout', uid); if (ra) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(ra)); }
+  const rlRes = await reserve(ctx.env, 'optout', uid);
+  if (rlRes.limited) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(rlRes.limited));
   const b = await readJson(ctx.req);
   if (!b) return json(ctx, { error: 'bad request' }, 400);
   const row = await ctx.env.DB.prepare('SELECT * FROM optout_requests WHERE id = ?1 AND user_id = ?2').bind(id, uid).first();
@@ -413,7 +417,6 @@ async function patchOptout(ctx, cur, id) {
     }
   }
   await ctx.env.DB.batch(stmts);
-  await hit(ctx.env, 'optout', uid);
   const out = await ctx.env.DB.prepare('SELECT * FROM optout_requests WHERE id = ?1').bind(id).first();
   return json(ctx, out);
 }
@@ -463,11 +466,13 @@ async function putProfile(ctx, cur) {
 // Only succeeds while the users table is empty (atomic INSERT ... WHERE NOT EXISTS), so it self-disables.
 async function bootstrap(ctx) {
   const rlId = `${clientIp(ctx.req)}|bootstrap`;
-  { const ra = await isLimited(ctx.env, 'login', rlId); if (ra) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(ra)); }
+  const rlRes = await reserve(ctx.env, 'login', rlId);
+  if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
   const h = ctx.req.headers.get('Authorization') || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : '';
   const expected = ctx.env.ADMIN_BOOTSTRAP_TOKEN || '';
-  if (expected.length < 32 || !timingSafeEqual(token, expected)) { await hit(ctx.env, 'login', rlId); return json(ctx, { error: 'not found' }, 404); }
+  if (expected.length < 32 || !timingSafeEqual(token, expected)) return json(ctx, { error: 'not found' }, 404);
+  await refund(ctx.env, rlRes);
   if (await ctx.env.DB.prepare('SELECT 1 FROM users LIMIT 1').first()) return json(ctx, { error: 'not found' }, 404);
   const b = await readJson(ctx.req);
   const email = typeof b?.email === 'string' ? b.email.trim().toLowerCase() : '';

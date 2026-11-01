@@ -85,4 +85,22 @@ describe('D1-backed rate limiting (pen test 2026-11-01 #1)', () => {
     const counts = await Promise.all(Array.from({ length: 8 }, () => hit(env, 'login', id)));
     expect(counts.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
+
+  it('reserve-then-verify: 12 parallel wrong-password logins let at most 5 reach the verifier', async () => {
+    const u = await makeUser(); const IP = ip();
+    const statuses = await Promise.all(Array.from({ length: 12 }, () => login(u, IP).then((r) => r.status)));
+    // 401 = the request was verified (and failed); 429 = rejected before verification.
+    expect(statuses.filter((s) => s === 401).length).toBeLessThanOrEqual(LIMITS.login.max);
+    expect(statuses.filter((s) => s === 401).length).toBeGreaterThan(0);
+    expect(statuses.filter((s) => s === 429).length).toBeGreaterThanOrEqual(12 - LIMITS.login.max);
+    expect(statuses.every((s) => s === 401 || s === 429)).toBe(true);
+    expect((await login(u, IP, u.password)).status).toBe(429);
+  });
+
+  it('successful logins are refunded, so only failures count', async () => {
+    const u = await makeUser(); const IP = ip();
+    for (let i = 0; i < 8; i++) expect((await login(u, IP, u.password)).status).toBe(200);
+    for (let i = 0; i < 5; i++) expect((await login(u, IP)).status).toBe(401);
+    expect((await login(u, IP)).status).toBe(429);
+  });
 });

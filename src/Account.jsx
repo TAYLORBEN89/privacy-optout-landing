@@ -1,6 +1,6 @@
 // Account sign-in (D1 auth): Continue with Google/Microsoft, or email + password -> TOTP or backup code
 // (fallback); TOTP enrollment with QR; backup codes. Signed-in users get the account area (AccountArea.jsx).
-// The legacy shared-key dashboard is still available at "#/" until the KV -> D1 migration is finished.
+// The legacy shared-key dashboard is available at "#/" only in builds with VITE_API_URL set (dev); production omits it.
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import * as api from './authApi.js';
@@ -92,7 +92,7 @@ export default function Account() {
     <div className="app">
       <header>
         <div><h1>DROP Texas</h1><p className="sub">DROP Texas · Free privacy opt-out for Texans</p></div>
-        <div className="header-actions"><a className="link-btn" href="#/">Legacy dashboard (access key)</a></div>
+        {import.meta.env.VITE_API_URL && <div className="header-actions"><a className="link-btn" href="#/">Legacy dashboard (access key)</a></div>}
       </header>
       {stage === 'loading' && <p>Loading…</p>}
       {stage === 'password' && (
