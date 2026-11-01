@@ -8,7 +8,8 @@ import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, de
 import { isLimited, hit, clientIp } from './ratelimit.js';
 import {
   PROVIDERS, redirectUriFor, client, authorizationUrl, newFlowSecrets, exchange, verifyIdToken, IdTokenError,
-  sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo, sealIntent, openIntent,
+  sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo, sealStart, openStart,
+  loginCookie, clearLoginCookie, readLoginCookie,
 } from './oauth.js';
 import { validateSignup } from './shared/signup.ts';
 
@@ -48,55 +49,73 @@ export const appOrigin = (env) => String(env.APP_ORIGIN || '');
 const HANDOFF_TTL = 60;
 
 // ---------- OAuth start (accounts host) ----------
-async function oauthStart(ctx, provider, { intent = 'login', u = null, sh = null, returnTo }) {
+async function oauthStart(ctx, provider, { intent = 'login', u = null, sh = null, bh, returnTo }) {
   const redirectUri = redirectUriFor(ctx.env, provider, ctx.req.url);
   const c = redirectUri && client(ctx.env, provider, redirectUri);
   if (!c) return json(ctx, { error: 'provider not configured' }, 503);
   const f = newFlowSecrets();
-  const sealed = await sealState(ctx.env, { p: provider, s: f.state, v: f.verifier, n: f.nonce, r: safeReturnTo(returnTo), i: intent, u, sh });
+  const sealed = await sealState(ctx.env, { p: provider, s: f.state, v: f.verifier, n: f.nonce, r: safeReturnTo(returnTo), i: intent, u, sh, b: bh });
   const url = authorizationUrl(c, provider, { ...f, reauth: intent !== 'login' });
   const h = new Headers({ Location: url.toString(), 'Cache-Control': 'no-store' });
   h.append('Set-Cookie', oauthCookie(sealed)); // __Host- cookie on the accounts host only
   return new Response(null, { status: 302, headers: h });
 }
 
-// GET accounts:/oauth/{provider}/start?return_to=..[&intent=<sealed intent token>]
-export async function accountsStart(ctx, provider) {
+// Accounts host start. Requires a sealed, single-use start token minted on the apex:
+//   GET  /oauth/{p}/start?st=..  (login; the token holds only a browser-cookie hash, useless without that cookie)
+//   POST /oauth/{p}/bound  st=.. (step-up/link; form body so the session-bound token never sits in a URL)
+// Callers must reject HEAD before calling this (no token or rate-limit consumption).
+export async function accountsStart(ctx, provider, mode) {
   const ip = clientIp(ctx.req);
   if (await isLimited(ctx.env, 'oauth_start', ip)) return json(ctx, { error: 'too many requests' }, 429);
   await hit(ctx.env, 'oauth_start', ip);
-  const q = new URL(ctx.req.url).searchParams;
-  const token = q.get('intent');
-  if (!token) return oauthStart(ctx, provider, { returnTo: q.get('return_to') });
-  // Step-up / link: bound to the apex session by the sealed, single-use, 120 s intent token (never by __Host-sid).
-  const it = await openIntent(ctx.env, token);
-  if (!it || it.p !== provider || (it.i !== 'stepup' && it.i !== 'link')) {
-    await audit(ctx, null, 'auth.fail', `${provider}:bad_intent`, { ua: false });
-    return redirect(`${appOrigin(ctx.env)}/start?auth_error=bad_intent`);
+  let token = null;
+  if (mode === 'get') token = new URL(ctx.req.url).searchParams.get('st');
+  else {
+    const body = await ctx.req.text();
+    if (body.length <= 4096) token = new URLSearchParams(body).get('st');
   }
+  const bad = async (reason, userId = null) => {
+    await audit(ctx, userId, 'auth.fail', `${provider}:${reason}`, { ua: userId !== null });
+    return redirect(`${appOrigin(ctx.env)}/start?auth_error=${reason}`);
+  };
+  const it = token && await openStart(ctx.env, token);
+  const okIntent = mode === 'get' ? it?.i === 'login' : it?.i === 'stepup' || it?.i === 'link';
+  if (!it || it.p !== provider || !okIntent || typeof it.bh !== 'string') return bad('bad_start');
   const used = await ctx.env.DB.prepare('INSERT INTO oauth_states_used (state_hash, used_at) VALUES (?1, ?2) ON CONFLICT(state_hash) DO NOTHING')
-    .bind(await sha256Hex(`intent:${it.j}`), now()).run();
-  if (used.meta.changes !== 1) {
-    await audit(ctx, it.u, 'auth.fail', `${provider}:intent_reused`);
-    return redirect(`${appOrigin(ctx.env)}/start?auth_error=intent_reused`);
-  }
-  return oauthStart(ctx, provider, { intent: it.i, u: it.u, sh: it.sh, returnTo: it.r });
+    .bind(await sha256Hex(`start:${it.j}`), now()).run();
+  if (used.meta.changes !== 1) return bad('start_reused', it.u ?? null);
+  return oauthStart(ctx, provider, { intent: it.i, u: it.u ?? null, sh: it.sh ?? null, bh: it.bh, returnTo: it.r });
 }
 
-// GET apex:/api/auth/{provider}/start -> the accounts host.
-function startLogin(ctx, provider) {
+// Browser binding: random __Host-login cookie on the app origin; only its SHA-256 leaves the browser.
+async function newBrowserBinding() {
+  const v = b64urlRandom(32);
+  return { cookie: loginCookie(v), bh: await sha256Hex(v) };
+}
+
+// GET apex:/api/auth/{provider}/start -> accounts host, with __Host-login set on the apex (login-CSRF defence).
+async function startLogin(ctx, provider) {
   const rt = safeReturnTo(new URL(ctx.req.url).searchParams.get('return_to'));
-  return new Response(null, { status: 302, headers: {
-    Location: `${accountsOrigin(ctx.env)}/oauth/${provider}/start?return_to=${encodeURIComponent(rt)}`, 'Cache-Control': 'no-store' } });
+  const { cookie, bh } = await newBrowserBinding();
+  const st = await sealStart(ctx.env, { p: provider, i: 'login', r: rt, bh });
+  const h = new Headers({ Location: `${accountsOrigin(ctx.env)}/oauth/${provider}/start?st=${encodeURIComponent(st)}`,
+    'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+  h.append('Set-Cookie', cookie);
+  return new Response(null, { status: 302, headers: h });
 }
 
 // ---------- OAuth callback (accounts host) ----------
-async function newHandoff(ctx, { userId, intent, authMethod, sh = null, returnTo, at }) {
+async function newHandoff(ctx, { userId, intent, authMethod, sh = null, bh, returnTo, at, link = null }) {
   const code = b64urlRandom(32);
+  // link: the identity is only staged here (sub, encrypted email, verified flag); complete() inserts it after the
+  // apex session and browser binding both match.
   await ctx.env.DB.prepare(
-    `INSERT INTO auth_handoffs (code_hash, user_id, intent, auth_method, session_hash, return_to, auth_at, expires_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
-  ).bind(await sha256Hex(code), userId, intent, authMethod, sh, returnTo, at, at + HANDOFF_TTL).run();
+    `INSERT INTO auth_handoffs (code_hash, user_id, intent, auth_method, session_hash, browser_hash, return_to, auth_at, expires_at,
+       link_sub, link_email, link_email_key_version, link_email_verified)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`,
+  ).bind(await sha256Hex(code), userId, intent, authMethod, sh, bh, returnTo, at, at + HANDOFF_TTL,
+    link?.sub ?? null, link?.email ?? null, link?.version ?? null, link ? (link.verified ? 1 : 0) : null).run();
   const h = new Headers({ Location: `${appOrigin(ctx.env)}/api/auth/complete?code=${code}`, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
   h.append('Set-Cookie', clearOauthCookie());
   return new Response(null, { status: 302, headers: h });
@@ -116,7 +135,7 @@ export async function callback(ctx, provider) {
 
   const params = new URL(ctx.req.url).searchParams;
   const st = await openState(ctx.env, readOauthCookie(ctx.req));
-  if (!st || st.p !== provider || !timingSafeEqual(params.get('state') || '', st.s)) return fail('bad_state');
+  if (!st || st.p !== provider || typeof st.b !== 'string' || !timingSafeEqual(params.get('state') || '', st.s)) return fail('bad_state');
   const used = await ctx.env.DB.prepare('INSERT INTO oauth_states_used (state_hash, used_at) VALUES (?1, ?2) ON CONFLICT(state_hash) DO NOTHING')
     .bind(await sha256Hex(st.s), now()).run();
   if (used.meta.changes !== 1) return fail('state_reused');
@@ -147,13 +166,14 @@ export async function callback(ctx, provider) {
     if (st.i === 'stepup') {
       if (!existing || existing.user_id !== s.user_id) return fail('identity_mismatch', s.user_id);
       // Applied on the apex at redemption, only if the browser presents the same session.
-      return newHandoff(ctx, { userId: s.user_id, intent: 'stepup', authMethod: provider, sh: st.sh, returnTo: st.r, at: t });
+      return newHandoff(ctx, { userId: s.user_id, intent: 'stepup', authMethod: provider, sh: st.sh, bh: st.b, returnTo: st.r, at: t });
     }
     if (!isSteppedUp(s)) return fail('step_up_required', s.user_id);
     if (existing) return fail(existing.user_id === s.user_id ? 'already_linked' : 'identity_in_use', s.user_id);
-    await insertIdentity(ctx.env, s.user_id, provider, ident, t);
-    await audit(ctx, s.user_id, 'identity.link', provider);
-    return newHandoff(ctx, { userId: s.user_id, intent: 'link', authMethod: provider, sh: st.sh, returnTo: st.r, at: t });
+    let blob = null; let version = null;
+    if (ident.email) ({ blob, version } = await encryptPii(ctx.env, ident.email, `identity:${provider}:${ident.sub}`));
+    return newHandoff(ctx, { userId: s.user_id, intent: 'link', authMethod: provider, sh: st.sh, bh: st.b, returnTo: st.r, at: t,
+      link: { sub: ident.sub, email: blob, version, verified: ident.emailVerified } });
   }
 
   // intent=login. Identities are keyed ONLY on (provider, sub); a matching email never links accounts.
@@ -177,16 +197,17 @@ export async function callback(ctx, provider) {
     await audit(ctx, userId, 'user.create_social', provider);
     await audit(ctx, userId, 'login.social', provider);
   }
-  return newHandoff(ctx, { userId, intent: 'login', authMethod: provider, returnTo: st.r, at: t });
+  return newHandoff(ctx, { userId, intent: 'login', authMethod: provider, bh: st.b, returnTo: st.r, at: t });
 }
 
 // ---------- handoff redemption (apex) ----------
-// GET apex:/api/auth/complete?code=..  Single use, 60 s, rate-limited and audited. Sets the host-only __Host-sid.
+// GET apex:/api/auth/complete?code=..  Single use, 60 s, rate-limited and audited. Requires the same browser
+// (__Host-login, constant-time hash match); __Host-login is cleared on every outcome. Sets the host-only __Host-sid.
 async function complete(ctx) {
   const ip = clientIp(ctx.req);
   const fail = async (reason, userId = null) => {
     await audit(ctx, userId, 'auth.fail', `handoff:${reason}`, { ua: userId !== null });
-    return redirect(`/start?auth_error=${reason}`);
+    return withHeaders(redirect(`/start?auth_error=${reason}`, [clearLoginCookie()]), { 'Referrer-Policy': 'no-referrer' });
   };
   if (await isLimited(ctx.env, 'handoff', ip)) return json(ctx, { error: 'too many requests' }, 429);
   await hit(ctx.env, 'handoff', ip);
@@ -198,6 +219,8 @@ async function complete(ctx) {
   if (!row) return fail('handoff_invalid');
   if (row.used_at !== null) return fail('handoff_reused', row.user_id);
   if (t >= row.expires_at) return fail('handoff_expired', row.user_id);
+  const browser = readLoginCookie(ctx.req);
+  if (!browser || !timingSafeEqual(await sha256Hex(browser), row.browser_hash || '')) return fail('browser_mismatch', row.user_id);
   const claim = await ctx.env.DB.prepare('UPDATE auth_handoffs SET used_at = ?1 WHERE code_hash = ?2 AND used_at IS NULL AND expires_at > ?1')
     .bind(t, ch).run();
   if (claim.meta.changes !== 1) return fail('handoff_reused', row.user_id);
@@ -211,16 +234,24 @@ async function complete(ctx) {
     if (row.intent === 'stepup') {
       await ctx.env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1 WHERE id_hash = ?2').bind(row.auth_at, cur.idHash).run();
       await audit(ctx, row.user_id, 'auth.step_up', row.auth_method);
+    } else {
+      if (!isSteppedUp(cur.session)) return fail('step_up_required', row.user_id);
+      const ins = await ctx.env.DB.prepare(
+        `INSERT INTO user_identities (user_id, provider, sub, email, email_key_version, email_verified, created_at, last_login_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(provider, sub) DO NOTHING`,
+      ).bind(row.user_id, row.auth_method, row.link_sub, row.link_email, row.link_email_key_version, row.link_email_verified ? 1 : 0, t).run();
+      if (ins.meta.changes !== 1) return fail('identity_in_use', row.user_id);
+      await audit(ctx, row.user_id, 'identity.link', row.auth_method);
     }
     await audit(ctx, row.user_id, 'auth.handoff', row.intent);
-    return withHeaders(redirect(rt), noRef);
+    return withHeaders(redirect(rt, [clearLoginCookie()]), noRef);
   }
   // login. Session fixation: drop any session this browser already had.
   const prior = await loadSession(ctx);
   if (prior) await revoke(ctx.env, prior.idHash);
   const s = await createSession(ctx.env, row.user_id, false, { authMethod: row.auth_method, steppedUpAt: row.auth_at }); // fresh auth counts as step-up
   await audit(ctx, row.user_id, 'auth.handoff', 'login');
-  return withHeaders(redirect(rt, [setCookie(ctx.env, s.token, s.maxAge)]), noRef);
+  return withHeaders(redirect(rt, [setCookie(ctx.env, s.token, s.maxAge), clearLoginCookie()]), noRef);
 }
 const withHeaders = (res, extra) => { for (const [k, v] of Object.entries(extra)) res.headers.set(k, v); return res; };
 
@@ -289,7 +320,9 @@ async function stepUpPassword(ctx, cur) {
   return json(ctx, { ok: true, stepped_up_until: t + STEP_UP_SECONDS });
 }
 
-// POST /api/auth/{provider}/stepup and /api/account/identities/{provider}/link -> {url}; the browser navigates there.
+// POST /api/auth/{provider}/stepup and /api/account/identities/{provider}/link -> {action, method:'POST', fields:{st}}.
+// The browser submits a form POST to the accounts host, so the session-bound start token never appears in a URL,
+// history or Referer. Sets the same __Host-login browser binding as login.
 async function startBound(ctx, cur, provider, intent) {
   if (intent === 'stepup') {
     const has = await ctx.env.DB.prepare('SELECT 1 FROM user_identities WHERE user_id = ?1 AND provider = ?2').bind(cur.session.user_id, provider).first();
@@ -297,8 +330,10 @@ async function startBound(ctx, cur, provider, intent) {
   }
   if (intent === 'link' && !isSteppedUp(cur.session)) return STEP_UP_REQUIRED(ctx);
   const b = await readJson(ctx.req);
-  const token = await sealIntent(ctx.env, { p: provider, i: intent, u: cur.session.user_id, sh: cur.idHash, r: safeReturnTo(b?.return_to ?? '/account') });
-  return json(ctx, { url: `${accountsOrigin(ctx.env)}/oauth/${provider}/start?intent=${encodeURIComponent(token)}` });
+  const { cookie, bh } = await newBrowserBinding();
+  const st = await sealStart(ctx.env, { p: provider, i: intent, u: cur.session.user_id, sh: cur.idHash, bh, r: safeReturnTo(b?.return_to ?? '/account') });
+  return json(ctx, { action: `${accountsOrigin(ctx.env)}/oauth/${provider}/bound`, method: 'POST', fields: { st } }, 200,
+    { 'Set-Cookie': cookie, 'Referrer-Policy': 'no-referrer' });
 }
 
 async function unlink(ctx, cur, provider) {

@@ -1,5 +1,6 @@
 // accounts.droptexas.com (ACCOUNTS_HOST): the sign-in host. Same Worker, selected by the request Host.
-// Routes (GET only): /signin, /oauth/{google,microsoft}/start, /oauth/{google,microsoft}/callback. Everything else 404.
+// Routes: GET /signin, GET /oauth/{google,microsoft}/start?st=, GET /oauth/{google,microsoft}/callback,
+// POST /oauth/{google,microsoft}/bound (form st=, from the app origin). HEAD and everything else: 405/404.
 // This host never reads or sets __Host-sid; it only holds the __Host-oauth state cookie and hands the result to the
 // app origin with a single-use 60 s code (see api.js complete()).
 import { accountsStart, callback, appOrigin, accountsOrigin } from './api.js';
@@ -41,8 +42,8 @@ a.btn:hover{background:#f2f3f5}.alt{font-size:13px;text-align:center;margin-top:
 </style></head>
 <body><main>
 <h1>DROP Texas</h1><p>Sign in to your account</p>
-<a class="btn" href="/oauth/google/start?return_to=${rt}">Continue with Google</a>
-<a class="btn" href="/oauth/microsoft/start?return_to=${rt}">Continue with Microsoft</a>
+<a class="btn" href="${app}/api/auth/google/start?return_to=${rt}">Continue with Google</a>
+<a class="btn" href="${app}/api/auth/microsoft/start?return_to=${rt}">Continue with Microsoft</a>
 <div class="alt"><a href="${app}/account">Use email, password and authenticator code instead</a></div>
 </main></body></html>`;
 }
@@ -50,11 +51,18 @@ a.btn:hover{background:#f2f3f5}.alt{font-size:13px;text-align:center;margin-top:
 export async function handleAccounts(req, env) {
   const url = new URL(req.url);
   const path = url.pathname.replace(/\/+$/, '') || '/';
-  // Only same-site (accounts) or no Origin; the app/API origins are not allowed to drive this host.
   const origin = req.headers.get('Origin');
-  if (origin && origin !== accountsOrigin(env)) return secure(new Response('Forbidden origin', { status: 403 }));
-  if (req.method !== 'GET' && req.method !== 'HEAD') return secure(new Response('Method not allowed', { status: 405, headers: { Allow: 'GET' } }));
   const ctx = { req, env, origin: null };
+  // POST /oauth/{p}/bound: the step-up/link form, submitted top-level from the app origin only.
+  const b = path.match(/^\/oauth\/(google|microsoft)\/bound$/);
+  if (b) {
+    if (req.method !== 'POST') return secure(new Response('Method not allowed', { status: 405, headers: { Allow: 'POST' } }));
+    if (origin !== appOrigin(env)) return secure(new Response('Forbidden origin', { status: 403 }));
+    return secure(await accountsStart(ctx, b[1], 'post'));
+  }
+  // Everything else: GET only (HEAD -> 405 without touching tokens or rate limits); same-site or no Origin.
+  if (origin && origin !== accountsOrigin(env)) return secure(new Response('Forbidden origin', { status: 403 }));
+  if (req.method !== 'GET') return secure(new Response('Method not allowed', { status: 405, headers: { Allow: 'GET' } }));
 
   if (path === '/' ) return secure(new Response(null, { status: 302, headers: { Location: '/signin' } }));
   if (path === '/signin') {
@@ -64,5 +72,5 @@ export async function handleAccounts(req, env) {
   }
   const m = path.match(/^\/oauth\/(google|microsoft)\/(start|callback)$/);
   if (!m) return notFound();
-  return secure(m[2] === 'start' ? await accountsStart(ctx, m[1]) : await callback(ctx, m[1]));
+  return secure(m[2] === 'start' ? await accountsStart(ctx, m[1], 'get') : await callback(ctx, m[1]));
 }

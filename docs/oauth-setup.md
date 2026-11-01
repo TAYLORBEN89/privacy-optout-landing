@@ -13,26 +13,41 @@ Sign-in runs on **`accounts.droptexas.com`** (like accounts.google.com), served 
 The same two URIs are `OAUTH_REDIRECT_URIS` in `worker/wrangler.toml` (`npm run check:origins` enforces them).
 
 ### Flow
-1. `droptexas.com/api/auth/{google,microsoft}/start?return_to=/account` → 302 to
-   `accounts.droptexas.com/oauth/{provider}/start` (or the user opens `accounts.droptexas.com/signin`).
-2. The accounts host sets the sealed `__Host-oauth` state cookie (host-only, accounts host only) and redirects to the provider.
+1. Every flow starts on the apex. `droptexas.com/api/auth/{google,microsoft}/start?return_to=/account` sets a random,
+   host-only `__Host-login` cookie (HttpOnly, Secure, SameSite=Lax, Path=/, 10 min) and 302s to
+   `accounts.droptexas.com/oauth/{provider}/start?st=…`. `st` is a sealed (AES-GCM), single-use, 120-second **start
+   token** carrying the provider, intent, `return_to` and only the SHA-256 of `__Host-login`. The `/signin` page buttons
+   link to the apex start, never straight to `/oauth/*`. The accounts host refuses `/oauth/{provider}/start` without a
+   valid, unused login start token.
+2. The accounts host sets the sealed `__Host-oauth` state cookie (host-only, accounts host only; it carries the browser
+   hash) and redirects to the provider. Re-auth (step-up/link): Google `prompt=select_account&max_age=0`, Microsoft
+   `prompt=login&max_age=0`; both then require a numeric `auth_time` no older than 600 s.
 3. `accounts.droptexas.com/oauth/{provider}/callback` verifies state/PKCE/nonce/ID token, then creates a random
-   **handoff code** (single use, 60 s; only its SHA-256 is stored in D1 `auth_handoffs`, bound to user, intent and
-   return_to) and 302s to `https://droptexas.com/api/auth/complete?code=…`.
-4. `droptexas.com/api/auth/complete` redeems the code once, sets the host-only `__Host-sid` on `droptexas.com`
-   (no `Domain=` cookie anywhere) and redirects to the allowlisted `return_to` (`/start`, `/start#step-N`, `/account`).
-   Reuse, expiry, tampering and wrong-host requests are refused; redemptions are rate-limited (30/10 min/IP) and audited.
-5. Step-up and link: the apex (authenticated) returns `{url}` pointing at the accounts host with a sealed, single-use,
-   120-second **intent token** bound to the user and session. The accounts host never reads `__Host-sid`. Step-up is
-   applied at redemption only if the browser presents that same apex session.
+   **handoff code** (single use, 60 s; only its SHA-256 is stored in D1 `auth_handoffs`, bound to user, intent,
+   return_to, browser hash and, for step-up/link, the apex session hash) and 302s to
+   `https://droptexas.com/api/auth/complete?code=…`. For link, the callback only *stages* the identity (sub, encrypted
+   email, verified flag) on the handoff row; nothing is inserted or audited yet.
+4. `droptexas.com/api/auth/complete` requires `__Host-login` whose SHA-256 matches the row (constant time; login-CSRF
+   defence), clears `__Host-login` on every outcome, redeems the code once, and then: login sets the host-only
+   `__Host-sid`; step-up/link additionally require the same apex session (and, for link, a current step-up) before
+   applying step-up or inserting + auditing the identity (`identity.link`). Redirects only to the allowlisted
+   `return_to` (`/start`, `/start#step-N`, `/account`). Reuse, expiry, tampering, wrong browser and wrong-host requests
+   are refused; redemptions are rate-limited (30/10 min/IP) and audited.
+5. Step-up and link: `POST /api/auth/{provider}/stepup` / `POST /api/account/identities/{provider}/link` set
+   `__Host-login` and return `{action, method: 'POST', fields: {st}}`. The dashboard submits a top-level form POST to
+   `accounts.droptexas.com/oauth/{provider}/bound`, so the session-bound token never appears in a URL, history or
+   Referer. The accounts host never reads `__Host-sid`.
 
 ### Routes
-- accounts.droptexas.com (GET only; `Origin`, if present, must be `https://accounts.droptexas.com`):
-  `/signin`, `/oauth/{google,microsoft}/start`, `/oauth/{google,microsoft}/callback`. Everything else 404.
+- accounts.droptexas.com: `GET /signin`, `GET /oauth/{google,microsoft}/start?st=` (login token only),
+  `GET /oauth/{google,microsoft}/callback`, `POST /oauth/{google,microsoft}/bound` (form `st=`, step-up/link token
+  only, `Origin` must be the app origin). Other GET routes require `Origin` absent or the accounts origin. `HEAD` and
+  other methods → 405 before any token or rate-limit use. Everything else 404.
   Headers: CSP `default-src 'none'; style-src 'nonce-…'; script-src 'none'; form-action 'none'; base-uri 'none';
   frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, HSTS.
-- droptexas.com: `GET /api/auth/{provider}/start` (302 to accounts), `GET /api/auth/complete`,
-  `POST /api/auth/{provider}/stepup` and `POST /api/account/identities/{provider}/link` (return `{url}` on the accounts host).
+- droptexas.com: `GET /api/auth/{provider}/start` (sets `__Host-login`, 302 to accounts), `GET /api/auth/complete`,
+  `POST /api/auth/{provider}/stepup` and `POST /api/account/identities/{provider}/link` (set `__Host-login`, return
+  `{action, method, fields}` for a form POST to the accounts host).
   The old `/api/auth/{provider}/callback` paths return 404. API origins stay `droptexas.com` and `www.droptexas.com`.
 
 ### Custom domain (not attached)
