@@ -1020,15 +1020,6 @@ textarea {
     padding-inline: 12px;
   }
 
-  .stat-value {
-    font-size: 26px;
-  }
-
-  .stat-label {
-    max-width: none;
-    font-size: 13px;
-  }
-
   h1 {
     font-size: 32px;
     letter-spacing: -1px;
@@ -1872,21 +1863,21 @@ textarea {
 }
 
 .stat-grid li:nth-child(2) {
-  margin-top: 40px;
+  padding-top: 40px;
 }
 
 .stat-grid li:nth-child(3) {
-  margin-top: 14px;
+  padding-top: 14px;
 }
 
 .stat-grid li:nth-child(4) {
   grid-column: 2 / span 2;
-  margin-top: 10px;
+  padding-top: 10px;
 }
 
 .stat-grid li:nth-child(5) {
   grid-column: 4 / span 2;
-  margin-top: 36px;
+  padding-top: 36px;
 }
 
 .stat-value {
@@ -1905,6 +1896,18 @@ textarea {
   font-size: 18px;
   font-weight: 300;
   line-height: 1.35;
+}
+
+@media (max-width: 480px) {
+  .stat-value {
+    font-size: 28px;
+    letter-spacing: -0.04em;
+  }
+
+  .stat-label {
+    max-width: none;
+    font-size: 13px;
+  }
 }
 
 .stat-pending {
