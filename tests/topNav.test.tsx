@@ -47,12 +47,13 @@ describe("explore list", () => {
     ]);
   });
 
-  it("uses a labeled panel, tall rows on a phone, and two columns on a wide screen", () => {
+  it("uses a labeled panel, compact rows on a phone, and two columns on a wide screen", () => {
     const page = readFileSync("src/pages/HomePage.tsx", "utf8");
     const css = readFileSync("src/styles.css", "utf8");
     expect(page).toContain("Explore DROP Texas");
     expect(css).toContain("width: 32px");
-    expect(css).toContain("min-height: 110px");
+    expect(css).toContain("min-height: 0");
+    expect(css).toContain("padding: 24px 0");
     const tileLink = css.slice(css.indexOf(".nav-tiles a {"), css.indexOf(".nav-tiles a:hover"));
     expect(tileLink).toContain("align-items: flex-start");
     expect(tileLink).toContain("gap: 12px");
@@ -62,7 +63,7 @@ describe("explore list", () => {
     expect(tileTitle).toContain("line-height: 1.2");
     expect(tileTitle).toContain("text-box-trim: trim-start");
     expect(tileTitle).toContain("text-box-edge: cap alphabetic");
-    expect(css).toContain(".nav-tiles .explore-art");
+    expect(css).toContain(".nav-tiles .explore-art {\n  width: 48px;\n  height: 48px;");
     expect(css).not.toContain(".nav-tiles .icon-overview");
     expect(css).not.toContain(".feature-card .icon-overview");
     expect(css).toContain(".explore {\n  width: 100%;");
@@ -93,7 +94,7 @@ describe("explore list", () => {
     expect(css).not.toContain("max-height: min(68vh, 640px)");
     expect(css).toContain(".nav-panel::before");
     expect(css).toContain("pointer-events: none");
-    expect(css).toContain("padding: 72px 0");
+    expect(css).toContain("padding: 24px 0");
     expect(css).not.toContain("repeat(8, minmax(0, 1fr))");
     expect(css).not.toContain(".sidenav");
   });
