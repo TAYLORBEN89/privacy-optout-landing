@@ -71,10 +71,11 @@ describe("opt-out status labels", () => {
     expect(optOutLabel({ status: "pending", sub_status: "no_record" })).toBe("No record found");
   });
 
-  it("shows Pending for denied until Ben chooses a label", () => {
+  it("shows Not completed for denied, and No record found when sub_status is no_record", () => {
     const source = readFileSync("src/api/account.ts", "utf8");
-    expect(source).toContain("TODO: label for denied needs Ben's decision");
-    expect(optOutLabel({ status: "denied", sub_status: null })).toBe("Pending");
+    expect(source).not.toContain("TODO: label for denied needs Ben's decision");
+    expect(optOutLabel({ status: "denied", sub_status: null })).toBe("Not completed");
+    expect(optOutLabel({ status: "denied" })).toBe("Not completed");
     expect(optOutLabel({ status: "denied", sub_status: "no_record" })).toBe("No record found");
   });
 });
@@ -328,7 +329,9 @@ describe("account dashboard", () => {
     expect(screen.getByText("Display name: Ada Lovelace")).toBeTruthy();
     expect(screen.getByText("Submitted")).toBeTruthy();
     expect(screen.getByText("No record found")).toBeTruthy();
-    expect(screen.getByText("Pending")).toBeTruthy();
+    expect(screen.getByText("Not completed")).toBeTruthy();
+    expect(screen.queryByText("denied")).toBeNull();
+    expect(screen.queryByText("Pending")).toBeNull();
     expect(screen.getByText("This device")).toBeTruthy();
     expect(screen.getByText("No reminders yet")).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: /confirmation/i })).toBeNull();

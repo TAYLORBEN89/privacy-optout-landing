@@ -76,7 +76,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <h2 id="watch-heading">A private request, not a government order</h2>
             <p>
               DROP Texas asks data brokers on your behalf. There is no fee to submit. A later status,
-              if one is shown, is only Submitted, Confirmed, Pending, or No record found. Confirmed
+              if one is shown, is only Submitted, Confirmed, Pending, Not completed, or No record found. Confirmed
               means confirmation received. It does not mean deletion was verified.
             </p>
           </div>
@@ -105,8 +105,8 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
                 does not check that a broker deleted a record.
               </p>
               <p>
-                If a status is shown later, it is one of Submitted, Confirmed, Pending, or No record
-                found.
+                If a status is shown later, it is one of Submitted, Confirmed, Pending, Not completed, or
+                No record found.
               </p>
             </div>
           </div>

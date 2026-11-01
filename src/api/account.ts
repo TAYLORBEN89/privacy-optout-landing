@@ -5,7 +5,7 @@ import type { StepUpStart } from "./stepUp";
 export const PASSWORD_STEPUP_PATH = "/api/auth/stepup/password";
 
 /** Labels the product is allowed to show. Not a claim that deletion was verified. */
-export const REQUEST_LABELS = ["Submitted", "Confirmed", "Pending", "No record found"] as const;
+export const REQUEST_LABELS = ["Submitted", "Confirmed", "Pending", "Not completed", "No record found"] as const;
 
 export type RequestLabel = (typeof REQUEST_LABELS)[number];
 
@@ -43,10 +43,7 @@ export function optOutLabel(record: { status: string; sub_status?: string | null
   if (record.status === "pending") return "Pending";
   if (record.status === "in_progress") return "Submitted";
   if (record.status === "confirmed") return "Confirmed";
-  if (record.status === "denied") {
-    // TODO: label for denied needs Ben's decision
-    return "Pending";
-  }
+  if (record.status === "denied") return "Not completed";
   return "Pending";
 }
 
