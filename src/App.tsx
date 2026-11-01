@@ -4,19 +4,36 @@ import { storageNotice } from "../worker/storage";
 const DISCLAIMER =
   "DROP Texas is a private, free service. It is not affiliated with or endorsed by the State of California, CalPrivacy, or any government agency.";
 
-function Wordmark({ header = false }: { header?: boolean }) {
+function Mark({ size }: { size: number }) {
   return (
-    <div className={header ? "brand-lockup" : undefined}>
-      <p className="brand" aria-label={header ? "DROP Texas" : undefined}>
-        <svg className="mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-          <rect width="32" height="32" rx="8" fill="#ee0014" />
-          <rect x="7" y="8" width="8" height="16" rx="2" fill="#ffffff" />
-          <circle cx="20" cy="16" r="6.5" fill="#ffffff" />
-        </svg>
-        <span>DROP Texas</span>
-      </p>
-      {header ? <p className="tagline">for the people, by the people</p> : null}
-    </div>
+    <svg className="mark" viewBox="0 0 32 32" width={size} height={size} aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="#ee0014" />
+      <rect x="7" y="8" width="8" height="16" rx="2" fill="#ffffff" />
+      <circle cx="20" cy="16" r="6.5" fill="#ffffff" />
+    </svg>
+  );
+}
+
+function Wordmark({ header = false }: { header?: boolean }) {
+  if (header) {
+    return (
+      <div className="brand-lockup">
+        <Mark size={36} />
+        <div className="brand-text">
+          <p className="brand" aria-label="DROP Texas">
+            <span>DROP Texas</span>
+          </p>
+          <p className="tagline">demanding privacy for the people, by the people</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <p className="brand">
+      <Mark size={28} />
+      <span>DROP Texas</span>
+    </p>
   );
 }
 
