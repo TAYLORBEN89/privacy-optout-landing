@@ -16,6 +16,7 @@ const FOCUS_ORDER = [
   "firstName",
   "middleName",
   "lastName",
+  "dob",
   "addressLine1",
   "addressLine2",
   "city",
@@ -30,6 +31,7 @@ export function SignupForm() {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [dob, setDob] = useState("");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
@@ -72,6 +74,7 @@ export function SignupForm() {
       firstName,
       middleName,
       lastName,
+      dob,
       addressLine1,
       addressLine2,
       city,
@@ -159,6 +162,18 @@ export function SignupForm() {
         value={lastName}
         error={errors.lastName}
         onChange={setLastName}
+        onStart={markStarted}
+      />
+      <TextControl
+        id="dob"
+        className="field-dob"
+        label="Date of birth"
+        required
+        type="date"
+        autoComplete="bday"
+        value={dob}
+        error={errors.dob}
+        onChange={setDob}
         onStart={markStarted}
       />
       <TextControl
@@ -314,7 +329,7 @@ function TextControl({
   className?: string;
   required?: boolean;
   optional?: boolean;
-  type?: "text" | "email" | "tel";
+  type?: "text" | "email" | "tel" | "date";
   autoComplete: string;
   inputMode?: "numeric" | "email" | "tel";
   value: string;

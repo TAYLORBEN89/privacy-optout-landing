@@ -80,7 +80,7 @@ export function HowItWorksPage() {
         <li>
           <h2>Enter the details the request uses</h2>
           <p>
-            The form asks for your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to
+            The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
             provide it) your phone number. Most broker opt-out forms require a physical address. The form
             does not ask for a device ID, a password, or a government ID number.
           </p>
@@ -100,10 +100,10 @@ export function PersonalInformationPage() {
       title="Personal information"
       heading="Personal information"
       tone="personal"
-      description="The form asks for your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
+      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
     >
       <p>
-        The form asks for your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to
+        The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
         provide it) your phone number.
       </p>
       <p>DROP Texas does not sell that information.</p>
@@ -154,14 +154,14 @@ export function UniqueIdentifiersPage() {
       title="Unique identifiers"
       heading="Unique identifiers"
       tone="identifiers"
-      description="The form asks for your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
+      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
     >
       <p>
         Some brokers match people with extra identifiers. This form does not ask for device IDs, account
         passwords, or government ID numbers.
       </p>
       <p>
-        The form asks for your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to
+        The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
         provide it) your phone number.
       </p>
       <p>
@@ -257,7 +257,7 @@ export function HelpPage() {
         <details>
           <summary>What do I enter?</summary>
           <p>
-            The form asks for your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to
+            The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
             provide it) your phone number. The page needs JavaScript to show the form.
           </p>
         </details>

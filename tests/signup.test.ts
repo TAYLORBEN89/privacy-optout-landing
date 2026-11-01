@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { PHONE_FIELD_LABEL, US_STATES, validateSignup } from "../shared/signup";
+import { PHONE_FIELD_LABEL, US_STATES, dobRange, validateSignup } from "../shared/signup";
 
 const valid = {
   firstName: "Ada",
   lastName: "Lovelace",
+  dob: "1990-01-15",
   addressLine1: "123 Main St",
   city: "Austin",
   state: "TX",
@@ -28,6 +29,7 @@ describe("validateSignup", () => {
       firstName: "  Ada ",
       middleName: "  Augusta  ",
       lastName: " Lovelace ",
+      dob: "1990-01-15",
       addressLine1: "  123 Main St ",
       addressLine2: "  Apt 4 ",
       city: "  Austin ",
@@ -42,6 +44,7 @@ describe("validateSignup", () => {
         firstName: "Ada",
         middleName: "Augusta",
         lastName: "Lovelace",
+        dob: "1990-01-15",
         addressLine1: "123 Main St",
         addressLine2: "Apt 4",
         city: "Austin",
@@ -147,6 +150,65 @@ describe("validateSignup", () => {
     }
   });
 
+  it("requires a real date of birth that is not in the future or older than 120 years", () => {
+    const { earliest, latest } = dobRange();
+    const dayBefore = (() => {
+      const [year, month, day] = earliest.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      date.setDate(date.getDate() - 1);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    })();
+    const dayAfter = (() => {
+      const [year, month, day] = latest.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      date.setDate(date.getDate() + 1);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    })();
+
+    expect(validateSignup({ ...valid, dob: undefined }).ok).toBe(false);
+    const missing = validateSignup({ ...valid, dob: "  " });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) {
+      expect(missing.errors.dob).toEqual({ code: "required", message: "Enter your date of birth." });
+    }
+
+    for (const dob of ["2024-02-31", "2024-13-01", "1990-1-1", "02/01/1990", "1900-02-29"]) {
+      const result = validateSignup({ ...valid, dob });
+      expect(result.ok, dob).toBe(false);
+      if (!result.ok) expect(result.errors.dob?.code).toBe("invalid");
+    }
+
+    const future = validateSignup({ ...valid, dob: dayAfter });
+    expect(future.ok).toBe(false);
+    if (!future.ok) {
+      expect(future.errors.dob).toEqual({
+        code: "future",
+        message: "Date of birth cannot be in the future.",
+      });
+    }
+
+    const ancient = validateSignup({ ...valid, dob: dayBefore });
+    expect(ancient.ok).toBe(false);
+    if (!ancient.ok) {
+      expect(ancient.errors.dob).toEqual({
+        code: "too_old",
+        message: "Date of birth cannot be more than 120 years ago.",
+      });
+    }
+
+    for (const dob of [earliest, latest, "2000-02-29"]) {
+      const result = validateSignup({ ...valid, dob });
+      expect(result.ok, dob).toBe(true);
+      if (result.ok) expect(result.value.dob).toBe(dob);
+    }
+  });
+
   it("ignores extra keys in the stored value", () => {
     const result = validateSignup({ ...valid, ssn: "123-45-6789" });
     expect(result.ok).toBe(true);
@@ -155,6 +217,7 @@ describe("validateSignup", () => {
         firstName: "Ada",
         middleName: null,
         lastName: "Lovelace",
+        dob: "1990-01-15",
         addressLine1: "123 Main St",
         addressLine2: null,
         city: "Austin",

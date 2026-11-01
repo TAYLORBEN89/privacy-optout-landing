@@ -26,7 +26,7 @@ describe("about us values", () => {
     ).toBeTruthy();
     expect(
       screen.getByText(
-        "We collect just enough to send your requests: your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to provide it) your phone number. Nothing more.",
+        "We collect just enough to send your requests: your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. Nothing more.",
       ),
     ).toBeTruthy();
     expect(

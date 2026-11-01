@@ -7,7 +7,7 @@ export function SecurityPage() {
       <h1>{TRUST_LABEL}</h1>
       <p className="todo">TODO: replace this placeholder with final security copy before launch.</p>
       <h2>Data minimization</h2>
-      <p>The form asks for your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to provide it) your phone number.</p>
+      <p>The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number.</p>
       <h2>What is stored</h2>
       <p>
         The design stores only those form fields. {storageNotice()}

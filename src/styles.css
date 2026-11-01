@@ -954,7 +954,8 @@ textarea {
 
   .form-grid .field-first,
   .form-grid .field-middle,
-  .form-grid .field-last {
+  .form-grid .field-last,
+  .form-grid .field-dob {
     grid-column: span 4;
   }
 
@@ -982,6 +983,11 @@ textarea {
   .form-grid > button {
     justify-self: start;
   }
+}
+
+.form-card input[type="date"].control {
+  height: 48px;
+  min-height: 48px;
 }
 
 .form-card .control {

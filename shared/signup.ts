@@ -7,6 +7,7 @@ export const SIGNUP_FIELDS = [
   "firstName",
   "middleName",
   "lastName",
+  "dob",
   "addressLine1",
   "addressLine2",
   "city",
@@ -89,6 +90,8 @@ export interface SignupInput {
   /** Optional. Null when the field is left blank. */
   middleName: string | null;
   lastName: string;
+  /** Calendar date, YYYY-MM-DD. Required. No minimum age. */
+  dob: string;
   addressLine1: string;
   /** Optional. Null when the field is left blank. */
   addressLine2: string | null;
@@ -259,6 +262,40 @@ export function validatePhone(value: unknown): { value: string | null } | { erro
   return { value: `+1${digits}` };
 }
 
+const DOB_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function calendarIso(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Latest allowed birth date is today. Earliest is exactly 120 years before today. */
+export function dobRange(now = new Date()): { earliest: string; latest: string } {
+  const earliest = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
+  return { earliest: calendarIso(earliest), latest: calendarIso(now) };
+}
+
+function validateDob(value: unknown, now = new Date()): { value: string } | { error: FieldIssue } {
+  if (isBlank(value)) return { error: issue("required", "Enter your date of birth.") };
+  if (typeof value !== "string") return { error: issue("invalid", "Enter a real date of birth.") };
+  const dob = value.trim();
+  const match = DOB_PATTERN.exec(dob);
+  if (!match) return { error: issue("invalid", "Enter a real date of birth.") };
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  const real =
+    parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+  if (!real) return { error: issue("invalid", "Enter a real date of birth.") };
+  const { earliest, latest } = dobRange(now);
+  if (dob > latest) return { error: issue("future", "Date of birth cannot be in the future.") };
+  if (dob < earliest) return { error: issue("too_old", "Date of birth cannot be more than 120 years ago.") };
+  return { value: dob };
+}
+
 function validateTexasResident(value: unknown): { value: boolean } | { error: FieldIssue } {
   if (typeof value !== "boolean") {
     return { error: issue("invalid", "Say whether you live in Texas.") };
@@ -278,7 +315,7 @@ export function validateSignup(input: unknown): SignupResult {
       errors: {},
       form: issue(
         "invalid_body",
-        "Send your name, mailing address, email, and Texas residency.",
+        "Send your name, date of birth, mailing address, email, and Texas residency.",
       ),
     };
   }
@@ -287,6 +324,7 @@ export function validateSignup(input: unknown): SignupResult {
   const firstName = validateNamePart(input.firstName, "first");
   const middleName = validateNamePart(input.middleName, "middle");
   const lastName = validateNamePart(input.lastName, "last");
+  const dob = validateDob(input.dob);
   const addressLine1 = validateStreet(input.addressLine1);
   const addressLine2 = validateLine2(input.addressLine2);
   const city = validateCity(input.city);
@@ -299,6 +337,7 @@ export function validateSignup(input: unknown): SignupResult {
   if ("error" in firstName) errors.firstName = firstName.error;
   if ("error" in middleName) errors.middleName = middleName.error;
   if ("error" in lastName) errors.lastName = lastName.error;
+  if ("error" in dob) errors.dob = dob.error;
   if ("error" in addressLine1) errors.addressLine1 = addressLine1.error;
   if ("error" in addressLine2) errors.addressLine2 = addressLine2.error;
   if ("error" in city) errors.city = city.error;
@@ -314,6 +353,7 @@ export function validateSignup(input: unknown): SignupResult {
     "error" in firstName ||
     "error" in middleName ||
     "error" in lastName ||
+    "error" in dob ||
     "error" in addressLine1 ||
     "error" in addressLine2 ||
     "error" in city ||
@@ -332,6 +372,7 @@ export function validateSignup(input: unknown): SignupResult {
       firstName: firstName.value as string,
       middleName: middleName.value,
       lastName: lastName.value as string,
+      dob: dob.value as string,
       addressLine1: addressLine1.value,
       addressLine2: addressLine2.value,
       city: city.value,

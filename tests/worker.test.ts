@@ -5,6 +5,7 @@ import { handleRequest } from "../worker/handle";
 const valid = {
   firstName: "Ada",
   lastName: "Lovelace",
+  dob: "1990-01-15",
   addressLine1: "123 Main St",
   city: "Austin",
   state: "TX",
@@ -44,6 +45,21 @@ describe("POST /api/signup", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({ ok: true });
+  });
+
+  it("rejects a missing or impossible date of birth with the shared error", async () => {
+    for (const dob of [undefined, "2024-02-31"]) {
+      const body = { ...valid, dob };
+      const expected = validateSignup(body);
+      const response = await handleRequest(post(body), assets());
+      const payload = (await response.json()) as { errors: { dob?: { code: string; message: string } } };
+      expect(response.status).toBe(400);
+      expect(expected.ok).toBe(false);
+      if (!expected.ok) {
+        expect(payload.errors.dob?.code).toBe(expected.errors.dob?.code);
+        expect(payload.errors.dob?.message).toBe(expected.errors.dob?.message);
+      }
+    }
   });
 
   it("returns the shared schema errors for a bad body", async () => {

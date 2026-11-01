@@ -19,6 +19,10 @@ describe("signup form copy", () => {
     expect(screen.getByLabelText(/First name/)).toBeTruthy();
     expect(screen.getByLabelText(/Middle name/)).toBeTruthy();
     expect(screen.getByLabelText(/Last name/)).toBeTruthy();
+    const dob = screen.getByLabelText(/Date of birth/) as HTMLInputElement;
+    expect(dob.type).toBe("date");
+    expect(dob.getAttribute("autocomplete")).toBe("bday");
+    expect(dob.required || dob.getAttribute("aria-required")).toBeTruthy();
     expect(screen.getByLabelText(/Street address/)).toBeTruthy();
     expect(screen.getByLabelText(/Apt, suite, unit/)).toBeTruthy();
     expect(screen.getByLabelText(/City/)).toBeTruthy();
@@ -49,6 +53,7 @@ describe("signup form copy", () => {
       "firstName",
       "middleName",
       "lastName",
+      "dob",
       "addressLine1",
       "addressLine2",
       "city",

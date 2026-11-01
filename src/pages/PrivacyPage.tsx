@@ -9,7 +9,7 @@ import { DISCLAIMER } from "../copy";
  */
 
 const COLLECTED =
-  "your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to provide it) your phone number";
+  "your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number";
 
 const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {

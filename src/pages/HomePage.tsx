@@ -48,7 +48,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <h2 id="personal-heading">Your information, protected</h2>
           <p className="personal-sub">Only what we need. Nothing more.</p>
           <p className="personal-body">
-            We collect only your name, mailing address, email, Texas residency and your phone number. Everything you
+            We collect only your name, date of birth, mailing address, email, Texas residency and your phone number. Everything you
             send is encrypted in transit, and we never sell your data.
           </p>
           <p className="personal-preview">{storageNotice()}</p>

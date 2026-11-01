@@ -85,7 +85,7 @@ npm test
 
 ## What the form does
 
-The form collects your name (including an optional middle name), mailing address, email, Texas residency, and (if you choose to provide it) your phone number. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
+The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
 
 `STORAGE_LIVE` in `worker/storage.ts` is false. The page says the preview does not store submissions. Set that constant to true only when D1 is actually saving records. The replacement sentence is `STORAGE_LIVE_NOTE`.
 
@@ -100,6 +100,7 @@ The browser and the Worker both use `shared/signup.ts`. Bad input returns per-fi
   "firstName": "Ada",
   "middleName": null,
   "lastName": "Lovelace",
+  "dob": "1815-12-10",
   "addressLine1": "123 Main St",
   "addressLine2": null,
   "city": "Austin",
@@ -113,6 +114,6 @@ The browser and the Worker both use `shared/signup.ts`. Bad input returns per-fi
 }
 ```
 
-`state` is a USPS abbreviation for a state or the District of Columbia. `zip` matches `^\d{5}(-\d{4})?$`. `phone`, when present, is E.164 (`+1` and 10 digits). The old keys `fullName` and `mailingAddress` are not accepted.
+`state` is a USPS abbreviation for a state or the District of Columbia. `zip` matches `^\d{5}(-\d{4})?$`. `dob` is `YYYY-MM-DD`, required, a real calendar date, not in the future, and not more than 120 years ago. `phone`, when present, is E.164 (`+1` and 10 digits). The old keys `fullName` and `mailingAddress` are not accepted.
 
 `src/analytics.ts` has a no-op `track()` for `form_started`, `field_error`, and `submitted`. Events carry a field name and error code, never the value typed into the form. Vite dev logs only the event name.

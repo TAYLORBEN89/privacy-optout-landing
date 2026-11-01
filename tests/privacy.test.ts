@@ -34,6 +34,7 @@ describe("privacy page", () => {
     expect(html).not.toContain("Your controls");
     expect(html).not.toContain("sign out of other sessions");
     expect(html).not.toContain("on your behalf");
+    expect(html).toContain("date of birth");
     expect(html).toContain("the server checks them again");
     expect(html).not.toMatch(/\d+\s+days/);
     expect(html).toContain("privacy-page");
