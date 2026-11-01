@@ -276,6 +276,7 @@ describe("POST /api/signup", () => {
       "/data-brokers",
       "/unique-identifiers",
       "/tdpsa",
+      "/children",
       "/help",
       "/share",
       "/start",

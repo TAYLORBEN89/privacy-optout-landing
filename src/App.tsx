@@ -15,6 +15,7 @@ import {
   SharePage,
   TdpsaPage,
   UniqueIdentifiersPage,
+  ChildrenPage,
 } from "./pages/topics";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { SecurityPage } from "./pages/SecurityPage";
@@ -71,6 +72,7 @@ export function App() {
   else if (path === "/data-brokers") page = <DataBrokersPage />;
   else if (path === "/unique-identifiers") page = <UniqueIdentifiersPage />;
   else if (path === "/tdpsa") page = <TdpsaPage />;
+  else if (path === "/children") page = <ChildrenPage />;
   else if (path === "/help") page = <HelpPage />;
   else if (path === "/share") page = <SharePage />;
   else if (path === "/about") page = <AboutPage />;

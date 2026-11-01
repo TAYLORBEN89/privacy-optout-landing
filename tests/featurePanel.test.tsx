@@ -19,12 +19,15 @@ describe("feature panel", () => {
     expect(screen.getByRole("heading", { name: "Fewer lists with your name on them" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Get matched correctly" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Know your rights work for you" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Protect your children's information" })).toBeTruthy();
     expect(screen.getByText("Ask brokers to stop selling your information at no cost.")).toBeTruthy();
     expect(screen.getByText("We handle the broker forms so you don't have to.")).toBeTruthy();
     expect(screen.getByText("We collect the minimum and never sell it.")).toBeTruthy();
     expect(screen.getByText("Reach the companies that trade your address and phone.")).toBeTruthy();
     expect(screen.getByText("The right details help brokers find the right record.")).toBeTruthy();
     expect(screen.getByText("Texas law gives you the right to opt out of the sale of your data.")).toBeTruthy();
+    expect(screen.getByText("Shield kids' personal information from web abuse and predators.")).toBeTruthy();
+    expect(screen.getByText("Children")).toBeTruthy();
     expect(screen.getByText("Overview")).toBeTruthy();
     expect(screen.getByText("How it works")).toBeTruthy();
     expect(screen.getByText("Personal information")).toBeTruthy();
@@ -37,11 +40,12 @@ describe("feature panel", () => {
     expect(screen.getByRole("link", { name: "See the brokers >" }).getAttribute("href")).toBe("/data-brokers");
     expect(screen.getByRole("link", { name: "See the identifiers >" }).getAttribute("href")).toBe("/unique-identifiers");
     expect(screen.getByRole("link", { name: "Read about TDPSA >" }).getAttribute("href")).toBe("/tdpsa");
-    expect(screen.getAllByRole("link")).toHaveLength(6);
+    expect(screen.getByRole("link", { name: "Learn more >" }).getAttribute("href")).toBe("/children");
+    expect(screen.getAllByRole("link")).toHaveLength(7);
     const strokes = [...document.querySelectorAll(".feature-card .tile-icon")].map((icon) =>
       icon.getAttribute("stroke-width"),
     );
-    expect(strokes).toEqual(["2", "2", "2", "2", "2", "2"]);
+    expect(strokes).toEqual(["2", "2", "2", "2", "2", "2", "2"]);
     expect(document.querySelector(".feature-card-unique-identifiers .tile-icon")?.innerHTML).toContain(
       "M12 19c0-3 .2-5 .2-7a3.2 3.2 0 0 1 6.4 0",
     );

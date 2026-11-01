@@ -37,6 +37,11 @@ const FOCUS_ORDER = [
   "guardianAttestation",
 ] as const satisfies readonly SignupField[];
 
+function submitterFromLocation(): "self" | "child" {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("for") === "child" ? "child" : "self";
+}
+
 export function SignupForm() {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -50,7 +55,7 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [texasResident, setTexasResident] = useState(false);
-  const [submitter, setSubmitter] = useState<"self" | "child">("self");
+  const [submitter, setSubmitter] = useState<"self" | "child">(submitterFromLocation);
   const [childFirstName, setChildFirstName] = useState("");
   const [childMiddleName, setChildMiddleName] = useState("");
   const [childLastName, setChildLastName] = useState("");

@@ -15,6 +15,7 @@ import {
   SharePage,
   TdpsaPage,
   UniqueIdentifiersPage,
+  ChildrenPage,
 } from "../src/pages/topics";
 
 const PAGES = [
@@ -61,6 +62,24 @@ describe("explore pages", () => {
       "/unique-identifiers",
       "/tdpsa",
     ]);
+    expect(hrefs[6]).toBe("/children");
+  });
+
+  it("explains children's information with sources and opens the child request", () => {
+    render(<ChildrenPage />);
+    expect(screen.getByRole("heading", { level: 1, name: "Protecting children's information" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "The Philadelphia Inquirer" }).getAttribute("href")).toContain("inquirer.com");
+    expect(screen.getByRole("link", { name: "The Record" }).getAttribute("href")).toContain("therecord.media");
+    expect(screen.getAllByRole("link", { name: "Federal Trade Commission" })).toHaveLength(3);
+    expect(screen.getByRole("link", { name: "Texas Business and Commerce Code chapter 541" }).getAttribute("href")).toContain(
+      "BC.541.htm",
+    );
+    expect(screen.getByRole("link", { name: "Texas Business and Commerce Code chapter 510" }).getAttribute("href")).toContain(
+      "BC.510.htm",
+    );
+    expect(screen.getByRole("link", { name: "Start my opt-out" }).getAttribute("href")).toBe("/start?for=child");
+    expect(document.body.textContent).toContain("Teens who are 13 to 17 can submit a request for themselves.");
+    expect(document.body.textContent).not.toMatch(/verified deletion|guaranteed/i);
   });
 
   it("links data brokers to the broker list and personal information to privacy", () => {

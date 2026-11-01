@@ -50,6 +50,14 @@ const CARDS = [
     button: "Read about TDPSA",
     href: "/tdpsa",
   },
+  {
+    id: "children",
+    tag: "Children",
+    headline: "Protect your children's information",
+    description: "Shield kids' personal information from web abuse and predators.",
+    button: "Learn more",
+    href: "/children",
+  },
 ] as const;
 
 export function FeaturePanel() {

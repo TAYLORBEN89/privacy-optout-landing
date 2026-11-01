@@ -14,12 +14,16 @@ function Topic({
   description,
   heading,
   tone,
+  ctaHref = "/start",
+  ctaLabel = "Start my opt-out",
   children,
 }: {
   title: string;
   description: string;
   heading: string;
   tone: string;
+  ctaHref?: string;
+  ctaLabel?: string;
   children: ReactNode;
 }) {
   return (
@@ -34,8 +38,8 @@ function Topic({
         <h1>{heading}</h1>
       </header>
       {children}
-      <AppLink className="cta" href="/start">
-        Start my opt-out
+      <AppLink className="cta" href={ctaHref}>
+        {ctaLabel}
       </AppLink>
       <p className="independence">{DISCLAIMER}</p>
     </article>
@@ -326,6 +330,112 @@ export function SharePage() {
           Share on Facebook
         </a>
       </div>
+    </Topic>
+  );
+}
+
+export function ChildrenPage() {
+  return (
+    <Topic
+      title="Protecting children's information"
+      heading="Protecting children's information"
+      tone="children"
+      description="Sourced notes on children's information, Texas law, and how a parent can send a request for a child under 13."
+      ctaHref="/start?for=child"
+    >
+      <h2>Students' information offered for sale</h2>
+      <p>
+        In 2019, a New Jersey data broker, ALC Inc., advertised a list of 1.2 million students aged 14–17 with names,
+        addresses, high schools, and hobbies, at $100 per 1,000 records.{" "}
+        <a
+          href="https://www.inquirer.com/business/technology/alc-princeton-data-broker-personal-info-million-kids-vermont-law-20190319.html"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          The Philadelphia Inquirer
+        </a>
+        .
+      </p>
+      <h2>Brokers that say they sell minors' data</h2>
+      <p>
+        24 of 480 data brokers registered in California disclosed that they sell minors' data.{" "}
+        <a
+          href="https://therecord.media/dozens-of-data-brokers-disclose-selling-info-on-kids-geolocation-data-reproductive-health"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          The Record
+        </a>
+        .
+      </p>
+      <h2>Edmodo</h2>
+      <p>
+        In 2023 the FTC said ed-tech provider Edmodo collected students' personal information, including names, emails,
+        dates of birth, phone numbers, and device IDs, without parental consent and used it for advertising.{" "}
+        <a
+          href="https://www.ftc.gov/news-events/news/press-releases/2023/05/ftc-says-ed-tech-provider-edmodo-unlawfully-used-childrens-personal-information-advertising"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Federal Trade Commission
+        </a>
+        .
+      </p>
+      <h2>OpenX</h2>
+      <p>
+        In 2021 the FTC said the ad exchange OpenX would pay $2 million to settle allegations that it collected
+        personal information from children under 13 without parental consent. The FTC also said OpenX collected
+        geolocation information from users who asked not to be tracked, and that child-directed apps took part in its
+        ad exchange.{" "}
+        <a
+          href="https://www.ftc.gov/news-events/news/press-releases/2021/12/advertising-platform-openx-will-pay-2-million-collecting-personal-information-children-violation"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Federal Trade Commission
+        </a>
+        .
+      </p>
+      <h2>Kurbo by WW</h2>
+      <p>
+        In 2022 the FTC acted against WW International, formerly Weight Watchers, and its Kurbo app for collecting
+        personal information from children under 13 without parental permission. The settlement requires a $1.5 million
+        penalty, deletion of that personal information, and destruction of algorithms derived from it.{" "}
+        <a
+          href="https://www.ftc.gov/news-events/news/press-releases/2022/03/ftc-takes-action-against-company-formerly-known-weight-watchers-illegally-collecting-kids-sensitive"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Federal Trade Commission
+        </a>
+        .
+      </p>
+      <h2>Texas privacy law</h2>
+      <p>
+        Under the Texas Data Privacy and Security Act, Texas Business and Commerce Code chapter 541, a child is under
+        13 (section 541.001). Data collected from a known child is sensitive data. A parent or legal guardian may
+        exercise the consumer rights on behalf of a child (section 541.051), including asking a company to delete data
+        or stop selling it. Companies may ask for verification (section 541.052).{" "}
+        <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
+          Texas Business and Commerce Code chapter 541
+        </a>
+        .
+      </p>
+      <h2>Texas data broker law</h2>
+      <p>
+        Under Texas Business and Commerce Code chapter 510, a registered data broker that knowingly holds a known
+        child's data must disclose how it collects and sells that data and how it handles opt-outs (section 510.005).{" "}
+        <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.510.htm" target="_blank" rel="noopener noreferrer">
+          Texas Business and Commerce Code chapter 510
+        </a>
+        .
+      </p>
+      <h2>How DROP Texas helps</h2>
+      <p>
+        A parent or legal guardian can choose My child on the request form for a child under 13. DROP Texas sends the
+        requests for free. Companies decide how to respond, and they may ask for proof of guardianship.
+      </p>
+      <p>Teens who are 13 to 17 can submit a request for themselves.</p>
     </Topic>
   );
 }

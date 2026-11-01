@@ -21,6 +21,7 @@ const ACCENTS: Record<string, string> = {
   tdpsa: "#9f1239",
   help: "#3b6fd8",
   share: "#d4890b",
+  children: "#6d28d9",
 };
 
 export function TileIcon({
@@ -123,6 +124,14 @@ export function TileIcon({
         <circle cx="12" cy="12" r="10" />
         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
         <path d="M12 17h.01" />
+      </svg>
+    );
+  }
+  if (id === "children") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="7.5" r="2.4" />
+        <path d="M7.2 19.2v-.4a3.2 3.2 0 0 1 3.2-3.2h3.2a3.2 3.2 0 0 1 3.2 3.2v.4" />
       </svg>
     );
   }
