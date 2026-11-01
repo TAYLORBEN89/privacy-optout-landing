@@ -1,62 +1,57 @@
 import { useEffect, useRef, useState } from "react";
-import { countAt, statText, type StatEntry } from "../data/stats";
+import { countAt, formatStat, visibleCitedStats, type CitedStat } from "../data/stats";
 import { usePrefersReducedMotion } from "../hooks/useInView";
 import { AppLink } from "../router";
 
 const DURATION_MS = 1500;
 
 function StatValue({
-  value,
-  prefix,
+  stat,
   started,
   reduced,
 }: {
-  value: number | null;
-  prefix: string;
+  stat: CitedStat;
   started: boolean;
   reduced: boolean;
 }) {
-  const finalText = statText(value, prefix);
-  const [shown, setShown] = useState<number | null>(value === null || reduced ? value : 0);
+  const finalText = formatStat(stat.value, stat.prefix, stat.suffix, stat.decimals);
+  const [shown, setShown] = useState(reduced ? stat.value : 0);
 
   useEffect(() => {
-    if (value === null) {
-      setShown(null);
-      return;
-    }
     if (reduced || !started) {
-      setShown(reduced ? value : 0);
+      setShown(reduced ? stat.value : 0);
       return;
     }
     const startedAt = performance.now();
     let frame = 0;
     const tick = (now: number) => {
-      const next = countAt(now - startedAt, DURATION_MS, value);
-      setShown(next);
-      if (next < value) frame = requestAnimationFrame(tick);
+      const elapsed = now - startedAt;
+      if (elapsed >= DURATION_MS) {
+        setShown(stat.value);
+        return;
+      }
+      setShown(countAt(elapsed, DURATION_MS, stat.value, stat.decimals));
+      frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [prefix, reduced, started, value]);
-
-  if (value === null) {
-    return <p className="stat-value">Coming soon</p>;
-  }
+  }, [reduced, started, stat.decimals, stat.value]);
 
   return (
     <p className="stat-value">
       <span className="stat-count" aria-hidden="true">
-        {statText(shown, prefix)}
+        {formatStat(shown, stat.prefix, stat.suffix, stat.decimals)}
       </span>
       <span className="visually-hidden">{finalText}</span>
     </p>
   );
 }
 
-export function Stats({ stats }: { stats: StatEntry[] }) {
+export function Stats() {
   const ref = useRef<HTMLElement>(null);
   const reduced = usePrefersReducedMotion();
   const [started, setStarted] = useState(false);
+  const stats = visibleCitedStats();
 
   useEffect(() => {
     if (reduced) {
@@ -90,10 +85,23 @@ export function Stats({ stats }: { stats: StatEntry[] }) {
       <ul className="stat-grid">
         {stats.map((stat) => (
           <li key={stat.id} data-stat={stat.id}>
-            <StatValue value={stat.value} prefix={stat.prefix} started={started} reduced={reduced} />
+            <StatValue stat={stat} started={started} reduced={reduced} />
             <p className="stat-label">{stat.label}</p>
+            <a
+              className="stat-source"
+              href={stat.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Source: ${stat.sourceName}`}
+            >
+              Source
+            </a>
           </li>
         ))}
+        <li data-stat="optouts">
+          <p className="stat-value stat-pending">Coming soon</p>
+          <p className="stat-label">Opt-outs filed</p>
+        </li>
       </ul>
       <AppLink className="stats-more" href="/about">
         More about DROP Texas &gt;

@@ -1403,11 +1403,38 @@ textarea {
 
 .stat-label {
   margin: 8px auto 0;
-  max-width: 16em;
+  max-width: 18em;
   color: rgba(255, 255, 255, 0.86);
   font-size: 18px;
   font-weight: 300;
-  line-height: 1.4;
+  line-height: 1.35;
+}
+
+.stat-pending {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.stat-source {
+  display: inline-block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-decoration: underline;
+  text-transform: uppercase;
+  text-underline-offset: 2px;
+}
+
+.stat-source:hover {
+  color: #fff;
+}
+
+.stat-source:focus-visible {
+  outline: 3px solid #ffe7a3;
+  outline-offset: 3px;
 }
 
 .stats-more {
@@ -1557,7 +1584,8 @@ textarea {
   }
 
   .stat-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    width: min(1240px, 100%);
   }
 
   .stat-grid li:last-child:nth-child(odd) {

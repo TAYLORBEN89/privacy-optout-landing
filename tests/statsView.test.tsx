@@ -2,12 +2,10 @@
  * @vitest-environment happy-dom
  */
 import { readFileSync } from "node:fs";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Stats } from "../src/components/Stats";
-import { BROKERS } from "../src/data/brokers";
-import { TDPSA_RESPONSE_DAYS, tdpsaRightCount } from "../src/data/rights";
-import { buildStats } from "../src/data/stats";
+import { visibleCitedStats } from "../src/data/stats";
 
 function matchMedia(reduced: boolean) {
   window.matchMedia = ((query: string) => ({
@@ -29,7 +27,7 @@ afterEach(() => {
 });
 
 describe("stats rendering", () => {
-  it("shows final values immediately when motion is reduced", () => {
+  it("shows final verified values immediately when motion is reduced", () => {
     matchMedia(true);
     const observe = vi.fn();
     vi.stubGlobal(
@@ -40,14 +38,21 @@ describe("stats rendering", () => {
         unobserve() {}
       },
     );
-    render(<Stats stats={buildStats()} />);
+    render(<Stats />);
     expect(observe).not.toHaveBeenCalled();
-    expect(document.querySelector("[data-stat='brokers'] .stat-count")?.textContent).toBe(String(BROKERS.length));
-    expect(document.querySelector("[data-stat='cost'] .stat-count")?.textContent).toBe("$0");
-    expect(document.querySelector("[data-stat='response-days'] .stat-count")?.textContent).toBe(String(TDPSA_RESPONSE_DAYS));
-    expect(document.querySelector("[data-stat='rights'] .stat-count")?.textContent).toBe(String(tdpsaRightCount()));
-    expect(document.querySelector("[data-stat='optouts'] .stat-value")?.textContent).toBe("Coming soon");
-    expect(screen.getByRole("link", { name: "More about DROP Texas >" }).getAttribute("href")).toBe("/about");
+    for (const stat of visibleCitedStats()) {
+      const item = document.querySelector(`[data-stat='${stat.id}']`);
+      expect(item?.querySelector(".stat-count")?.textContent).toBe(
+        item?.querySelector(".visually-hidden")?.textContent,
+      );
+      const source = item?.querySelector("a");
+      expect(source?.getAttribute("href")).toBe(stat.sourceUrl);
+      expect(source?.getAttribute("target")).toBe("_blank");
+      expect(source?.getAttribute("rel")).toBe("noopener noreferrer");
+    }
+    expect(document.querySelector("[data-stat='optouts']")?.textContent).toContain("Coming soon");
+    expect(document.body.textContent).not.toContain("5,650");
+    expect(document.body.textContent).not.toContain("$4.44M");
   });
 
   it("keeps the real value in the HTML and counts up once the section intersects", () => {
@@ -73,11 +78,11 @@ describe("stats rendering", () => {
       return 1;
     });
 
-    render(<Stats stats={buildStats()} />);
-    const count = document.querySelector("[data-stat='brokers'] .stat-count");
-    const hidden = document.querySelector("[data-stat='brokers'] .visually-hidden");
-    expect(count?.textContent).toBe("0");
-    expect(hidden?.textContent).toBe(String(BROKERS.length));
+    render(<Stats />);
+    const hidden = document.querySelector("[data-stat='bid-requests'] .visually-hidden");
+    const count = document.querySelector("[data-stat='bid-requests'] .stat-count");
+    expect(hidden?.textContent).toBe("5.6M+");
+    expect(count?.textContent).toBe("0.0M+");
     expect(count?.getAttribute("aria-hidden")).toBe("true");
     expect(document.querySelector("[data-stat='optouts'] .stat-count")).toBeNull();
 
@@ -85,12 +90,11 @@ describe("stats rendering", () => {
       onIntersect?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
     });
     expect(disconnect).toHaveBeenCalled();
-    expect(document.querySelector("[data-stat='brokers'] .stat-count")?.textContent).toBe(String(BROKERS.length));
-    expect(document.querySelector("[data-stat='response-days'] .stat-count")?.textContent).toBe(String(TDPSA_RESPONSE_DAYS));
-    expect(document.querySelector("[data-stat='rights'] .stat-count")?.textContent).toBe(String(tdpsaRightCount()));
-    expect(document.querySelector("[data-stat='cost'] .stat-count")?.textContent).toBe("$0");
-    expect(document.querySelector("[data-stat='optouts']")?.textContent).toContain("Coming soon");
-    expect(document.querySelector("[data-stat='optouts']")?.textContent).not.toMatch(/\d/);
+    expect(document.querySelector("[data-stat='bid-requests'] .stat-count")?.textContent).toBe("5.6M+");
+    expect(document.querySelector("[data-stat='registered-brokers'] .stat-count")?.textContent).toBe("750+");
+    expect(document.querySelector("[data-stat='cyber-events'] .stat-count")?.textContent).toBe("~2,514");
+    expect(document.querySelector("[data-stat='breach-cost'] .stat-count")?.textContent).toBe("$4.99M");
+    expect(document.querySelector("[data-stat='optouts']")?.textContent).toContain("Opt-outs filed");
   });
 
   it("sits directly after About Us on the blue band", () => {
@@ -108,7 +112,5 @@ describe("stats rendering", () => {
     const button = css.slice(css.indexOf(".stats-more {"), css.indexOf(".stats-more:hover"));
     expect(button).toContain("border: 1.5px solid #fff");
     expect(button).toContain("text-transform: uppercase");
-    const wide = css.slice(css.indexOf(".stat-grid {", css.indexOf("@media (min-width: 900px)")));
-    expect(wide).toContain("grid-template-columns: repeat(5, minmax(0, 1fr))");
   });
 });

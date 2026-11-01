@@ -6,7 +6,6 @@ import { ValuesSection } from "../components/Values";
 import { Reveal } from "../components/Reveal";
 import { Stats } from "../components/Stats";
 import { AppLink } from "../router";
-import { buildStats } from "../data/stats";
 import { storageNotice } from "../../worker/storage";
 
 export function HomePage({ getStartedHref }: { getStartedHref: string }) {
@@ -72,7 +71,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
 
       <ValuesSection />
 
-      <Stats stats={buildStats()} />
+      <Stats />
 
       <section id="how-drop-works" className="block" aria-labelledby="how-heading">
         <Reveal>
