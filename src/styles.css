@@ -1450,32 +1450,11 @@ textarea {
   flex: none;
 }
 
-/* Explore glyphs sit at different heights inside the 24px viewBox.
-   Shift only the homepage menu so each icon's ink meets the title cap. */
-.nav-tiles .icon-overview,
-.nav-tiles .icon-how-drop-works {
-  transform: translateY(-6px);
-}
-
-.nav-tiles .icon-personal-information {
-  transform: translateY(-8.25px);
-}
-
-.nav-tiles .icon-data-brokers {
-  transform: translateY(-8px);
-}
-
-.nav-tiles .icon-unique-identifiers,
-.nav-tiles .icon-help {
-  transform: translateY(-3.25px);
-}
-
-.nav-tiles .icon-tdpsa {
-  transform: translateY(-4.5px);
-}
-
-.nav-tiles .icon-share {
-  transform: translateY(-3px);
+.nav-tiles .explore-art {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  object-fit: contain;
 }
 
 .tile-copy {

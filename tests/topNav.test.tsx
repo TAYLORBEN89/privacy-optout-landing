@@ -32,15 +32,19 @@ describe("explore list", () => {
     );
     expect(links.map((link) => link.querySelector(".tile-blurb")?.textContent)).toEqual(BLURBS);
     expect(links.map((link) => link.getAttribute("href"))).toEqual(NAV_ITEMS.map((item) => item.href));
-    expect(nav.querySelectorAll(".tile-icon")).toHaveLength(8);
+    expect(nav.querySelectorAll(".explore-art")).toHaveLength(8);
     expect(nav.querySelectorAll(".tile-chevron")).toHaveLength(8);
     expect(links.map((link) => link.textContent).join(" ")).not.toMatch(/verified/i);
-    const strokes = [...nav.querySelectorAll(".tile-icon")].map((icon) => icon.getAttribute("stroke-width"));
-    expect(strokes).toEqual(["1.5", "1.5", "1.5", "1.5", "1.5", "1.5", "1.5", "1.5"]);
-    expect(nav.querySelector(".icon-help circle")?.getAttribute("r")).toBe("10");
-    expect(nav.querySelector(".icon-help")?.innerHTML).toContain("M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3");
-    expect(nav.querySelectorAll(".icon-share circle")).toHaveLength(3);
-    expect(nav.querySelector(".icon-unique-identifiers")?.innerHTML).toContain("M2 12a10 10 0 0 1 18-6");
+    expect([...nav.querySelectorAll(".explore-art")].map((icon) => icon.getAttribute("src"))).toEqual([
+      expect.stringContaining("overview"),
+      expect.stringContaining("how"),
+      expect.stringContaining("personal"),
+      expect.stringContaining("brokers"),
+      expect.stringContaining("identifiers"),
+      expect.stringContaining("tdpsa"),
+      expect.stringContaining("help"),
+      expect.stringContaining("share"),
+    ]);
   });
 
   it("uses a labeled panel, tall rows on a phone, and two columns on a wide screen", () => {
@@ -58,11 +62,8 @@ describe("explore list", () => {
     expect(tileTitle).toContain("line-height: 1.2");
     expect(tileTitle).toContain("text-box-trim: trim-start");
     expect(tileTitle).toContain("text-box-edge: cap alphabetic");
-    expect(css).toContain(".nav-tiles .icon-overview");
-    expect(css).toContain(".nav-tiles .icon-personal-information {\n  transform: translateY(-8.25px);");
-    expect(css).toContain(".nav-tiles .icon-data-brokers {\n  transform: translateY(-8px);");
-    expect(css).toContain(".nav-tiles .icon-tdpsa {\n  transform: translateY(-4.5px);");
-    expect(css).toContain(".nav-tiles .icon-share {\n  transform: translateY(-3px);");
+    expect(css).toContain(".nav-tiles .explore-art");
+    expect(css).not.toContain(".nav-tiles .icon-overview");
     expect(css).not.toContain(".feature-card .icon-overview");
     expect(css).toContain(".explore {\n  width: 100%;");
     expect(css).toContain(`@media (min-width: 768px) {
