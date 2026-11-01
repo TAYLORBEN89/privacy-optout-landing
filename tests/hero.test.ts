@@ -12,8 +12,11 @@ describe("hero copy", () => {
     expect(hero).not.toContain("Demanding privacy");
     expect(hero).not.toContain("by the people");
     expect(hero).toContain(
-      "DROP Texas is a free service for Texans to request data brokers not sell their personal information.",
+      "DROP Texas is a free service for Texans who want to take control of their personal data.",
     );
+    expect(hero).toContain("Your data, your rules.");
+    expect(hero).not.toContain("to request data brokers not sell their personal information");
+    expect(hero.match(/className="lede hero-line"/g)).toHaveLength(2);
     expect(hero).not.toContain("You can ask data brokers to delete");
     expect(hero).toContain("Texas Data Privacy and Security Act");
     expect(hero).not.toContain("<Reveal");
@@ -24,7 +27,9 @@ describe("hero copy", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(css).toContain("@keyframes hero-line-in");
     expect(css).toContain("animation: hero-line-in 0.7s ease 0.22s both");
-    expect(css).toContain(".hero h1,\n  .hero-sub {\n    animation: none;\n  }");
+    expect(css).toContain("animation: hero-line-in 0.7s ease 0.44s both");
+    expect(css).toContain("animation: hero-line-in 0.7s ease 0.66s both");
+    expect(css).toContain(".hero h1,\n  .hero-sub,\n  .hero .hero-line {\n    animation: none;\n  }");
     const html = readFileSync("index.html", "utf8");
     const sentence =
       "DROP Texas is a free service for Texans to request data brokers not sell their personal information.";

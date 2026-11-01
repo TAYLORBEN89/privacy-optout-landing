@@ -23,14 +23,22 @@ const ACCENTS: Record<string, string> = {
   share: "#d4890b",
 };
 
-export function TileIcon({ id, size = 40 }: { id: string; size?: number }) {
+export function TileIcon({
+  id,
+  size = 40,
+  strokeWidth = 2,
+}: {
+  id: string;
+  size?: number;
+  strokeWidth?: number;
+}) {
   const common = {
     viewBox: "0 0 24 24",
     width: size,
     height: size,
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: 2,
+    strokeWidth,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
     "aria-hidden": true as const,
@@ -77,10 +85,15 @@ export function TileIcon({ id, size = 40 }: { id: string; size?: number }) {
   if (id === "unique-identifiers") {
     return (
       <svg {...common}>
-        <path d="M12 19c0-3 .2-5 .2-7a3.2 3.2 0 0 1 6.4 0" />
-        <path d="M8.2 19c0-4.2.6-7.2 1.4-9.2a5.2 5.2 0 0 1 9.6 2.4" />
-        <path d="M12 19V11.5" />
-        <path d="M9.4 19c.2-2.4.6-4.2 1.2-5.6" />
+        <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4" />
+        <path d="M14 13.12c0 2.38 0 6.38-1 8.88" />
+        <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02" />
+        <path d="M2 12a10 10 0 0 1 18-6" />
+        <path d="M2 16h.01" />
+        <path d="M21.8 16c.2-2 .131-5.354 0-6" />
+        <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
+        <path d="M8.65 22c.21-.66.45-1.32.57-2" />
+        <path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2" />
       </svg>
     );
   }
@@ -95,16 +108,19 @@ export function TileIcon({ id, size = 40 }: { id: string; size?: number }) {
   if (id === "help") {
     return (
       <svg {...common}>
-        <path d="M6 16.5 8.2 14H17a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h.2" />
-        <path d="M9.2 8.6a2.6 2.6 0 1 1 3.4 2.5c-.7.3-1.1.8-1.1 1.5V13" />
-        <path d="M12.2 15.2h.01" />
+        <circle cx="12" cy="12" r="10" />
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+        <path d="M12 17h.01" />
       </svg>
     );
   }
   return (
     <svg {...common}>
-      <path d="M10 14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4" />
-      <path d="M12 12.5 19 5.5M15 5.5h4v4" />
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.59 13.51 6.83 3.98" />
+      <path d="M15.41 6.51 8.59 10.49" />
     </svg>
   );
 }
@@ -125,7 +141,7 @@ export function TopNav() {
           {NAV_ITEMS.map((item) => (
             <li key={item.id}>
               <AppLink href={item.href}>
-                <TileIcon id={item.id} />
+                <TileIcon id={item.id} strokeWidth={1.5} />
                 <span className="tile-copy">
                   <span className="tile-title">{item.label}</span>
                   <span className="tile-blurb">{BLURBS[item.id]}</span>

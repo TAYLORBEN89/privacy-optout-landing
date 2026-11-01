@@ -183,11 +183,23 @@ body {
   .hero-sub {
     animation: hero-line-in 0.7s ease 0.22s both;
   }
+
+  .hero .hero-line {
+    animation: hero-line-in 0.7s ease 0.44s both;
+  }
+
+  .hero .hero-line + .hero-line {
+    animation: hero-line-in 0.7s ease 0.66s both;
+  }
 }
 
 .hero .lede {
   margin-left: auto;
   margin-right: auto;
+}
+
+.hero .hero-line + .hero-line {
+  margin-top: 4px;
 }
 
 .hero .cta {
@@ -2271,7 +2283,8 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
   .hero h1,
-  .hero-sub {
+  .hero-sub,
+  .hero .hero-line {
     animation: none;
   }
 

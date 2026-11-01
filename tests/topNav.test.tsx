@@ -35,6 +35,12 @@ describe("explore list", () => {
     expect(nav.querySelectorAll(".tile-icon")).toHaveLength(8);
     expect(nav.querySelectorAll(".tile-chevron")).toHaveLength(8);
     expect(links.map((link) => link.textContent).join(" ")).not.toMatch(/verified/i);
+    const strokes = [...nav.querySelectorAll(".tile-icon")].map((icon) => icon.getAttribute("stroke-width"));
+    expect(strokes).toEqual(["1.5", "1.5", "1.5", "1.5", "1.5", "1.5", "1.5", "1.5"]);
+    expect(nav.querySelector(".icon-help circle")?.getAttribute("r")).toBe("10");
+    expect(nav.querySelector(".icon-help")?.innerHTML).toContain("M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3");
+    expect(nav.querySelectorAll(".icon-share circle")).toHaveLength(3);
+    expect(nav.querySelector(".icon-unique-identifiers")?.innerHTML).toContain("M2 12a10 10 0 0 1 18-6");
   });
 
   it("uses a labeled panel, tall rows on a phone, and two columns on a wide screen", () => {

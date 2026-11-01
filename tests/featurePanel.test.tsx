@@ -19,6 +19,10 @@ describe("feature panel", () => {
     expect(screen.getByRole("link", { name: "See the brokers >" }).getAttribute("href")).toBe("/data-brokers");
     expect(screen.getByText(/Acxiom, Experian/)).toBeTruthy();
     expect(screen.getAllByRole("link")).toHaveLength(6);
+    const strokes = [...document.querySelectorAll(".feature-card .tile-icon")].map((icon) =>
+      icon.getAttribute("stroke-width"),
+    );
+    expect(strokes).toEqual(["2", "2", "2", "2", "2", "2"]);
     expect(document.body.textContent).not.toMatch(/verified/i);
   });
 

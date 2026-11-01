@@ -14,9 +14,10 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
         <div className="hero-inner">
             <h1 id="page-title">Privacy is a right.</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
-            <p className="lede">
-              DROP Texas is a free service for Texans to request data brokers not sell their personal information.
+            <p className="lede hero-line">
+              DROP Texas is a free service for Texans who want to take control of their personal data.
             </p>
+            <p className="lede hero-line">Your data, your rules.</p>
             <p className="lede note">
               If you live in Texas, check the box. That means the Texas Data Privacy and Security Act
               (TDPSA). If you live somewhere else, you can still submit. An unchecked box still uses
