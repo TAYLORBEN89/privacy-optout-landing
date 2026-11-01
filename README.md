@@ -169,3 +169,9 @@ Checklist categories now also include People-search sites, Search & apps, and Sp
 
 ## Social sign-in
 Provider console setup for Google and Microsoft sign-in: see [docs/oauth-setup.md](docs/oauth-setup.md).
+
+## Logging (Workers Logs)
+- `worker/wrangler.toml` enables Workers Logs: `[observability] enabled = true`, `head_sampling_rate = 1` (every request is logged).
+- **Only `worker/src/log.js` may log.** Everything else calls `log(event, fields)` / `logError(event, err, fields)`. `npm --prefix worker run check:logs` fails if `console.*` appears anywhere else in `worker/src`.
+- Fields are allowlisted (`method`, `route`, `status`, `ms`, `surface`, `counts`, `deleted`, `warned`, `job`, `error`). Request bodies, headers, cookies, tokens, query strings, IPs, user agents and PII are never logged. Routes are normalized (`/optouts/:id`) so ids and user input never appear. Errors log only the error name (no message or stack). Free text is scrubbed of emails, long tokens and phone numbers as a second line of defense.
+- One `request` line per response from every surface: `accounts` (sign-in host), `legacy` (KV routes), `app`, `api`, including 403 origin rejects, OPTIONS preflights and 500s. Scheduled jobs log counts only (`purge`, `audit_expiry`).
