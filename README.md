@@ -25,7 +25,7 @@ npx wrangler pages deploy dist --project-name <project> --branch main
 
 ## Worker (Cloudflare) setup
 
-The API is one Worker (`privacy-dashboard-api`, `worker/`) with a D1 database (binding `DB`) and a KV namespace (binding `RECORDS`, legacy records + `rl:*` rate-limit counters). It serves two hosts, picked by the request `Host`: the sign-in host (`ACCOUNTS_HOST`, e.g. `accounts.droptexas.com`) and the API on the app origin (`APP_ORIGIN`, e.g. `https://droptexas.com/api/*`). During development it is reachable at `https://privacy-dashboard-api.<your-subdomain>.workers.dev` or a custom domain such as `privacy-api.example.com` in your zone.
+The API is one Worker (`privacy-dashboard-api`, `worker/`) with a D1 database (binding `DB`) and a KV namespace (binding `RECORDS`, legacy records). It serves two hosts, picked by the request `Host`: the sign-in host (`ACCOUNTS_HOST`, e.g. `accounts.droptexas.com`) and the API on the app origin (`APP_ORIGIN`, e.g. `https://droptexas.com/api/*`). During development it is reachable at `https://privacy-dashboard-api.<your-subdomain>.workers.dev` or a custom domain such as `privacy-api.example.com` in your zone.
 
 ### 1. Install and create storage
 ```bash
@@ -45,6 +45,7 @@ npx wrangler d1 create privacy-dashboard            # paste database_id into [[d
 | `0003_in_progress_status.sql` | adds the `in_progress` request status |
 | `0004_audit_append_only.sql` | append-only triggers on audit_log, the expiry gate and maintenance_log (idempotent) |
 | `0007_social_auth.sql` | user_identities (google/microsoft), oauth_states_used, auth_handoffs, step-up columns, audit ip/user_agent |
+| `0008_rate_limits.sql` | strongly consistent fixed-window rate-limit counters (replaces the old KV limiter) |
 
 There are no 0005/0006 files (numbers were skipped). Wrangler applies whatever is unapplied, in file order:
 ```bash
@@ -89,7 +90,7 @@ The sign-in host is attached as a Workers Custom Domain (commented `[[routes]]` 
 
 ### Cron
 `crons = ["0 8 * * *"]` (daily 08:00 UTC) runs two separate jobs:
-- **purge**: deletes PII past its hard max (`purge_after`) or `PII_RETENTION_DAYS` after confirmation; sessions `SESSION_PURGE_DAYS` after expiry/revocation; used OAuth states (>1 day) and expired handoff codes; finished opt-out records after 730 days and Texas requests after 1095 days (cascades to confirmations and PII).
+- **purge**: deletes PII past its hard max (`purge_after`) or `PII_RETENTION_DAYS` after confirmation; sessions `SESSION_PURGE_DAYS` after expiry/revocation; used OAuth states (>1 day) and expired handoff codes; finished opt-out records after 730 days and Texas requests after 1095 days (cascades to confirmations and PII). Ended rate-limit windows are deleted too.
 - **audit expiry** (`expireAudit`): the only path that deletes audit rows. In one D1 transaction it opens the expiry gate, records the run in `maintenance_log` (job, ran_at, cutoff, rows deleted), deletes rows older than `AUDIT_RETENTION_DAYS` (min 365), and closes the gate.
 
 ### Audit log
