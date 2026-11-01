@@ -48,3 +48,5 @@ textarea { resize:vertical; }
 .tx-filters { display:flex; gap:8px; align-items:center; margin-bottom:12px; } .tx-filters input { flex:1; }
 .more { margin:16px auto 0; display:block; }
 @media (max-width:600px) { .card-head { flex-direction:column; } }
+.backup-codes { font-family: ui-monospace, monospace; font-size: 1rem; line-height: 1.6; padding: .75rem; border: 1px solid currentColor; border-radius: 6px; user-select: all; }
+.key-prompt img { display:block; margin: .5rem auto; background:#fff; padding:6px; border-radius:6px; }

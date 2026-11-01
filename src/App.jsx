@@ -59,6 +59,7 @@ function KeyPrompt({ onSubmit, rejected }) {
         <input type="password" autoFocus autoComplete="current-password" placeholder="Access key"
           value={value} onChange={(e) => setValue(e.target.value)} />
         <button className="toggle" type="submit">Unlock</button>
+        <p className="sub"><a href="#/account">Sign in with an account (new)</a></p>
       </form>
     </div>
   );
