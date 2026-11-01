@@ -1,11 +1,26 @@
 import { handleRequest } from "./handle";
 
 /**
+ * Optional backend service. Not declared in wrangler.jsonc until
+ * privacy-dashboard-api is deployed, so the generated Env type omits it.
+ */
+type ApiService = {
+  fetch(request: Request): Promise<Response>;
+};
+
+function optionalApi(env: Env): ApiService | undefined {
+  const candidate = (env as Env & { API?: ApiService }).API;
+  if (candidate && typeof candidate.fetch === "function") return candidate;
+  return undefined;
+}
+
+/**
  * Worker entry. Static assets are served by the ASSETS binding.
- * API routes are handled in ./handle.ts and are not persisted.
+ * POST /api/signup stays local. Other /api paths forward to env.API when present.
  */
 export default {
   async fetch(request, env): Promise<Response> {
+    const api = optionalApi(env);
     try {
       return await handleRequest(
         {
@@ -16,6 +31,7 @@ export default {
         },
         {
           fetchAsset: () => env.ASSETS.fetch(request),
+          forwardApi: api ? () => api.fetch(request) : undefined,
         },
       );
     } catch (error) {

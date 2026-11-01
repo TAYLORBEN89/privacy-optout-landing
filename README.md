@@ -61,6 +61,10 @@ After deploy, both hostnames should resolve through Cloudflare to this Worker. T
 
 `wrangler.jsonc` uses compatibility date `2026-10-30`, the newest date this repo's Wrangler binary accepts. Bump it when you upgrade Wrangler.
 
+## Draft auth and pages
+
+`VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session. Sign-in uses same-origin `/api/me`, `/api/auth/{google|apple|microsoft}/start`, and `POST /api/auth/logout`. Other `/api` paths forward to the `API` service binding when it is uncommented in `wrangler.jsonc`. Until then they return JSON 404. `/api/signup` stays in this Worker.
+
 ## Tests
 
 ```sh

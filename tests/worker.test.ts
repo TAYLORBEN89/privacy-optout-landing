@@ -129,4 +129,55 @@ describe("POST /api/signup", () => {
     expect(response.status).toBe(200);
     expect(await response.text()).toContain("Privacy is a right.");
   });
+
+  it("serves the SPA shell for client routes", async () => {
+    for (const path of ["/security", "/signin", "/start", "/about", "/account"]) {
+      const response = await handleRequest(new Request(`https://optout.example${path}`), assets());
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+    }
+  });
+
+  it("returns JSON 404 for unknown API paths when the binding is absent", async () => {
+    const response = await handleRequest(new Request("https://optout.example/api/me"), assets());
+    expect(response.status).toBe(404);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    const payload = (await response.json()) as { form: { code: string } };
+    expect(payload.form.code).toBe("not_found");
+  });
+
+  it("forwards other API paths and keeps Set-Cookie when the binding is present", async () => {
+    const original = new Request("https://optout.example/api/me", {
+      headers: { cookie: "sid=1", origin: "https://optout.example" },
+    });
+    let forwarded: Request | null = null;
+    const response = await handleRequest(original, {
+      ...assets(),
+      forwardApi: () => {
+        forwarded = original;
+        return Promise.resolve(
+          new Response(JSON.stringify({ user: { email: "ada@example.com" }, csrf: "tok" }), {
+            status: 200,
+            headers: { "set-cookie": "session=abc; HttpOnly", "content-type": "application/json" },
+          }),
+        );
+      },
+    });
+    expect(forwarded).toBe(original);
+    expect(original.headers.get("cookie")).toBe("sid=1");
+    expect(response.headers.get("set-cookie")).toBe("session=abc; HttpOnly");
+    expect(response.status).toBe(200);
+  });
+
+  it("keeps signup local even when a backend binding exists", async () => {
+    let forwarded = false;
+    const response = await handleRequest(post(valid), {
+      forwardApi: () => {
+        forwarded = true;
+        return Promise.resolve(new Response("nope", { status: 500 }));
+      },
+    });
+    expect(forwarded).toBe(false);
+    expect(response.status).toBe(200);
+  });
 });

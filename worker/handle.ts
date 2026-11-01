@@ -19,6 +19,11 @@ export interface IncomingHttpRequest {
 
 export interface RequestDeps {
   fetchAsset?: () => Promise<Response>;
+  /**
+   * Forwards a non-signup /api request to the backend service binding.
+   * Absent means the binding is not configured.
+   */
+  forwardApi?: () => Promise<Response>;
 }
 
 interface ErrorBody {
@@ -185,6 +190,7 @@ export async function handleRequest(
     return handleSignup(request);
   }
   if (url.pathname.startsWith("/api/")) {
+    if (deps.forwardApi) return deps.forwardApi();
     return json(
       { ok: false, errors: {}, form: { code: "not_found", message: "Not found." } },
       404,
