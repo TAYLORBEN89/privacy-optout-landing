@@ -109,7 +109,7 @@ export default function App() {
       <header>
         <div>
           <h1>Privacy Opt-Out Dashboard</h1>
-          <p className="sub">DropTexas · Free privacy opt-out for Texans {online ? '' : <span className="offline">· offline (cached)</span>}</p>
+          <p className="sub">DROP Texas · Free privacy opt-out for Texans {online ? '' : <span className="offline">· offline (cached)</span>}</p>
         </div>
         <div className="header-actions">
           <button className="toggle" onClick={toggle}>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</button>

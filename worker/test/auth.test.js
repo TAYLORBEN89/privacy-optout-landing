@@ -35,7 +35,7 @@ async function fullLogin(u) {
 
 beforeEach(async () => {
   IP = `10.0.0.${++ipCounter}`;
-  await env.DB.batch(['audit_log', 'confirmations', 'pii_payloads', 'optout_requests', 'sessions', 'users']
+  await env.DB.batch(['confirmations', 'pii_payloads', 'optout_requests', 'sessions', 'users']
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`))); // test-only fixed table names
   await env.DB.prepare("INSERT OR IGNORE INTO brokers (id, name) VALUES ('b', 'B'), ('x', 'X'), ('spokeo', 'Spokeo')").run();
 });
@@ -72,7 +72,7 @@ describe('login', () => {
     expect(sc).toMatch(/^__Host-sid=/);
     expect(sc).not.toMatch(/Domain=/i);
     expect(sc).not.toContain('Partitioned');
-    for (const attr of ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/']) expect(sc).toContain(attr);
+    for (const attr of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/']) expect(sc).toContain(attr);
     const raw = cookie.split('=')[1];
     const rows = (await env.DB.prepare("SELECT id_hash FROM sessions WHERE stage = 'session'").all()).results;
     expect(rows.some((r) => r.id_hash === raw)).toBe(false);

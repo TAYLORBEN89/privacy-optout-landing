@@ -6,6 +6,9 @@ import { sha256Hex } from './crypto.js';
 export const LIMITS = {
   login: { max: 5, windowSec: 900 },    // 5 failures / 15 min per IP+account (password and TOTP)
   optout: { max: 30, windowSec: 3600 }, // 30 writes / hour per user
+  oauth_start: { max: 30, windowSec: 600 }, // OAuth flow starts / 10 min per IP
+  oauth_cb: { max: 30, windowSec: 600 },    // OAuth callbacks / 10 min per IP
+  handoff: { max: 30, windowSec: 600 },     // handoff code redemptions / 10 min per IP
 };
 
 const key = async (scope, id) => `rl:${scope}:${await sha256Hex(id)}`;
