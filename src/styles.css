@@ -152,6 +152,28 @@ body {
   background: var(--red);
 }
 
+@keyframes hero-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero h1 {
+    animation: hero-line-in 0.7s ease both;
+  }
+
+  .hero-sub {
+    animation: hero-line-in 0.7s ease 0.22s both;
+  }
+}
+
 .hero .lede {
   margin-left: auto;
   margin-right: auto;
@@ -2021,6 +2043,11 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero h1,
+  .hero-sub {
+    animation: none;
+  }
+
   .cta,
   .reveal {
     transition: none;

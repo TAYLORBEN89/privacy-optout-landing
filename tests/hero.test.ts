@@ -19,6 +19,10 @@ describe("hero copy", () => {
     expect(hero).not.toContain("<Reveal");
     expect(hero).toContain('id="page-title"');
     expect(hero).toContain('className="hero-sub"');
+    const css = readFileSync("src/styles.css", "utf8");
+    expect(css).toContain("@keyframes hero-line-in");
+    expect(css).toContain("animation: hero-line-in 0.7s ease 0.22s both");
+    expect(css).toContain(".hero h1,\n  .hero-sub {\n    animation: none;\n  }");
     const html = readFileSync("index.html", "utf8");
     const sentence =
       "DROP Texas is a free service for Texans to request data brokers not sell their personal information.";
