@@ -52,8 +52,8 @@ describe("explore list", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(page).toContain("Explore DROP Texas");
     expect(css).toContain("width: 32px");
-    expect(css).toContain("min-height: 0");
-    expect(css).toContain("padding: 24px 0");
+    expect(css).toContain("min-height: 87px");
+    expect(css).toContain("padding: 48px 0");
     const tileLink = css.slice(css.indexOf(".nav-tiles a {"), css.indexOf(".nav-tiles a:hover"));
     expect(tileLink).toContain("align-items: flex-start");
     expect(tileLink).toContain("gap: 12px");
@@ -94,7 +94,7 @@ describe("explore list", () => {
     expect(css).not.toContain("max-height: min(68vh, 640px)");
     expect(css).toContain(".nav-panel::before");
     expect(css).toContain("pointer-events: none");
-    expect(css).toContain("padding: 24px 0");
+    expect(css).toContain("padding: 48px 0");
     expect(css).not.toContain("repeat(8, minmax(0, 1fr))");
     expect(css).not.toContain(".sidenav");
   });

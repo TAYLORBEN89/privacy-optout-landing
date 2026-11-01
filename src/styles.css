@@ -1392,7 +1392,7 @@ textarea {
   overflow: visible;
   background: #fff;
   border-radius: 16px;
-  padding: 24px 0;
+  padding: 48px 0;
 }
 
 .nav-panel::before,
@@ -1401,7 +1401,7 @@ textarea {
   position: absolute;
   left: 0;
   right: 0;
-  height: 16px;
+  height: 36px;
   pointer-events: none;
   z-index: 1;
 }
@@ -1430,8 +1430,8 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  min-height: 0;
-  padding: 8px 16px;
+  min-height: 87px;
+  padding: 10px 16px;
   background: #fff;
   color: #010101;
   text-decoration: none;
