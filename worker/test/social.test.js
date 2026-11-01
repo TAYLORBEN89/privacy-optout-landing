@@ -368,7 +368,10 @@ describe('POST /api/optouts/signup (gate)', () => {
     const { id } = JSON.parse(t1);
     const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
     expect(String(p.payload_enc)).not.toContain('5125550100');
+    expect('phone' in good).toBe(false); // missing key = no phone (landing omits it when empty)
     expect((await api('POST', '/api/optouts/signup', a, good)).status).toBe(200);
+    expect((await api('POST', '/api/optouts/signup', a, { ...good, phone: '' })).status).toBe(200);
+    expect((await api('POST', '/api/optouts/signup', a, { ...good, phone: null })).status).toBe(200);
     const bad = await api('POST', '/api/optouts/signup', a, { ...good, phone: '112-555-0100' });
     expect(bad.status).toBe(400);
     const bb = await bad.json();
@@ -376,7 +379,7 @@ describe('POST /api/optouts/signup (gate)', () => {
     expect(JSON.stringify(bb)).not.toContain('555');
     const exp = await (await api('POST', '/api/account/export', a)).json();
     const phones = exp.optouts.map((o) => o.pii.phone).sort();
-    expect(phones).toEqual(['+15125550100', null].sort());
+    expect(phones).toEqual(['+15125550100', null, null, null].sort());
     expect((await api('POST', '/api/account/delete', a)).status).toBe(200);
     expect((await env.DB.prepare('SELECT COUNT(*) AS c FROM pii_payloads').first()).c).toBe(0);
   });
