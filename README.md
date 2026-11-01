@@ -6,7 +6,7 @@ Vite + React frontend, Cloudflare Worker + D1/KV backend (source of truth), loca
 ## Frontend setup
 ```bash
 npm install
-cp .env.example .env   # set VITE_API_URL (the Worker URL)
+cp .env.example .env   # VITE_API_URL: empty for same-origin /api/* (production); http://localhost:8787 for wrangler dev
 npm run dev            # http://localhost:5173
 npm run build          # production build to dist/
 ```
@@ -85,11 +85,11 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 npm test && npm run check:sql && npm run check:origins
 npx wrangler deploy
 ```
-The sign-in host is attached as a Workers Custom Domain (commented `[[routes]]` block in `wrangler.toml`). Attaching a custom domain creates a DNS record in your zone, so only enable it deliberately.
+The sign-in host `accounts.droptexas.com` is a live Workers Custom Domain, declared in the `[[routes]]` block of `wrangler.toml`; `wrangler deploy` keeps the attachment and manages its DNS record. If you fork this, change that pattern to a host in your zone before deploying.
 
 ### Rate limits (`rate_limits`, migration 0008)
 - Columns: `key` (sha256 of `scope|id`, where id is IP + account identifier or user id; no raw IPs or emails), `window_start`, `count`, `expires_at` (window end). Primary key `(key, window_start)`, index on `expires_at`.
-- Fixed windows (`LIMITS` in `worker/src/ratelimit.js`, e.g. login: 5 failures / 15 min per IP+account, shared by password, TOTP and step-up). Each counted request is one atomic `INSERT ... ON CONFLICT DO UPDATE SET count = count + 1 RETURNING count`; D1 is strongly consistent.
+- Fixed windows (`LIMITS` in `worker/src/ratelimit.js`, e.g. login: 5 failures / 15 min per IP+account, shared by password, TOTP and step-up, and also used for backup-code regen and admin bootstrap). Each counted request is one atomic `INSERT ... ON CONFLICT DO UPDATE SET count = count + 1 RETURNING count`; D1 is strongly consistent.
 - Over the limit: `429` with the usual body and `Retry-After` = seconds until the window ends. Because windows are fixed, up to 2x the limit can land across a window boundary (the old KV TTL restarted on every hit).
 - The daily cron deletes ended windows. Old `rl:*` keys in KV are no longer read or written and expire on their own TTL.
 

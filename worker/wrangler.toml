@@ -10,7 +10,7 @@ preview_urls = false
 
 [vars]
 # Comma-separated list of exact origins allowed by CORS (no trailing slashes).
-# droptexas.com plan: dashboard https://droptexas.com, API https://api.droptexas.com (same site -> SameSite=Strict).
+# droptexas.com: app + JSON API same-origin at https://droptexas.com/api/* (landing service binding); sign-in at accounts.droptexas.com.
 # The pages.dev origin stays until the dashboard has moved; remove it afterwards.
 # Production origins only. Dev/preview origins (localhost, pages.dev) go in .dev.vars (see .dev.vars.example).
 # `npm run check:origins` fails if anything else appears here.
