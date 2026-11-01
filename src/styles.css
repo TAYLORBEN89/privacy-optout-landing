@@ -929,6 +929,129 @@ textarea {
   }
 }
 
+.account-page h1 {
+  font-size: clamp(32px, 4vw, 40px);
+}
+
+.account-section {
+  margin-top: 28px;
+  padding-top: 8px;
+}
+
+.account-section h2 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.account-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.account-table th,
+.account-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.account-table th {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.name-row,
+.account-actions,
+.name-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.name-edit {
+  align-items: end;
+}
+
+.name-edit label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.account-page button {
+  border: 0;
+  border-radius: 2px;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.account-page .quiet-button {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--field);
+}
+
+.account-page .danger-button {
+  background: var(--danger);
+}
+
+.device-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ffe7a3;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(1, 1, 1, 0.45);
+}
+
+.dialog-card {
+  width: min(440px, 100%);
+  padding: 28px 24px;
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(16, 16, 16, 0.16);
+}
+
+.dialog-card h2 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 24px;
+}
+
+.dialog-card p {
+  margin: 0 0 16px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cta,
   .reveal {

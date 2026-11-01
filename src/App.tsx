@@ -15,7 +15,7 @@ import { AppLink, usePathname } from "./router";
 type Session =
   | { status: "off" }
   | { status: "loading" }
-  | { status: "in"; csrf: string; user: unknown }
+  | { status: "in"; me: import("./authGate").MeOk }
   | { status: "out"; httpStatus: number };
 
 function normalize(path: string): string {
@@ -34,7 +34,7 @@ export function App() {
     fetchMe()
       .then((result) => {
         if (!live) return;
-        if (result.ok) setSession({ status: "in", csrf: result.csrf, user: result.user });
+        if (result.ok) setSession({ status: "in", me: result });
         else setSession({ status: "out", httpStatus: result.status });
       })
       .catch(() => {
@@ -56,14 +56,21 @@ export function App() {
   else if (path === "/about") page = <AboutPage />;
   else if (path === "/signin") page = <SignInPage />;
   else if (path === "/start") page = <StartPage action={pageAction} />;
-  else if (path === "/account") page = <AccountPage action={pageAction} user={session.status === "in" ? session.user : null} />;
+  else if (path === "/account") {
+    page = (
+      <AccountPage
+        action={pageAction}
+        me={session.status === "in" ? session.me : null}
+      />
+    );
+  }
 
   return (
     <>
       <div className="top-stack">
         <Header
           signedIn={signedIn}
-          csrf={session.status === "in" ? session.csrf : null}
+          csrf={session.status === "in" ? session.me.csrf_token : null}
           signInHref={SIGN_IN_HREF}
           onSignedOut={() => setSession({ status: "out", httpStatus: 401 })}
         />
