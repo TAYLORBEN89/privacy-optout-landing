@@ -7,32 +7,47 @@ import { afterEach, describe, expect, it } from "vitest";
 import { TopNav } from "../src/components/TopNav";
 import { NAV_ITEMS } from "../src/navItems";
 
+const BLURBS = [
+  "What DROP Texas is and how it helps you.",
+  "The steps from signup to opt-out requests.",
+  "What we collect and why.",
+  "The companies we send opt-out requests to.",
+  "Emails, phones, and IDs brokers track you by.",
+  "Your rights under the Texas Data Privacy and Security Act.",
+  "Answers to common questions.",
+  "Tell a friend about DROP Texas.",
+];
+
 afterEach(() => {
   cleanup();
 });
 
-describe("section tiles", () => {
-  it("lists the eight sections with icons, blurbs, and the same anchors", () => {
+describe("explore list", () => {
+  it("lists the eight sections with their descriptions and anchors", () => {
     render(<TopNav />);
     const nav = screen.getByRole("navigation", { name: "On this site" });
     const links = within(nav).getAllByRole("link");
     expect(links.map((link) => link.querySelector(".tile-title")?.textContent)).toEqual(
       NAV_ITEMS.map((item) => item.label),
     );
+    expect(links.map((link) => link.querySelector(".tile-blurb")?.textContent)).toEqual(BLURBS);
     expect(links.map((link) => link.getAttribute("href"))).toEqual(NAV_ITEMS.map((item) => item.href));
-    expect(nav.querySelectorAll(".nav-tiles svg.tile-chevron")).toHaveLength(8);
-    expect(links[0]?.querySelector(".tile-blurb")?.textContent).toBeTruthy();
-    expect(within(nav).queryByRole("link", { name: "Start Removing Me" })).toBeNull();
+    expect(nav.querySelectorAll(".tile-icon")).toHaveLength(8);
+    expect(nav.querySelectorAll(".tile-chevron")).toHaveLength(8);
+    expect(links.map((link) => link.textContent).join(" ")).not.toMatch(/verified/i);
   });
 
-  it("uses a desktop row, a 4 by 2 grid when narrower, and a vertical phone list", () => {
+  it("uses a labeled panel, tall rows on a phone, and two columns on a wide screen", () => {
+    const page = readFileSync("src/pages/HomePage.tsx", "utf8");
     const css = readFileSync("src/styles.css", "utf8");
-    expect(css).toContain("grid-template-columns: repeat(8, minmax(0, 1fr))");
-    expect(css).toContain("grid-template-columns: repeat(4, minmax(0, 1fr))");
-    expect(css).toContain("flex-direction: column");
+    expect(page).toContain("Explore DROP Texas");
+    expect(css).toContain("width: 32px");
+    expect(css).toContain("min-height: 110px");
+    expect(css).toContain("font-size: 22px");
+    expect(css).toContain("width: min(960px, calc(100% - 48px))");
+    expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(css).toContain(".nav-tiles a:focus-visible");
+    expect(css).not.toContain("repeat(8, minmax(0, 1fr))");
     expect(css).not.toContain(".sidenav");
-    expect(css).not.toContain(".mobile-nav");
-    expect(css).not.toContain("overflow-x: auto");
   });
 });

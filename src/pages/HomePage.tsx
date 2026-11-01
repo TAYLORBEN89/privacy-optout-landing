@@ -33,7 +33,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
 
       <section className="explore" aria-labelledby="explore-heading">
         <h2 id="explore-heading" className="explore-label">
-          Explore DROP
+          Explore DROP Texas
         </h2>
         <TopNav />
       </section>
