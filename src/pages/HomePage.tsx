@@ -15,7 +15,9 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <h1 id="page-title">Privacy is a right.</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
             <p className="lede hero-line">
-              DROP Texas is a free service that helps you gain control of your data. Your data. Your rules.
+              DROP Texas is a free service that helps you gain control of your data.{" "}
+              <br />
+              <span className="hero-rule">Your data. Your rules.</span>
             </p>
             <p className="lede note">
               If you live in Texas, check the box. That means the Texas Data Privacy and Security Act

@@ -194,6 +194,10 @@ body {
   margin-right: auto;
 }
 
+.hero-rule {
+  white-space: nowrap;
+}
+
 .hero .cta {
   margin-left: auto;
   margin-right: auto;
