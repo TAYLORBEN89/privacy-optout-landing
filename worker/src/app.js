@@ -5,6 +5,7 @@ import {
   encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
 import { reserve, refund, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
+import { TX_TO_DB, txSubStatus, toClient, epochOfDate } from './txmap.js';
 
 const COOKIE = '__Host-sid';
 const STEP = 30;
@@ -461,6 +462,52 @@ async function putProfile(ctx, cur) {
   return json(ctx, b);
 }
 
+// ---------- Texas requests (per-user rows, kind = 'tx') ----------
+// Every query is scoped by the session user_id; another user's rows are indistinguishable from missing ones.
+const TX_ID_RE = /^tx-[a-z0-9-]{1,61}$/;
+async function listTx(ctx, cur) {
+  const r = await ctx.env.DB.prepare("SELECT * FROM optout_requests WHERE user_id = ?1 AND kind = 'tx' AND service_id LIKE 'tx-%' ORDER BY updated_at DESC LIMIT 5000")
+    .bind(cur.session.user_id).all();
+  return json(ctx, r.results.map(toClient));
+}
+async function getTx(ctx, cur, sid) {
+  const row = await ctx.env.DB.prepare("SELECT * FROM optout_requests WHERE user_id = ?1 AND kind = 'tx' AND service_id = ?2")
+    .bind(cur.session.user_id, sid).first();
+  return row ? json(ctx, toClient(row)) : json(ctx, { error: 'not found' }, 404);
+}
+async function putTx(ctx, cur, sid) {
+  const uid = cur.session.user_id;
+  // Same limiter as the other opt-out writes: reserved up front, rejected 400s count too (no refund).
+  const rlRes = await reserve(ctx.env, 'optout', uid);
+  if (rlRes.limited) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(rlRes.limited));
+  const b = await readJson(ctx.req);
+  if (!b || !Object.hasOwn(TX_TO_DB, b.status)) return json(ctx, { error: 'bad request' }, 400);
+  const status = TX_TO_DB[b.status];
+  const t = now();
+  const prev = await ctx.env.DB.prepare("SELECT id, status, finished_at, confirmed_at FROM optout_requests WHERE user_id = ?1 AND kind = 'tx' AND service_id = ?2")
+    .bind(uid, sid).first();
+  const finishedAt = FINISHED.has(status) ? (prev && prev.status === status && prev.finished_at ? prev.finished_at : t) : null;
+  const confirmedAt = status === 'confirmed' ? (prev?.confirmed_at ?? t) : null;
+  // Concurrency: if two first writes race, both may generate an id, but the partial unique index
+  // (user_id, service_id) WHERE kind='tx' makes the second an UPDATE that keeps the winner's id. The audit row
+  // reads the stored id inside the same batch (one transaction), so it always points at the real row.
+  const id = prev?.id ?? crypto.randomUUID();
+  const notes = typeof b.notes === 'string' ? b.notes.slice(0, 2000) : null;
+  await ctx.env.DB.batch([
+    ctx.env.DB.prepare(
+      `INSERT INTO optout_requests (id, user_id, kind, service_id, status, sub_status, submitted_at, deadline, confirmed_at, finished_at, notes, created_at, updated_at)
+       VALUES (?1, ?2, 'tx', ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)
+       ON CONFLICT(user_id, service_id) WHERE kind = 'tx' AND service_id LIKE 'tx-%' DO UPDATE SET status = excluded.status, sub_status = excluded.sub_status,
+         submitted_at = excluded.submitted_at, deadline = excluded.deadline, confirmed_at = excluded.confirmed_at,
+         finished_at = excluded.finished_at, notes = excluded.notes, updated_at = excluded.updated_at`,
+    ).bind(id, uid, sid, status, txSubStatus(b.status), epochOfDate(b.sentDate), epochOfDate(b.deadline), confirmedAt, finishedAt, notes, t),
+    ctx.env.DB.prepare(
+      "INSERT INTO audit_log (user_id, action, target, at) VALUES (?1, ?2, (SELECT id FROM optout_requests WHERE user_id = ?1 AND kind = 'tx' AND service_id = ?3), ?4)",
+    ).bind(uid, prev && prev.status !== status ? `tx.status:${prev.status}->${status}` : 'tx.upsert', sid, t),
+  ]);
+  return getTx(ctx, cur, sid);
+}
+
 // ---------- first-user bootstrap ----------
 // POST /admin/bootstrap  Authorization: Bearer <ADMIN_BOOTSTRAP_TOKEN>  {email, password}
 // Only succeeds while the users table is empty (atomic INSERT ... WHERE NOT EXISTS), so it self-disables.
@@ -530,6 +577,13 @@ export async function handleApp(req, env) {
   // Identifier/PII reads and writes on the legacy routes require step-up (kept for the dashboard, gated not removed).
   if (m === 'GET' && path === '/profile') return isSteppedUp(cur.session) ? getProfile(ctx, cur) : STEP_UP_REQUIRED(ctx);
   if (m === 'PUT' && path === '/profile') return isSteppedUp(cur.session) ? putProfile(ctx, cur) : STEP_UP_REQUIRED(ctx);
+  if (m === 'GET' && path === '/tx-requests') return listTx(ctx, cur);
+  const tm = path.match(/^\/tx-requests\/([^/]+)$/);
+  if (tm) {
+    if (!TX_ID_RE.test(tm[1])) return json(ctx, { error: 'bad request' }, 400);
+    if (m === 'GET') return getTx(ctx, cur, tm[1]);
+    if (m === 'PUT') return putTx(ctx, cur, tm[1]);
+  }
   const om = path.match(/^\/optouts\/([^/]+)(\/pii)?$/);
   if (om && ID_RE.test(om[1])) {
     if (!om[2] && m === 'PATCH') return patchOptout(ctx, cur, om[1]);
@@ -538,7 +592,7 @@ export async function handleApp(req, env) {
   return json(ctx, { error: 'not found' }, 404);
 }
 
-export const isAppPath = (pathname) => /^\/(auth|me|optouts|brokers|profile|admin|api)(\/|$)/.test(pathname);
+export const isAppPath = (pathname) => /^\/(auth|me|optouts|tx-requests|brokers|profile|admin|api)(\/|$)/.test(pathname);
 
 // ---------- scheduled purge ----------
 // Retention (env vars, days): PII_RETENTION_DAYS (after confirmation, 30), PII_HARD_MAX_DAYS (90, enforced via purge_after),

@@ -1,6 +1,7 @@
 // Storage module. The Cloudflare Worker (see /worker) is the source of truth;
 // localStorage is only an offline cache used when the API is unreachable.
 import { SERVICES } from './services.js';
+import { call, ApiError } from './authApi.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 const KEY_STORAGE = 'privacy-dashboard:access-key';
@@ -66,28 +67,29 @@ export async function deleteRecord(id) {
   catch (e) { if (e instanceof AuthError) throw e; return false; }
 }
 
-// ---- Texas TDPSA broker requests (Worker collection /txrequests, KV prefix 'txreq:') ----
-const TX_CACHE_KEY = 'privacy-dashboard:txrequests:v1';
-const readTx = () => { try { return JSON.parse(localStorage.getItem(TX_CACHE_KEY)) || {}; } catch { return {}; } };
-const writeTx = (m) => localStorage.setItem(TX_CACHE_KEY, JSON.stringify(m));
+// ---- Texas TDPSA broker requests: per-user D1 rows via the session API (GET /tx-requests, PUT /tx-requests/:id) ----
+// Not cached in localStorage (PR #7's no-plaintext rule). These calls use the session cookie, not the legacy key,
+// so a 401/403 means "not signed in (with MFA)": it throws SessionAuthError, never the legacy AuthError (which
+// would clear the legacy key) and is never reported as "offline".
+export class SessionAuthError extends Error {}
+const isSessionAuth = (e) => e instanceof ApiError && (e.status === 401 || e.status === 403);
 
 /** Returns { map: {id: request}, online }. */
 export async function loadTxRequests() {
   try {
-    const list = await api('/txrequests');
+    await call('/me'); // signed-in session (restores CSRF token)
+    const list = await call('/tx-requests');
     const map = Object.fromEntries(list.map((r) => [r.id, r]));
-    writeTx(map);
     return { map, online: true };
   } catch (e) {
-    if (e instanceof AuthError) throw e;
-    return { map: readTx(), online: false };
+    if (isSessionAuth(e)) throw new SessionAuthError('sign in required');
+    return { map: {}, online: false };
   }
 }
 
 export async function saveTxRequest(req) {
-  const map = readTx(); map[req.id] = req; writeTx(map);
-  try { await api(`/txrequests/${encodeURIComponent(req.id)}`, { method: 'PUT', body: JSON.stringify(req) }); return true; }
-  catch (e) { if (e instanceof AuthError) throw e; return false; }
+  try { await call(`/tx-requests/${encodeURIComponent(req.id)}`, { method: 'PUT', body: req }); return true; }
+  catch (e) { if (isSessionAuth(e)) throw new SessionAuthError('sign in required'); return false; }
 }
 
 // ---- Profile (identifiers for request emails). Worker: /settings/profile. Cached locally for offline use. ----

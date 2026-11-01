@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import bundled from './data/tx-brokers.json';
-import { loadProfile, loadTxRequests, saveProfile, saveTxRequest } from './storage.js';
+import { SessionAuthError, loadProfile, loadTxRequests, saveProfile, saveTxRequest } from './storage.js';
 import { AG_COMPLAINT_URL, EMPTY_PROFILE, RESPONSE_DAYS, buildEmail } from './txProfile.js';
 
 // Texas data broker registry -> TDPSA deletion/opt-out requests.
@@ -166,9 +166,12 @@ export default function TexasBrokers({ onAuthFail }) {
   const [limit, setLimit] = useState(50);
   const [err, setErr] = useState('');
 
-  useEffect(() => { loadTxRequests().then(({ map, online }) => { setReqs(map); setOnline(online); }).catch(onAuthFail); }, []);
+  const [txSignedOut, setTxSignedOut] = useState(false);
+  // Texas requests use the signed-in session: a 401/403 shows a sign-in note (not "offline", not the legacy key prompt).
+  const onTxErr = (e) => { if (e instanceof SessionAuthError) { setTxSignedOut(true); setReqs((m) => m || {}); return; } onAuthFail(e); };
+  useEffect(() => { loadTxRequests().then(({ map, online }) => { setReqs(map); setOnline(online); }).catch(onTxErr); }, []);
 
-  const update = (r) => { setReqs((m) => ({ ...m, [r.id]: r })); saveTxRequest(r).then(setOnline).catch(onAuthFail); };
+  const update = (r) => { if (txSignedOut) return; setReqs((m) => ({ ...m, [r.id]: r })); saveTxRequest(r).then(setOnline).catch(onTxErr); };
 
   const upload = async (e) => {
     const f = e.target.files?.[0]; if (!f) return;
@@ -202,6 +205,7 @@ export default function TexasBrokers({ onAuthFail }) {
 
   return (
     <>
+      {txSignedOut && <div className="tx-note">Sign in at #/account to load and save your Texas requests. Changes here are not saved until you do.</div>}
       <ProfileEditor profile={profile} onSave={storeProfile} />
       <section className="progress-wrap">
         <div className="progress-label">
