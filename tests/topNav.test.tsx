@@ -47,6 +47,10 @@ describe("explore list", () => {
     expect(css).toContain("width: min(960px, calc(100% - 48px))");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(css).toContain(".nav-tiles a:focus-visible");
+    expect(css).not.toContain(".nav-tiles li + li");
+    expect(css).toContain("mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent)");
+    expect(css).toContain("border-radius: 0");
+    expect(css).toContain("margin-inline: 8px");
     expect(css).not.toContain("repeat(8, minmax(0, 1fr))");
     expect(css).not.toContain(".sidenav");
   });
