@@ -2,12 +2,21 @@ import { useEffect } from "react";
 import { SignupForm } from "../SignupForm";
 import { DISCLAIMER } from "../copy";
 import { type StartAction, signInHrefFor } from "../authGate";
-import { navigate } from "../router";
 
-export function StartPage({ action }: { action: StartAction }) {
+function assignLocation(url: string): void {
+  window.location.assign(url);
+}
+
+export function StartPage({
+  action,
+  goTo = assignLocation,
+}: {
+  action: StartAction;
+  goTo?: (url: string) => void;
+}) {
   useEffect(() => {
-    if (action === "redirect") navigate(signInHrefFor("/start"));
-  }, [action]);
+    if (action === "redirect") goTo(signInHrefFor("/start"));
+  }, [action, goTo]);
 
   if (action === "loading") return <p className="panel">Checking sign-in…</p>;
   if (action === "redirect") return <p className="panel">Sending you to sign in…</p>;

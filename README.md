@@ -63,7 +63,13 @@ After deploy, both hostnames should resolve through Cloudflare to this Worker. T
 
 ## Draft auth and pages
 
-`VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session. Sign-in uses same-origin `/api/me`, `/api/auth/{google|microsoft}/start`, and `POST /api/auth/logout`. Other `/api` paths forward to the `API` service binding when it is uncommented in `wrangler.jsonc`. Until then they return JSON 404. `/api/signup` stays in this Worker.
+`VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session.
+
+Sign-in is hosted at `accounts.droptexas.com`, like a separate accounts site. `ACCOUNTS_ORIGIN` defaults to `https://accounts.droptexas.com` and can be overridden with `VITE_ACCOUNTS_ORIGIN`. The header Sign in link, the sign-in gate, and any other sign-in control leave this site with a full page load to `${ACCOUNTS_ORIGIN}/signin?return_to=/start` or `return_to=/account`. `return_to` must be a same-site path that starts with `/` and not `//`. A local visit to `/signin` redirects there and keeps a valid `return_to`.
+
+After sign-in, the browser returns to `https://droptexas.com/api/auth/complete?code=...`. That request is under `/api/*` (`run_worker_first`), so the Worker forwards it through the API binding and does not serve the SPA shell.
+
+`/api/me`, `/api/account/*`, and `/api/optouts/signup` stay on this origin. `POST /api/signup` is still handled in this Worker. Other `/api` paths forward to the `API` service binding when it is uncommented in `wrangler.jsonc`. Until then they return JSON 404. Logout stays `POST /api/auth/logout` on this origin.
 
 ## Tests
 

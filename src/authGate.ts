@@ -1,6 +1,7 @@
+import { accountsSignInUrl } from "../shared/accounts";
 import { ME_PATH } from "./api";
 
-export const SIGN_IN_HREF = "/signin?return_to=/start";
+export const SIGN_IN_HREF = accountsSignInUrl("/start");
 
 /**
  * Draft default is on. Set VITE_AUTH_GATE=false at build time to show /start
@@ -31,7 +32,7 @@ export function startPageAction(
 }
 
 export function signInHrefFor(returnTo: "/start" | "/account"): string {
-  return `/signin?return_to=${returnTo}`;
+  return accountsSignInUrl(returnTo);
 }
 
 export interface MeUser {

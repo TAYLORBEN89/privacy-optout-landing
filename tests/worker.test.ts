@@ -131,7 +131,7 @@ describe("POST /api/signup", () => {
   });
 
   it("serves the SPA shell for client routes", async () => {
-    for (const path of ["/security", "/signin", "/start", "/about", "/account"]) {
+    for (const path of ["/security", "/start", "/about", "/account"]) {
       const response = await handleRequest(new Request(`https://optout.example${path}`), assets());
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
@@ -167,6 +167,47 @@ describe("POST /api/signup", () => {
     expect(original.headers.get("cookie")).toBe("sid=1");
     expect(response.headers.get("set-cookie")).toBe("session=abc; HttpOnly");
     expect(response.status).toBe(200);
+  });
+
+  it("redirects /signin to the accounts host and drops an unsafe return path", async () => {
+    const kept = await handleRequest(new Request("https://droptexas.com/signin?return_to=/account"), assets());
+    expect(kept.status).toBe(302);
+    expect(kept.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Faccount");
+
+    const dropped = await handleRequest(
+      new Request("https://droptexas.com/signin?return_to=//evil.example"),
+      assets(),
+    );
+    expect(dropped.status).toBe(302);
+    expect(dropped.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+  });
+
+  it("forwards /api/auth/complete and does not serve the SPA shell", async () => {
+    let usedAsset = false;
+    const missing = await handleRequest(new Request("https://droptexas.com/api/auth/complete?code=abc"), {
+      fetchAsset: async () => {
+        usedAsset = true;
+        return new Response("<!doctype html>", { headers: { "content-type": "text/html" } });
+      },
+    });
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get("content-type")).toContain("application/json");
+    expect(usedAsset).toBe(false);
+
+    let forwarded = false;
+    const bound = await handleRequest(new Request("https://droptexas.com/api/auth/complete?code=abc"), {
+      fetchAsset: async () => {
+        usedAsset = true;
+        return new Response("<!doctype html>", { headers: { "content-type": "text/html" } });
+      },
+      forwardApi: () => {
+        forwarded = true;
+        return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      },
+    });
+    expect(forwarded).toBe(true);
+    expect(usedAsset).toBe(false);
+    expect(bound.status).toBe(200);
   });
 
   it("returns JSON 404 for removed auth routes and does not forward them", async () => {

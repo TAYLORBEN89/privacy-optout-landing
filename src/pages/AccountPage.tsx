@@ -19,7 +19,6 @@ import type { ApiErr, ApiOk } from "../api/http";
 import { stepUpChoices } from "../api/stepUp";
 import type { MeOk } from "../authGate";
 import { type StartAction, signInHrefFor } from "../authGate";
-import { navigate } from "../router";
 
 const EMPTY_PROFILE: AccountProfile = { display_name: null, identifiers_locked: true };
 
@@ -301,13 +300,15 @@ export function AccountView({
   );
 }
 
+function assignLocation(url: string): void {
+  window.location.assign(url);
+}
+
 export function AccountPage({
   action,
   me,
   fetchImpl = fetch,
-  goTo = (url: string) => {
-    window.location.assign(url);
-  },
+  goTo = assignLocation,
 }: {
   action: StartAction;
   me: MeOk | null;
@@ -334,8 +335,8 @@ export function AccountPage({
   const choices = stepUpChoices(me?.providers, Boolean(me?.user.has_password));
 
   useEffect(() => {
-    if (action === "redirect") navigate(signInHrefFor("/account"));
-  }, [action]);
+    if (action === "redirect") goTo(signInHrefFor("/account"));
+  }, [action, goTo]);
 
   useEffect(() => {
     if (action !== "form") return;

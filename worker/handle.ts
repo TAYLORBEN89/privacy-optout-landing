@@ -1,3 +1,4 @@
+import { accountsSignInUrl } from "../shared/accounts";
 import { validateSignup, type FieldIssue, type SignupIssues } from "../shared/signup";
 
 /**
@@ -194,6 +195,16 @@ export async function handleRequest(
       { ok: false, errors: {}, form: { code: "not_found", message: "Not found." } },
       404,
     );
+  }
+  if (url.pathname === "/signin" || url.pathname === "/signin/") {
+    const requested = url.searchParams.get("return_to") ?? "/start";
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: accountsSignInUrl(requested),
+        "cache-control": "no-store",
+      },
+    });
   }
   if (url.pathname.startsWith("/api/")) {
     if (deps.forwardApi) return deps.forwardApi();

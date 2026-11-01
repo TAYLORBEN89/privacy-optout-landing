@@ -4,6 +4,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import { signInHrefFor } from "../src/authGate";
 import { Header } from "../src/Header";
 
 afterEach(() => {
@@ -14,7 +15,7 @@ describe("header menu", () => {
   it("opens and closes the slide-out from the hamburger", async () => {
     const user = userEvent.setup();
     render(
-      <Header signedIn={false} csrf={null} signInHref="/signin?return_to=/start" onSignedOut={() => undefined} />,
+      <Header signedIn={false} csrf={null} signInHref={signInHrefFor("/start")} onSignedOut={() => undefined} />,
     );
     const button = screen.getByRole("button", { name: "Open menu" });
     expect(button.getAttribute("aria-expanded")).toBe("false");
@@ -28,10 +29,10 @@ describe("header menu", () => {
 
   it("shows a plain Sign in link when signed out", () => {
     render(
-      <Header signedIn={false} csrf={null} signInHref="/signin?return_to=/start" onSignedOut={() => undefined} />,
+      <Header signedIn={false} csrf={null} signInHref={signInHrefFor("/start")} onSignedOut={() => undefined} />,
     );
     const link = screen.getByRole("link", { name: "Sign in" });
-    expect(link.getAttribute("href")).toBe("/signin?return_to=/start");
+    expect(link.getAttribute("href")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
     expect(link.className).toBe("sign-in-link");
     expect(screen.queryByRole("button", { name: "Account" })).toBeNull();
   });

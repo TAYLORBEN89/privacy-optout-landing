@@ -52,7 +52,8 @@ export function AppLink({
 }) {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-    if (href.startsWith("/api/")) return;
+    const sameDocument = href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/api/");
+    if (!sameDocument) return;
     event.preventDefault();
     onClick?.();
     navigate(href);
