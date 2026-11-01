@@ -48,9 +48,9 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <h2 id="personal-heading">Your information, protected</h2>
           <p className="personal-sub">Only what we need. Nothing more.</p>
           <p className="personal-body">
-            We collect only what's needed. That's your name, date of birth, address, email, phone and Texas residency.
-            Parents filing for a child also share the child's name, date of birth and address if it's different. Your
-            information is encrypted in transit, and we never sell it.
+            <span className="personal-line">Your information is encrypted in transit and never sold.</span>{" "}
+            <span className="personal-line">We ask only for your name, date of birth, address,</span>{" "}
+            <span className="personal-line">email, phone and Texas residency.</span>
           </p>
           <p className="personal-preview">{storageNotice()}</p>
           <AppLink className="cta" href="/privacy">

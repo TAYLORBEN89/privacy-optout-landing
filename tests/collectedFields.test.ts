@@ -21,9 +21,10 @@ describe("collected fields", () => {
 
   it("uses Ben's yellow-band body and does not add an at-rest claim", () => {
     const page = readFileSync("src/pages/HomePage.tsx", "utf8").replace(/\s+/g, " ");
-    expect(page).toContain(
-      "We collect only what's needed. That's your name, date of birth, address, email, phone and Texas residency. Parents filing for a child also share the child's name, date of birth and address if it's different. Your information is encrypted in transit, and we never sell it.",
-    );
+    expect(page).toContain("Your information is encrypted in transit and never sold.");
+    expect(page).toContain("We ask only for your name, date of birth, address,");
+    expect(page).toContain("email, phone and Texas residency.");
+    expect(page).not.toContain("Parents filing for a child");
     expect(page).toContain("Your information, protected");
     expect(page).toContain("Only what we need. Nothing more.");
     expect(page).toContain("{storageNotice()}");

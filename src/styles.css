@@ -1683,10 +1683,24 @@ textarea {
 
 .personal-body {
   margin: 16px auto 0;
-  max-width: 40rem;
+  max-width: 560px;
   color: #333;
   font-size: 18px;
   line-height: 1.55;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .personal-body {
+    /* balance evens the lines; default wrap keeps each one shorter than the one above. */
+    text-wrap: wrap;
+  }
+}
+
+@media (min-width: 768px) {
+  .personal-line {
+    display: block;
+  }
 }
 
 .personal-preview {
