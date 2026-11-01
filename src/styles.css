@@ -77,6 +77,13 @@ body {
   padding: 16px 0;
 }
 
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -87,6 +94,16 @@ body {
   font-weight: 600;
   letter-spacing: -0.1px;
   line-height: 1.2;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--hint);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .mark {

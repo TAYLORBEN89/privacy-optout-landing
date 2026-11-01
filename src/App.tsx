@@ -4,16 +4,20 @@ import { storageNotice } from "../worker/storage";
 const DISCLAIMER =
   "Drop Texas is a private, free service. It is not affiliated with or endorsed by the State of California, CalPrivacy, or any government agency.";
 
-function Wordmark() {
+function Wordmark({ header = false }: { header?: boolean }) {
+  const name = header ? "DROP Texas" : "Drop Texas";
   return (
-    <p className="brand">
-      <svg className="mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="#ee0014" />
-        <rect x="7" y="8" width="8" height="16" rx="2" fill="#ffffff" />
-        <circle cx="20" cy="16" r="6.5" fill="#ffffff" />
-      </svg>
-      <span>Drop Texas</span>
-    </p>
+    <div className={header ? "brand-lockup" : undefined}>
+      <p className="brand" aria-label={header ? name : undefined}>
+        <svg className="mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="#ee0014" />
+          <rect x="7" y="8" width="8" height="16" rx="2" fill="#ffffff" />
+          <circle cx="20" cy="16" r="6.5" fill="#ffffff" />
+        </svg>
+        <span>{name}</span>
+      </p>
+      {header ? <p className="tagline">for the people, by the people</p> : null}
+    </div>
   );
 }
 
@@ -26,7 +30,7 @@ export function App() {
         </p>
         <header className="topbar">
           <div className="topbar-inner">
-            <Wordmark />
+            <Wordmark header />
           </div>
         </header>
       </div>
