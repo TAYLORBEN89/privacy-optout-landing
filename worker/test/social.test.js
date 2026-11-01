@@ -869,3 +869,23 @@ describe('pre-deploy: handoff scrubbing, purge, 429 cookie clear', () => {
     expect((await env.RECORDS.list({ prefix: 'rl:' })).keys.length).toBe(0);
   });
 });
+
+describe('/api/profile alias: distinct 403 codes', () => {
+  it('401 without a session; 403 code step_up_required when not stepped up; 200 after', async () => {
+    expect((await api('GET', '/api/profile')).status).toBe(401);
+    const a = await socialLogin('google');
+    await env.DB.prepare('UPDATE sessions SET stepped_up_at = NULL').run();
+    const r = await api('GET', '/api/profile', a);
+    expect(r.status).toBe(403);
+    expect(await r.json()).toEqual({ error: 'step_up_required', code: 'step_up_required' });
+    await env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1').bind(Math.floor(Date.now() / 1000)).run();
+    expect((await api('GET', '/api/profile', a)).status).toBe(200);
+  });
+  it('password session without TOTP gets 403 code mfa_required', async () => {
+    const a = await socialLogin('google');
+    await env.DB.prepare("UPDATE sessions SET mfa = 0, auth_method = 'password'").run();
+    const r = await api('GET', '/api/profile', a);
+    expect(r.status).toBe(403);
+    expect((await r.json()).code).toBe('mfa_required');
+  });
+});

@@ -84,7 +84,9 @@ export default function App() {
     loadRecords().then(({ records, online }) => { setRecords(records); setOnline(online); setRejected(false); }).catch(onAuthFail);
   }, [hasKey]);
 
+  // Offline = read-only: records shown are defaults (nothing is cached), so saving would overwrite server state.
   const update = (rec) => {
+    if (!online) return;
     setRecords((rs) => rs.map((r) => (r.id === rec.id ? rec : r)));
     saveRecord(rec).then(setOnline).catch(onAuthFail);
   };
@@ -109,7 +111,7 @@ export default function App() {
       <header>
         <div>
           <h1>Privacy Opt-Out Dashboard</h1>
-          <p className="sub">DROP Texas · Free privacy opt-out for Texans {online ? '' : <span className="offline">· offline (cached)</span>}</p>
+          <p className="sub">DROP Texas · Free privacy opt-out for Texans {online ? '' : <span className="offline">· offline: read-only, reload to retry</span>}</p>
         </div>
         <div className="header-actions">
           <button className="toggle" onClick={toggle}>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</button>
@@ -149,7 +151,7 @@ export default function App() {
         return (
           <section key={cat.id} className="category">
             <h2>{cat.label} <span className="count">{done}/{items.length}</span></h2>
-            <div className="cards">{items.map((r) => <Card key={r.id} record={r} onChange={update} />)}</div>
+            <fieldset disabled={!online} style={{ display: 'contents', border: 0, padding: 0, margin: 0 }}><div className="cards">{items.map((r) => <Card key={r.id} record={r} onChange={update} />)}</div></fieldset>
           </section>
         );
       })}
