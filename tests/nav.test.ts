@@ -5,13 +5,13 @@ describe("site nav", () => {
   it("lists the eight DROP sections in order", () => {
     expect(NAV_ITEMS.map((item) => item.label)).toEqual([
       "Overview",
-      "How DROP Works",
+      "How It Works",
       "Personal Information",
       "Data Brokers",
       "Unique Identifiers",
       "TDPSA",
-      "Help with DROP",
-      "Share DROP",
+      "Help",
+      "Share",
     ]);
   });
 
