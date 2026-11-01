@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
-import { Wordmark } from "./Brand";
-import { DISCLAIMER } from "./copy";
 import { Header } from "./Header";
+import { SiteFooter } from "./Footer";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { BrokersPage } from "./pages/BrokersPage";
@@ -21,7 +20,7 @@ import { PrivacyPage } from "./pages/PrivacyPage";
 import { SecurityPage } from "./pages/SecurityPage";
 import { SignInPage } from "./pages/SignInPage";
 import { StartPage } from "./pages/StartPage";
-import { AppLink, usePathname } from "./router";
+import { usePathname } from "./router";
 
 type Session =
   | { status: "off" }
@@ -99,18 +98,7 @@ export function App() {
       <div className={showNav ? "shell" : "solo"}>
         <div className="content">{page}</div>
       </div>
-      <footer className="site-footer">
-        <div className="footer-inner">
-          <Wordmark />
-          <p className="footer-links">
-            <AppLink href="/privacy">Privacy & Security</AppLink>
-          </p>
-          <p className="independence">{DISCLAIMER}</p>
-          <AppLink className="cta" href={getStarted}>
-            Start Removing Me
-          </AppLink>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }
