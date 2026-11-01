@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { authenticator } from 'otplib';
 import worker from '../src/index.js';
 import { hashPassword, encryptStr, encryptPii, decryptPii } from '../src/crypto.js';
-import { purge } from '../src/app.js';
+import { purge, inactiveAccounts } from '../src/app.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -306,5 +306,26 @@ describe('in_progress status + retention clock', () => {
     await purge(env, t);
     const ids = (await env.DB.prepare('SELECT id FROM optout_requests ORDER BY id').all()).results.map((r) => r.id);
     expect(ids).toEqual(['opt-ancient-pending', 'opt-created-old-finished-recent', 'tx-ancient-in-progress', 'tx-created-old-finished-recent']);
+  });
+});
+
+describe('last_active_at', () => {
+  it('is set on login and clears a pending inactivity warning', async () => {
+    const u = await makeUser();
+    await env.DB.prepare('UPDATE users SET last_active_at = 5, inactivity_warned_at = 6 WHERE id = ?1').bind(u.id).run();
+    await fullLogin(u);
+    const r = await env.DB.prepare('SELECT last_active_at, inactivity_warned_at FROM users WHERE id = ?1').bind(u.id).first();
+    expect(r.last_active_at).toBeGreaterThan(1_700_000_000);
+    expect(r.inactivity_warned_at).toBeNull();
+  });
+  it('a login during the warning window cancels deletion (login race)', async () => {
+    const u = await makeUser({ email: 'race@example.test' });
+    const t = Math.floor(Date.now() / 1000);
+    await env.DB.prepare('UPDATE users SET created_at = 1, last_active_at = ?1, inactivity_warned_at = ?2 WHERE id = ?3')
+      .bind(t - 800 * DAY, t - 20 * DAY, u.id).run();
+    await fullLogin(u); // signs in after the warning, before the cron's DELETE
+    const r = await inactiveAccounts({ ...env, MAILER: { send: async () => ({}) }, MAIL_FROM: 'a@example.test' }, t + 60);
+    expect(r.deleted).toBe(0);
+    expect(await env.DB.prepare('SELECT 1 FROM users WHERE id = ?1').bind(u.id).first()).not.toBeNull();
   });
 });

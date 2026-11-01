@@ -92,10 +92,14 @@ export async function createSession(env, userId, mfa, { absoluteExp, rotatedFrom
   const csrf = randomToken(32);
   const t = now();
   const exp = absoluteExp ?? t + c.absolute;
-  await env.DB.prepare(
-    `INSERT INTO sessions (id_hash, user_id, stage, mfa, csrf, created_at, last_seen_at, expires_at, rotated_from, auth_method, stepped_up_at)
-     VALUES (?1, ?2, 'session', ?3, ?4, ?5, ?5, ?6, ?7, ?8, ?9)`,
-  ).bind(await sha256Hex(token), userId, mfa ? 1 : 0, csrf, t, exp, rotatedFrom ?? null, authMethod, steppedUpAt).run();
+  // Session INSERT and the last_active_at bump are one D1 batch (one transaction): both succeed or neither does.
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO sessions (id_hash, user_id, stage, mfa, csrf, created_at, last_seen_at, expires_at, rotated_from, auth_method, stepped_up_at)
+       VALUES (?1, ?2, 'session', ?3, ?4, ?5, ?5, ?6, ?7, ?8, ?9)`,
+    ).bind(await sha256Hex(token), userId, mfa ? 1 : 0, csrf, t, exp, rotatedFrom ?? null, authMethod, steppedUpAt),
+    env.DB.prepare('UPDATE users SET last_active_at = ?1, inactivity_warned_at = NULL WHERE id = ?2').bind(t, userId),
+  ]);
   return { token, csrf, maxAge: Math.min(c.idle, exp - t) };
 }
 
@@ -482,7 +486,7 @@ async function bootstrap(ctx) {
   const id = crypto.randomUUID();
   const t = now();
   const r = await ctx.env.DB.prepare(
-    'INSERT INTO users (id, email, pw_hash, created_at) SELECT ?1, ?2, ?3, ?4 WHERE NOT EXISTS (SELECT 1 FROM users)',
+    'INSERT INTO users (id, email, pw_hash, created_at, last_active_at) SELECT ?1, ?2, ?3, ?4, ?4 WHERE NOT EXISTS (SELECT 1 FROM users)',
   ).bind(id, email, await hashPassword(password), t).run();
   if (r.meta.changes !== 1) return json(ctx, { error: 'not found' }, 404);
   await audit(ctx, id, 'user.bootstrap');
@@ -597,4 +601,54 @@ export async function expireAudit(env, at = now()) {
   const deleted = res[2].meta.changes;
   console.log('audit_expiry', JSON.stringify({ deleted }));
   return deleted;
+}
+
+// ---------- inactive accounts ----------
+// INACTIVE_WARN_DAYS (700 ~ 23 months): send one warning email. INACTIVE_DELETE_DAYS (730 = 24 months): delete the
+// account (cascades to sessions, opt-out records, PII, profile) but only if a warning went out at least
+// INACTIVE_MIN_NOTICE_DAYS (14) earlier. Mail goes through the Cloudflare Email Service binding env.MAILER;
+// if it is not configured, nobody is warned and therefore nobody is deleted.
+// Deletion happens at the later of (last activity + delDays) and (warning + notice), so a late warning
+// (backlog, mail outage, config change) still gets the full notice. The email states that real deadline.
+export function inactivityDeadline(lastSeen, warnedAt, delDays, notice) {
+  return Math.max(lastSeen + delDays * 86400, warnedAt + notice * 86400);
+}
+export function inactivityWarningText(lastSeen, at, delDays, notice) {
+  const deadline = inactivityDeadline(lastSeen, at, delDays, notice);
+  const daysLeft = Math.ceil((deadline - at) / 86400);
+  const months = Math.max(1, Math.round((at - lastSeen) / 86400 / 30.44));
+  const date = new Date(deadline * 1000).toISOString().slice(0, 10);
+  return `You have not signed in to DropTexas for about ${months} months. If you do not sign in within ${daysLeft} days `
+    + `(by ${date} UTC), your account and all saved opt-out records will be deleted permanently. Sign in to keep it.`;
+}
+export async function inactiveAccounts(env, at = now()) {
+  const day = 86400;
+  const warnDays = num(env.INACTIVE_WARN_DAYS, 700);
+  const delDays = num(env.INACTIVE_DELETE_DAYS, 730);
+  const notice = num(env.INACTIVE_MIN_NOTICE_DAYS, 14);
+  let warned = 0;
+  if (env.MAILER && env.MAIL_FROM) {
+    const due = await env.DB.prepare(
+      // LIMIT 100 per run: a backlog drains over later daily runs; notice is counted from each account's own warning.
+      // Social-only accounts have a placeholder address (<id>@users.invalid); skip them until real-address mail exists.
+      "SELECT id, email, COALESCE(last_active_at, created_at) AS last_seen FROM users WHERE COALESCE(last_active_at, created_at) < ?1 AND inactivity_warned_at IS NULL AND email NOT LIKE '%@users.invalid' LIMIT 100",
+    ).bind(at - warnDays * day).all();
+    for (const u of due.results) {
+      try {
+        await env.MAILER.send({
+          from: env.MAIL_FROM,
+          to: u.email,
+          subject: 'Your DropTexas account will be deleted for inactivity',
+          text: inactivityWarningText(u.last_seen, at, delDays, notice),
+        });
+      } catch { console.error('inactive_warn send failed'); continue; } // no address/PII in logs
+      await env.DB.prepare('UPDATE users SET inactivity_warned_at = ?1 WHERE id = ?2 AND inactivity_warned_at IS NULL').bind(at, u.id).run();
+      warned++;
+    }
+  }
+  const del = await env.DB.prepare(
+    'DELETE FROM users WHERE COALESCE(last_active_at, created_at) < ?1 AND inactivity_warned_at IS NOT NULL AND inactivity_warned_at <= ?2',
+  ).bind(at - delDays * day, at - notice * day).run();
+  console.log('inactive_accounts', JSON.stringify({ warned, deleted: del.meta.changes }));
+  return { warned, deleted: del.meta.changes };
 }
