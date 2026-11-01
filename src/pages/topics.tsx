@@ -9,7 +9,7 @@ const SITE = "https://droptexas.com";
 const SHARE_TEXT =
   "DROP Texas is a free service for Texans to request data brokers not sell their personal information.";
 
-function Topic({
+export function Topic({
   title,
   description,
   heading,

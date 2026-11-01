@@ -51,18 +51,18 @@ describe("explore pages", () => {
     expect(hrefs).toEqual(PAGES.map(([path]) => path));
   });
 
-  it("points the feature cards at the same pages", () => {
+  it("points the feature cards at benefit pages", () => {
     render(<FeaturePanel />);
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs.slice(0, 6)).toEqual([
-      "/overview",
-      "/how-it-works",
-      "/personal-information",
-      "/data-brokers",
-      "/unique-identifiers",
-      "/tdpsa",
+    expect(hrefs).toEqual([
+      "/benefits/control",
+      "/benefits/spam",
+      "/benefits/security",
+      "/benefits/time",
+      "/benefits/cost",
+      "/benefits/rights",
+      "/benefits/children",
     ]);
-    expect(hrefs[6]).toBe("/children");
   });
 
   it("explains children's information with sources and opens the child request", () => {

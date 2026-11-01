@@ -93,6 +93,13 @@ describe("horizontal overflow", () => {
       "/unique-identifiers",
       "/tdpsa",
       "/children",
+      "/benefits/control",
+      "/benefits/spam",
+      "/benefits/security",
+      "/benefits/time",
+      "/benefits/cost",
+      "/benefits/rights",
+      "/benefits/children",
       "/help",
       "/share",
     ];

@@ -3,6 +3,15 @@ import { accountsLive, authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startP
 import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE } from "./copy";
 import { Header } from "./Header";
 import { SiteFooter } from "./Footer";
+import {
+  ChildrenBenefitPage,
+  ControlBenefitPage,
+  CostBenefitPage,
+  RightsBenefitPage,
+  SecurityBenefitPage,
+  SpamBenefitPage,
+  TimeBenefitPage,
+} from "./pages/benefits";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { BrokersPage } from "./pages/BrokersPage";
@@ -74,6 +83,13 @@ export function App() {
   else if (path === "/unique-identifiers") page = <UniqueIdentifiersPage />;
   else if (path === "/tdpsa") page = <TdpsaPage />;
   else if (path === "/children") page = <ChildrenPage />;
+  else if (path === "/benefits/control") page = <ControlBenefitPage />;
+  else if (path === "/benefits/spam") page = <SpamBenefitPage />;
+  else if (path === "/benefits/security") page = <SecurityBenefitPage />;
+  else if (path === "/benefits/time") page = <TimeBenefitPage />;
+  else if (path === "/benefits/cost") page = <CostBenefitPage />;
+  else if (path === "/benefits/rights") page = <RightsBenefitPage />;
+  else if (path === "/benefits/children") page = <ChildrenBenefitPage />;
   else if (path === "/help") page = <HelpPage />;
   else if (path === "/share") page = <SharePage />;
   else if (path === "/about") page = <AboutPage />;

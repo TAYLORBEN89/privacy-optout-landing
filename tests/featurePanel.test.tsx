@@ -11,36 +11,40 @@ afterEach(() => {
 });
 
 describe("feature panel", () => {
-  it("shows the first menu topics as tinted cards with honest copy", () => {
+  it("shows benefit cards with honest copy and links to benefit pages", () => {
     render(<FeaturePanel />);
-    expect(screen.getByRole("heading", { name: "Take back your privacy for free" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Save hours of paperwork" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Share less to protect more" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Fewer lists with your name on them" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Get matched correctly" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Know your rights work for you" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Protect your children's information" })).toBeTruthy();
-    expect(screen.getByText("Ask brokers to stop selling your information at no cost.")).toBeTruthy();
-    expect(screen.getByText("We handle the broker forms so you don't have to.")).toBeTruthy();
-    expect(screen.getByText("We collect the minimum and never sell it.")).toBeTruthy();
-    expect(screen.getByText("Reach the companies that trade your address and phone.")).toBeTruthy();
-    expect(screen.getByText("The right details help brokers find the right record.")).toBeTruthy();
-    expect(screen.getByText("Texas law gives you the right to opt out of the sale of your data.")).toBeTruthy();
-    expect(screen.getByText("Shield kids' personal information from web abuse and predators.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "More control of your data" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Reduced spam and scams" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Greater security" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Hours back from paperwork" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Free to make the request" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "A right you can use" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Protection for your children" })).toBeTruthy();
+    expect(screen.getByText("Limit the information data brokers collect and sell about you.")).toBeTruthy();
+    expect(screen.getByText("Fewer sold lists can mean fewer unwanted calls, texts, and emails.")).toBeTruthy();
+    expect(screen.getByText("Less of your information in circulation can lower the risk of fraud.")).toBeTruthy();
+    expect(screen.getByText("One form, instead of a separate opt-out at each broker.")).toBeTruthy();
+    expect(screen.getByText("DROP Texas does not charge you to send opt-out requests.")).toBeTruthy();
+    expect(screen.getByText("Texas law lets you opt out of the sale of your personal data.")).toBeTruthy();
+    expect(screen.getByText("A parent can ask brokers not to sell a child's information.")).toBeTruthy();
     expect(screen.getByText("Children")).toBeTruthy();
-    expect(screen.getByText("Overview")).toBeTruthy();
-    expect(screen.getByText("How it works")).toBeTruthy();
-    expect(screen.getByText("Personal information")).toBeTruthy();
-    expect(screen.getByText("Data brokers")).toBeTruthy();
-    expect(screen.getByText("Unique identifiers")).toBeTruthy();
-    expect(screen.getByText("TDPSA")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "See the overview >" }).getAttribute("href")).toBe("/overview");
-    expect(screen.getByRole("link", { name: "See how it works >" }).getAttribute("href")).toBe("/how-it-works");
-    expect(screen.getByRole("link", { name: "See what we ask >" }).getAttribute("href")).toBe("/personal-information");
-    expect(screen.getByRole("link", { name: "See the brokers >" }).getAttribute("href")).toBe("/data-brokers");
-    expect(screen.getByRole("link", { name: "See the identifiers >" }).getAttribute("href")).toBe("/unique-identifiers");
-    expect(screen.getByRole("link", { name: "Read about TDPSA >" }).getAttribute("href")).toBe("/tdpsa");
-    expect(screen.getByRole("link", { name: "Learn more >" }).getAttribute("href")).toBe("/children");
+    expect(screen.getByText("Control")).toBeTruthy();
+    expect(screen.getByText("Spam")).toBeTruthy();
+    expect(screen.getByText("Security")).toBeTruthy();
+    expect(screen.getByText("Time")).toBeTruthy();
+    expect(screen.getByText("Cost")).toBeTruthy();
+    expect(screen.getByText("Texas law")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "See how control works >" }).getAttribute("href")).toBe("/benefits/control");
+    expect(screen.getByRole("link", { name: "See how this helps >" }).getAttribute("href")).toBe("/benefits/spam");
+    expect(screen.getByRole("link", { name: "See the security benefit >" }).getAttribute("href")).toBe(
+      "/benefits/security",
+    );
+    expect(screen.getByRole("link", { name: "See the time you save >" }).getAttribute("href")).toBe("/benefits/time");
+    expect(screen.getByRole("link", { name: "See what is free >" }).getAttribute("href")).toBe("/benefits/cost");
+    expect(screen.getByRole("link", { name: "See the right >" }).getAttribute("href")).toBe("/benefits/rights");
+    expect(screen.getByRole("link", { name: "See children's protection >" }).getAttribute("href")).toBe(
+      "/benefits/children",
+    );
     expect(screen.getAllByRole("link")).toHaveLength(7);
     const strokes = [...document.querySelectorAll(".feature-card .tile-icon")].map((icon) =>
       icon.getAttribute("stroke-width"),
