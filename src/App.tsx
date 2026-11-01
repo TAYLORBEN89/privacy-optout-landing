@@ -3,6 +3,7 @@ import { authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } fr
 import { Wordmark } from "./Brand";
 import { DISCLAIMER } from "./copy";
 import { Header } from "./Header";
+import { MobileNav } from "./components/MobileNav";
 import { SideNav } from "./components/SideNav";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
@@ -74,6 +75,7 @@ export function App() {
           signInHref={SIGN_IN_HREF}
           onSignedOut={() => setSession({ status: "out", httpStatus: 401 })}
         />
+        {showNav ? <MobileNav /> : null}
       </div>
       <div className={showNav ? "shell" : "solo"}>
         {showNav ? <SideNav /> : null}
