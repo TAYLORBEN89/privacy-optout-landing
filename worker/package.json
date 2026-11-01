@@ -8,7 +8,10 @@
     "test": "vitest run",
     "check:sql": "bash scripts/check-no-sql-concat.sh",
     "check:origins": "bash scripts/check-prod-origins.sh",
-    "db:migrate:local": "wrangler d1 migrations apply DB --local"
+    "check:remote": "wrangler deploy --dry-run --outdir dist -c wrangler.local.toml",
+    "test:config": "node --test scripts/render-local-config.check.mjs",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "config:local": "node scripts/render-local-config.mjs"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.71",
