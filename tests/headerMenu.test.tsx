@@ -12,14 +12,14 @@ afterEach(() => {
 });
 
 describe("header menu", () => {
-  it("shows a plain Sign in link when signed out", () => {
+  it("shows a round account icon when signed out", () => {
     render(
       <Header signedIn={false} csrf={null} signInHref={signInHrefFor("/start")} accountsLive onSignedOut={() => undefined} />,
     );
-    const link = screen.getByRole("link", { name: "Sign in" });
+    const link = screen.getByRole("link", { name: "Account" });
     expect(link.getAttribute("href")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
-    expect(link.className).toBe("sign-in-link");
-    expect(screen.queryByRole("button", { name: "Account" })).toBeNull();
+    expect(link.className).toBe("account-button");
+    expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
   });
 
   it("shows a borderless account icon when signed in", async () => {
@@ -41,7 +41,9 @@ describe("header menu", () => {
       <Header signedIn={false} csrf={null} signInHref={signInHrefFor("/start")} accountsLive={false} onSignedOut={() => undefined} />,
     );
     expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Account" })).toBeNull();
+    expect(document.querySelector(".account-button")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Open menu" })).toBeNull();
     unmount();
 

@@ -3,7 +3,7 @@
   --ink: #010101;
   --muted: #333333;
   --hint: #555555;
-  --bg: #f8f9fb;
+  --bg: #f7f7f8;
   --card: #ffffff;
   --line: #e7ebf0;
   --field: #c5ced9;
@@ -61,7 +61,8 @@ body {
 }
 
 .topbar-inner {
-  padding: 12px 0;
+  min-height: 64px;
+  padding: 0;
 }
 
 .brand-lockup {
@@ -92,13 +93,21 @@ body {
   line-height: 1.2;
 }
 
+.brand-lockup .mark {
+  width: 32px;
+  height: 32px;
+}
+
 .tagline {
   margin: 0;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--hint);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 400;
   letter-spacing: 0;
-  line-height: 1.2;
+  line-height: 1.15;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -108,18 +117,18 @@ body {
 }
 
 .hero {
-  padding: 16px 0 64px;
-  background: #f8f9fb;
+  padding: 44px 0 0;
+  background: #f7f7f8;
   text-align: center;
 }
 
 .hero h1 {
-  margin: 0 auto 8px;
+  margin: 0 auto;
   color: #010101;
-  font-size: clamp(40px, 5.6vw, 72px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-size: clamp(52px, 4vw, 60px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 .hero h1 span {
@@ -156,8 +165,35 @@ h1::after {
 }
 
 .hero h1::after {
+  width: 48px;
+  height: 2px;
+  margin-top: 24px;
   margin-right: auto;
   margin-left: auto;
+}
+
+.hero .lede {
+  max-width: 40rem;
+  margin-top: 24px;
+  color: #3c3c3c;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.hero .note {
+  margin-top: 12px;
+  color: #8a8a8a;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.hero .cta {
+  width: auto;
+  min-height: 56px;
+  margin-top: 32px;
+  padding-inline: 28px;
+  border-radius: 4px;
 }
 
 .lede {
@@ -466,15 +502,26 @@ textarea {
   }
 
   .hero {
-    padding: 20px 0 40px;
+    padding: 44px 0 0;
+  }
+
+  .hero-inner {
+    padding-inline: 8px;
   }
 
   .topbar-inner {
-    padding: 8px 0;
+    min-height: 64px;
+    padding: 0;
   }
 
   .hero h1 {
-    font-size: clamp(24px, 9vw, 40px);
+    font-size: clamp(27px, 8.8vw, 36px);
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
+  .hero .cta {
+    width: auto;
   }
 
   h1 {
@@ -535,13 +582,14 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
   color: var(--ink);
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -596,7 +644,7 @@ textarea {
 
 .shell {
   width: min(1040px, calc(100% - 48px));
-  margin: 8px auto 0;
+  margin: 0 auto;
 }
 
 .solo {
@@ -613,21 +661,40 @@ textarea {
   width: 100%;
 }
 
-.top-nav {
-  width: min(1040px, calc(100% - 48px));
-  margin: 12px auto 0;
-  text-align: center;
+.explore {
+  margin-top: 64px;
 }
 
-.top-nav-cta {
-  margin-top: 0;
+.explore-label {
+  margin: 0 0 16px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.explore-label::after {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 2px;
+  margin: 10px auto 0;
+  background: var(--red);
+}
+
+.top-nav {
+  margin: 0;
+  text-align: left;
 }
 
 .nav-tiles {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 10px;
-  margin: 12px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
   text-align: left;
@@ -664,6 +731,17 @@ textarea {
 .nav-tiles a:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: 2px;
+}
+
+.tile-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tile-blurb,
+.tile-chevron {
+  display: none;
 }
 
 .art {
@@ -878,19 +956,26 @@ textarea {
 
   .nav-tiles {
     display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .nav-tiles::-webkit-scrollbar {
-    display: none;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .nav-tiles li {
-    flex: none;
-    width: 168px;
+    width: auto;
+  }
+
+  .tile-blurb {
+    display: block;
+    color: #8a8a8a;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
+  .tile-chevron {
+    display: block;
+    margin-left: auto;
+    color: #9a9a9a;
   }
 
   .overlap-card,

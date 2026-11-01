@@ -81,18 +81,38 @@ function TileIcon({ id }: { id: string }) {
   );
 }
 
+const BLURBS: Record<string, string> = {
+  overview: "See what DROP Texas does",
+  "how-drop-works": "Three steps, then you submit",
+  "personal-information": "The details the form asks for",
+  "data-brokers": "Who receives your opt-out",
+  "unique-identifiers": "How a broker matches you",
+  tdpsa: "The Texas privacy law",
+  help: "Answers before you start",
+  share: "Pass this service along",
+};
+
+function Chevron() {
+  return (
+    <svg className="tile-chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function TopNav() {
   return (
     <nav className="top-nav" aria-label="On this site">
-      <AppLink className="cta top-nav-cta" href="/start">
-        Start Removing Me
-      </AppLink>
       <ul className="nav-tiles">
         {NAV_ITEMS.map((item) => (
           <li key={item.id}>
             <AppLink href={item.href}>
               <TileIcon id={item.id} />
-              <span>{item.label}</span>
+              <span className="tile-copy">
+                <span className="tile-title">{item.label}</span>
+                <span className="tile-blurb">{BLURBS[item.id]}</span>
+              </span>
+              <Chevron />
             </AppLink>
           </li>
         ))}

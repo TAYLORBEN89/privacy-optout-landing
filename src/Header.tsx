@@ -44,36 +44,38 @@ export function Header({
     <header className="topbar">
       <div className="topbar-inner">
         <Wordmark header />
-        {accountsLive ? (
-          <div className="account">
-            {signedIn ? (
-              <button
-                type="button"
-                className="account-button"
-                aria-label="Account"
-                aria-expanded={accountOpen}
-                aria-controls={accountId}
-                onClick={() => setAccountOpen((open) => !open)}
-              >
-                <UserGlyph />
-              </button>
-            ) : (
-              <AppLink className="sign-in-link" href={signInHref}>
-                Sign in
+        <div className="account">
+          {accountsLive && signedIn ? (
+            <button
+              type="button"
+              className="account-button"
+              aria-label="Account"
+              aria-expanded={accountOpen}
+              aria-controls={accountId}
+              onClick={() => setAccountOpen((open) => !open)}
+            >
+              <UserGlyph />
+            </button>
+          ) : accountsLive ? (
+            <a className="account-button" href={signInHref} aria-label="Account">
+              <UserGlyph />
+            </a>
+          ) : (
+            <span className="account-button" aria-hidden="true">
+              <UserGlyph />
+            </span>
+          )}
+          {accountsLive && signedIn && accountOpen ? (
+            <div className="account-menu" id={accountId} role="menu">
+              <AppLink href="/account" role="menuitem" onClick={() => setAccountOpen(false)}>
+                Your requests
               </AppLink>
-            )}
-            {signedIn && accountOpen ? (
-              <div className="account-menu" id={accountId} role="menu">
-                <AppLink href="/account" role="menuitem" onClick={() => setAccountOpen(false)}>
-                  Your requests
-                </AppLink>
-                <button type="button" role="menuitem" onClick={() => void signOut()}>
-                  Sign out
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+              <button type="button" role="menuitem" onClick={() => void signOut()}>
+                Sign out
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   );

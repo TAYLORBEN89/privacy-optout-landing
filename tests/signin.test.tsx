@@ -46,7 +46,7 @@ describe("sign-in redirect", () => {
         onSignedOut={() => undefined}
       />,
     );
-    const link = screen.getByRole("link", { name: "Sign in" });
+    const link = screen.getByRole("link", { name: "Account" });
     expect(link.getAttribute("href")).toBe(signInHrefFor("/start"));
     const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
     link.dispatchEvent(event);

@@ -3,7 +3,6 @@ import { authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } fr
 import { Wordmark } from "./Brand";
 import { DISCLAIMER } from "./copy";
 import { Header } from "./Header";
-import { TopNav } from "./components/TopNav";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { HomePage } from "./pages/HomePage";
@@ -75,7 +74,6 @@ export function App() {
           onSignedOut={() => setSession({ status: "out", httpStatus: 401 })}
         />
       </div>
-      {showNav ? <TopNav /> : null}
       <div className={showNav ? "shell" : "solo"}>
         <div className="content">{page}</div>
       </div>

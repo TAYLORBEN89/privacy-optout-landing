@@ -1,3 +1,4 @@
+import { TopNav } from "../components/TopNav";
 import { PeopleArt, ShieldArt } from "../components/Illustrations";
 import { BrokerMarquee } from "../components/Marquee";
 import { Reveal } from "../components/Reveal";
@@ -19,7 +20,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <p className="lede">
               DROP Texas gives you more control over your data. You can demand data brokers delete your personal information and not sell it.
             </p>
-            <p className="lede">
+            <p className="lede note">
               If you live in Texas, check the box. That means the Texas Data Privacy and Security Act
               (TDPSA). If you live somewhere else, you can still submit. An unchecked box still uses
               TDPSA for now, and the request is marked non-Texas.
@@ -28,6 +29,13 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
               Start Removing Me
             </AppLink>
         </div>
+      </section>
+
+      <section className="explore" aria-labelledby="explore-heading">
+        <h2 id="explore-heading" className="explore-label">
+          Explore DROP
+        </h2>
+        <TopNav />
       </section>
 
       <BrokerMarquee />

@@ -11,29 +11,28 @@ afterEach(() => {
   cleanup();
 });
 
-describe("top navigation", () => {
-  it("starts with the primary call to action and the eight section tiles", () => {
+describe("section tiles", () => {
+  it("lists the eight sections with icons, blurbs, and the same anchors", () => {
     render(<TopNav />);
     const nav = screen.getByRole("navigation", { name: "On this site" });
     const links = within(nav).getAllByRole("link");
-    expect(links[0]?.textContent).toBe("Start Removing Me");
-    expect(links[0]?.getAttribute("href")).toBe("/start");
-    expect(links[0]?.className).toContain("cta");
-    const tiles = links.slice(1);
-    expect(tiles.map((link) => link.textContent)).toEqual(NAV_ITEMS.map((item) => item.label));
-    expect(tiles.map((link) => link.getAttribute("href"))).toEqual(NAV_ITEMS.map((item) => item.href));
-    expect(nav.querySelectorAll(".nav-tiles svg")).toHaveLength(8);
-    expect(screen.queryByRole("button", { name: /menu/i })).toBeNull();
+    expect(links.map((link) => link.querySelector(".tile-title")?.textContent)).toEqual(
+      NAV_ITEMS.map((item) => item.label),
+    );
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(NAV_ITEMS.map((item) => item.href));
+    expect(nav.querySelectorAll(".nav-tiles svg.tile-chevron")).toHaveLength(8);
+    expect(links[0]?.querySelector(".tile-blurb")?.textContent).toBeTruthy();
+    expect(within(nav).queryByRole("link", { name: "Start Removing Me" })).toBeNull();
   });
 
-  it("uses a single desktop row, a 4 by 2 grid when narrow, and a scrolling row on a phone", () => {
+  it("uses a desktop row, a 4 by 2 grid when narrower, and a vertical phone list", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(css).toContain("grid-template-columns: repeat(8, minmax(0, 1fr))");
     expect(css).toContain("grid-template-columns: repeat(4, minmax(0, 1fr))");
-    expect(css).toMatch(/\.nav-tiles\s*\{[^}]*overflow-x:\s*auto/);
+    expect(css).toContain("flex-direction: column");
     expect(css).toContain(".nav-tiles a:focus-visible");
     expect(css).not.toContain(".sidenav");
     expect(css).not.toContain(".mobile-nav");
-    expect(css).not.toContain(".menu-button");
+    expect(css).not.toContain("overflow-x: auto");
   });
 });
