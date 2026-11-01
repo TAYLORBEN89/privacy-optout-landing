@@ -69,6 +69,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
 
       <section className="closing" aria-labelledby="closing-heading">
         <h2 id="closing-heading">Ready to take back your privacy?</h2>
+        <p className="closing-sub">Let's get you started.</p>
         <AppLink className="cta" href={getStartedHref}>
           Start my opt-out
         </AppLink>

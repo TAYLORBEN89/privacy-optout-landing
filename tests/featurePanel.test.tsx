@@ -65,7 +65,7 @@ describe("feature panel", () => {
     expect(brokers).toContain("background: #f7f7f8");
     expect(brokers).not.toContain("linear-gradient");
     const closing = css.slice(css.indexOf(".closing {"), css.indexOf(".closing .cta"));
-    expect(closing).toContain("background: #fff");
+    expect(closing).toContain("background: var(--bg)");
     expect(closing).not.toContain("linear-gradient");
     expect(css).toContain("width: min(1100px, 100%)");
     expect(css).toContain("border: 1.5px solid currentColor");
