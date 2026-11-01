@@ -32,8 +32,8 @@ describe("hero copy", () => {
     expect(css).toContain("@keyframes hero-line-in");
     expect(css).toContain("animation: hero-line-in 0.7s ease 0.22s both");
     expect(css).toContain("animation: hero-line-in 0.7s ease 0.44s both");
-    expect(css).toContain(".hero-rule {\n  display: block;\n  white-space: nowrap;\n}");
-    expect(css).toContain("font-size: clamp(15px, 4.2vw, 18px)");
+    expect(css).toContain(".hero-rule {\n  display: block;\n  white-space: nowrap;\n  word-break: keep-all;\n  overflow-wrap: normal;\n}");
+    expect(css).toContain("font-size: clamp(12px, 4.2vw, 18px)");
     expect(css).not.toContain("animation: hero-line-in 0.7s ease 0.66s both");
     expect(css).toContain(".hero h1,\n  .hero-sub,\n  .hero .hero-line {\n    animation: none;\n  }");
     const html = readFileSync("index.html", "utf8");

@@ -226,13 +226,15 @@ h1::after {
 }
 
 .hero .lede.hero-line {
-  font-size: clamp(15px, 4.2vw, 18px);
+  font-size: clamp(12px, 4.2vw, 18px);
   letter-spacing: -0.045em;
 }
 
 .hero-rule {
   display: block;
   white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .hero .note {
