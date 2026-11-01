@@ -31,6 +31,16 @@ describe("submitSignup", () => {
       jurisdiction: "TDPSA",
       nonTexasFlag: true,
     });
+    expect(JSON.parse(String(init?.body))).not.toHaveProperty("phone");
+  });
+
+  it("posts an E.164 phone and omits the key when the field is empty", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => Response.json({ ok: true }));
+    await submitSignup({ ...valid, phone: "512.555.0100" }, fetchImpl);
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)).phone).toBe("+15125550100");
+    const empty = vi.fn<typeof fetch>(async () => Response.json({ ok: true }));
+    await submitSignup({ ...valid, phone: "   " }, empty);
+    expect(JSON.parse(String(empty.mock.calls[0]?.[1]?.body))).not.toHaveProperty("phone");
   });
 
   it("surfaces server field errors", async () => {

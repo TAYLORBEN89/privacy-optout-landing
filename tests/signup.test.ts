@@ -22,6 +22,7 @@ describe("validateSignup", () => {
         fullName: "Ada Lovelace",
         mailingAddress: "123 Main St, Austin, TX 78701",
         email: "ada@example.com",
+        phone: null,
         texasResident: true,
         jurisdiction: "TDPSA",
         nonTexasFlag: false,
@@ -100,10 +101,31 @@ describe("validateSignup", () => {
     if (result.ok) {
       expect(result.value).toEqual({
         ...valid,
+        phone: null,
         jurisdiction: "TDPSA",
         nonTexasFlag: false,
       });
       expect(JSON.stringify(result.value)).not.toContain("123-45-6789");
+    }
+  });
+
+  it("treats a missing, empty, or null phone as no phone and normalizes a US number", () => {
+    for (const phone of [undefined, "", null]) {
+      const result = validateSignup({ ...valid, phone });
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.phone).toBeNull();
+    }
+    const formatted = validateSignup({ ...valid, phone: "(512) 555-0100" });
+    expect(formatted.ok).toBe(true);
+    if (formatted.ok) expect(formatted.value.phone).toBe("+15125550100");
+    const bad = validateSignup({ ...valid, phone: "123" });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) {
+      expect(bad.errors.phone).toEqual({
+        code: "invalid",
+        message: "Enter a valid US phone number.",
+      });
+      expect(bad.errors.phone?.message).not.toContain("123");
     }
   });
 });

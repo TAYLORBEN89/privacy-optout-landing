@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { FieldIssue, SignupIssues } from "../shared/signup";
+import { PHONE_FIELD_HINT, PHONE_FIELD_LABEL, type FieldIssue, type SignupIssues } from "../shared/signup";
 import { storageNotice, submissionConfirmation } from "../worker/storage";
 import { fieldErrorEvents, track } from "./analytics";
 import { submitSignup } from "./submitSignup";
@@ -10,6 +10,7 @@ export function SignupForm() {
   const [fullName, setFullName] = useState("");
   const [mailingAddress, setMailingAddress] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [texasResident, setTexasResident] = useState(false);
   const [errors, setErrors] = useState<SignupIssues>(EMPTY_ERRORS);
   const [formError, setFormError] = useState<FieldIssue | null>(null);
@@ -18,7 +19,7 @@ export function SignupForm() {
   const started = useRef(false);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
-  const focusTarget = useRef<"status" | "form" | "fullName" | "mailingAddress" | "email" | "texasResident" | null>(
+  const focusTarget = useRef<"status" | "form" | "fullName" | "mailingAddress" | "email" | "phone" | "texasResident" | null>(
     null,
   );
   const [focusToken, setFocusToken] = useState(0);
@@ -43,11 +44,13 @@ export function SignupForm() {
     setSubmitting(true);
     setSuccess(false);
 
+    const trimmedPhone = phone.trim();
     const result = await submitSignup({
       fullName,
       mailingAddress,
       email,
       texasResident,
+      ...(trimmedPhone ? { phone: trimmedPhone } : {}),
     });
 
     setSubmitting(false);
@@ -69,7 +72,7 @@ export function SignupForm() {
       track(analyticsEvent);
     }
 
-    const firstInvalid = (["fullName", "mailingAddress", "email", "texasResident"] as const).find(
+    const firstInvalid = (["fullName", "mailingAddress", "email", "phone", "texasResident"] as const).find(
       (field) => result.errors[field],
     );
     focusTarget.current = firstInvalid ?? "form";
@@ -177,6 +180,32 @@ export function SignupForm() {
         {errors.email ? (
           <p className="error" id="email-error" role="alert">
             {errors.email.message}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="field">
+        <label htmlFor="phone">{PHONE_FIELD_LABEL}</label>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          inputMode="tel"
+          value={phone}
+          aria-invalid={errors.phone ? true : undefined}
+          aria-describedby={errors.phone ? "phone-error phone-hint" : "phone-hint"}
+          onChange={(event) => {
+            markStarted();
+            setPhone(event.target.value);
+          }}
+        />
+        <p className="hint" id="phone-hint">
+          {PHONE_FIELD_HINT}
+        </p>
+        {errors.phone ? (
+          <p className="error" id="phone-error" role="alert">
+            {errors.phone.message}
           </p>
         ) : null}
       </div>

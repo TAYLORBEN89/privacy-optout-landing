@@ -22,6 +22,9 @@ export async function submitSignup(
     return clientResult;
   }
 
+  const body: Record<string, unknown> = { ...clientResult.value };
+  if (body.phone == null || body.phone === "") delete body.phone;
+
   let response: Response;
   try {
     response = await fetchImpl("/api/signup", {
@@ -30,7 +33,7 @@ export async function submitSignup(
         accept: "application/json",
         "content-type": "application/json",
       },
-      body: JSON.stringify(clientResult.value),
+      body: JSON.stringify(body),
     });
   } catch {
     return UNAVAILABLE;
