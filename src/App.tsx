@@ -2,19 +2,18 @@ import { SignupForm } from "./SignupForm";
 import { storageNotice } from "../worker/storage";
 
 const DISCLAIMER =
-  "Drop Texas is a private, free service. It is not affiliated with or endorsed by the State of California, CalPrivacy, or any government agency.";
+  "DROP Texas is a private, free service. It is not affiliated with or endorsed by the State of California, CalPrivacy, or any government agency.";
 
 function Wordmark({ header = false }: { header?: boolean }) {
-  const name = header ? "DROP Texas" : "Drop Texas";
   return (
     <div className={header ? "brand-lockup" : undefined}>
-      <p className="brand" aria-label={header ? name : undefined}>
+      <p className="brand" aria-label={header ? "DROP Texas" : undefined}>
         <svg className="mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
           <rect width="32" height="32" rx="8" fill="#ee0014" />
           <rect x="7" y="8" width="8" height="16" rx="2" fill="#ffffff" />
           <circle cx="20" cy="16" r="6.5" fill="#ffffff" />
         </svg>
-        <span>{name}</span>
+        <span>DROP Texas</span>
       </p>
       {header ? <p className="tagline">for the people, by the people</p> : null}
     </div>
@@ -26,7 +25,7 @@ export function App() {
     <>
       <div className="top-stack">
         <p className="banner" role="note">
-          Drop Texas is a private-sector service, not a government entity.
+          DROP Texas is a private-sector service, not a government entity.
         </p>
         <header className="topbar">
           <div className="topbar-inner">
@@ -39,7 +38,7 @@ export function App() {
           <div className="hero-inner">
             <h1 id="page-title">Privacy is a right. This service is free for Texans.</h1>
             <p className="lede">
-              Drop Texas is a free way to send an opt-out request. If you live in Texas, check the
+              DROP Texas is a free way to send an opt-out request. If you live in Texas, check the
               box. That means the Texas Data Privacy and Security Act (TDPSA). If you live somewhere
               else, you can still submit. An unchecked box still uses TDPSA for now, and the request
               is marked non-Texas.
@@ -137,7 +136,7 @@ export function App() {
             <h2 id="faq-heading">Questions</h2>
             <div className="faq">
               <details>
-                <summary>Is Drop Texas a government site?</summary>
+                <summary>Is DROP Texas a government site?</summary>
                 <p>No. Read the note at the top of this page.</p>
               </details>
               <details>
