@@ -209,7 +209,7 @@ async function complete(ctx) {
     await audit(ctx, userId, 'auth.fail', `handoff:${reason}`, { ua: userId !== null });
     return withHeaders(redirect(`/start?auth_error=${reason}`, [clearLoginCookie()]), { 'Referrer-Policy': 'no-referrer' });
   };
-  if (await isLimited(ctx.env, 'handoff', ip)) return json(ctx, { error: 'too many requests' }, 429);
+  if (await isLimited(ctx.env, 'handoff', ip)) return json(ctx, { error: 'too many requests' }, 429, { 'Set-Cookie': clearLoginCookie() });
   await hit(ctx.env, 'handoff', ip);
   const code = new URL(ctx.req.url).searchParams.get('code') || '';
   if (!/^[A-Za-z0-9_-]{43}$/.test(code)) return fail('handoff_invalid');
@@ -218,10 +218,16 @@ async function complete(ctx) {
   const row = await ctx.env.DB.prepare('SELECT * FROM auth_handoffs WHERE code_hash = ?1').bind(ch).first();
   if (!row) return fail('handoff_invalid');
   if (row.used_at !== null) return fail('handoff_reused', row.user_id);
-  if (t >= row.expires_at) return fail('handoff_expired', row.user_id);
+  if (t >= row.expires_at) {
+    await ctx.env.DB.prepare(`UPDATE auth_handoffs SET link_sub = NULL, link_email = NULL, link_email_key_version = NULL,
+      link_email_verified = NULL WHERE code_hash = ?1`).bind(ch).run();
+    return fail('handoff_expired', row.user_id);
+  }
   const browser = readLoginCookie(ctx.req);
   if (!browser || !timingSafeEqual(await sha256Hex(browser), row.browser_hash || '')) return fail('browser_mismatch', row.user_id);
-  const claim = await ctx.env.DB.prepare('UPDATE auth_handoffs SET used_at = ?1 WHERE code_hash = ?2 AND used_at IS NULL AND expires_at > ?1')
+  // Claim and scrub the staged identity in one statement (the row was already read above).
+  const claim = await ctx.env.DB.prepare(`UPDATE auth_handoffs SET used_at = ?1, link_sub = NULL, link_email = NULL,
+      link_email_key_version = NULL, link_email_verified = NULL WHERE code_hash = ?2 AND used_at IS NULL AND expires_at > ?1`)
     .bind(t, ch).run();
   if (claim.meta.changes !== 1) return fail('handoff_reused', row.user_id);
   const rt = safeReturnTo(row.return_to);

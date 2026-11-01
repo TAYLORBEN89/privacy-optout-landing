@@ -559,7 +559,7 @@ export async function purge(env, at = now()) {
     ).bind(at - r.piiDays * day),
     env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?1 OR (revoked = 1 AND last_seen_at < ?1)').bind(at - r.sessionDays * day),
     env.DB.prepare('DELETE FROM oauth_states_used WHERE used_at < ?1').bind(at - day), // state cookies live 10 min
-    env.DB.prepare('DELETE FROM auth_handoffs WHERE expires_at < ?1').bind(at - day),   // handoff codes live 60 s
+    env.DB.prepare('DELETE FROM auth_handoffs WHERE expires_at < ?1').bind(at),         // handoff codes live 60 s; drop once expired
     // Cascades to confirmations and pii_payloads.
     env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'optout' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.finishedDays * day),
     env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'tx' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.txDays * day),
