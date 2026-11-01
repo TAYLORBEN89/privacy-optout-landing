@@ -1,7 +1,7 @@
 # Privacy Opt-Out Dashboard
 
 DROP Texas: a privacy opt-out tracker for Texans covering direct mail, data brokers, credit freezes, Do Not Call, and paid removal services.
-Vite + React frontend, Cloudflare Worker + KV backend (source of truth), localStorage as an offline cache.
+Vite + React frontend, Cloudflare Worker + D1/KV backend (source of truth), localStorage as an offline cache.
 
 ## Frontend setup
 ```bash
@@ -24,21 +24,104 @@ npx wrangler pages deploy dist --project-name <project> --branch main
 ```
 
 ## Worker (Cloudflare) setup
+
+The API is one Worker (`privacy-dashboard-api`, `worker/`) with a D1 database (binding `DB`) and a KV namespace (binding `RECORDS`, legacy records + `rl:*` rate-limit counters). It serves two hosts, picked by the request `Host`: the sign-in host (`ACCOUNTS_HOST`, e.g. `accounts.droptexas.com`) and the API on the app origin (`APP_ORIGIN`, e.g. `https://droptexas.com/api/*`). During development it is reachable at `https://privacy-dashboard-api.<your-subdomain>.workers.dev` or a custom domain such as `privacy-api.example.com` in your zone.
+
+### 1. Install and create storage
 ```bash
 cd worker
 npm install
-npx wrangler login                          # one-time, interactive
-npx wrangler kv namespace create RECORDS    # paste the printed id into wrangler.toml
-npx wrangler secret put API_TOKEN           # the access key you enter in the dashboard
-# edit wrangler.toml: ALLOWED_ORIGIN (comma-separated list of origins) and (optionally) uncomment the privacy-api.example.com route
+npx wrangler login                                  # one-time, interactive
+npx wrangler kv namespace create RECORDS            # paste the id into [[kv_namespaces]] binding = "RECORDS"
+npx wrangler d1 create privacy-dashboard            # paste database_id into [[d1_databases]] binding = "DB"
+```
+`account_id` is not tracked in `wrangler.toml`; set `CLOUDFLARE_ACCOUNT_ID` in your environment.
+
+### 2. Migrations (`worker/migrations`)
+| File | What it does |
+|---|---|
+| `0001_init.sql` | users, sessions, opt-out requests, confirmations, encrypted PII payloads, audit_log |
+| `0002_pii_backup_retention.sql` | backup codes, encrypted profile, PII key versioning, record kinds + retention fields, legacy import ids |
+| `0003_in_progress_status.sql` | adds the `in_progress` request status |
+| `0004_audit_append_only.sql` | append-only triggers on audit_log, the expiry gate and maintenance_log (idempotent) |
+| `0007_social_auth.sql` | user_identities (google/microsoft), oauth_states_used, auth_handoffs, step-up columns, audit ip/user_agent |
+
+There are no 0005/0006 files (numbers were skipped). Wrangler applies whatever is unapplied, in file order:
+```bash
+npm run db:migrate:local                                  # = wrangler d1 migrations apply DB --local
+npx wrangler d1 migrations apply DB --remote              # production; only with the owner's approval
+npx wrangler d1 migrations list DB --remote               # see what is pending
+```
+
+### 3. Secrets (`npx wrangler secret put <NAME>`; local values go in `worker/.dev.vars`, gitignored)
+| Secret | Purpose | How to generate |
+|---|---|---|
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Google Cloud console, see [docs/oauth-setup.md](docs/oauth-setup.md) |
+| `MICROSOFT_CLIENT_SECRET` | Microsoft Entra client secret (the secret **Value**, not its ID) | Entra > Certificates & secrets |
+| `OAUTH_COOKIE_KEY` | seals the `__Host-oauth` state cookie and the single-use start token | `openssl rand -base64 32` |
+| `TOTP_ENC_KEY` | encrypts TOTP secrets at rest | `openssl rand -base64 32` |
+| `PII_ENC_KEY` | encrypts signup/PII payloads (name, address, email, phone) | `openssl rand -base64 32` (separate from TOTP_ENC_KEY) |
+| `API_TOKEN` | shared bearer key for the legacy KV `/records`, `/txrequests`, `/settings` API | `openssl rand -base64 32` |
+| `ADMIN_BOOTSTRAP_TOKEN` | optional, **off by default**: enables `POST /admin/bootstrap` while it is set | `openssl rand -base64 48` (>=32 chars); delete after use |
+| `PII_ENC_KEY_PREV` | optional, only during PII key rotation (old key, readable with `PII_PREV_KEY_VERSION`) | the previous `PII_ENC_KEY` |
+
+### 4. Vars (`[vars]` in `wrangler.toml`)
+- `GOOGLE_CLIENT_ID`, `MICROSOFT_CLIENT_ID` – public client IDs (placeholders in the repo; set yours at deploy).
+- `OAUTH_REDIRECT_URIS` – comma-separated exact allowlist, e.g. `https://accounts.droptexas.com/oauth/google/callback,https://accounts.droptexas.com/oauth/microsoft/callback`. Must match the provider consoles exactly.
+- `ALLOWED_ORIGIN` – comma-separated CORS origins, production only (`npm run check:origins` enforces this). Dev origins go in `.dev.vars`.
+- `ACCOUNTS_HOST` (sign-in host) and `APP_ORIGIN` (origin that receives the handoff and the `__Host-sid` cookie).
+- Sessions: `SESSION_COOKIE_SAMESITE` (Lax), `SESSION_IDLE_SECONDS` (43200), `SESSION_ABSOLUTE_SECONDS` (604800), `PREAUTH_SECONDS` (300).
+- Retention (days): `PII_RETENTION_DAYS` 30, `PII_HARD_MAX_DAYS` 90, `SESSION_PURGE_DAYS` 7, `FINISHED_RECORD_RETENTION_DAYS` 730, `TX_RECORD_RETENTION_DAYS` 1095, `AUDIT_RETENTION_DAYS` 365 (minimum 365).
+- `PII_KEY_VERSION` (and `PII_PREV_KEY_VERSION` during rotation).
+
+### 5. Deploy
+```bash
+npm test && npm run check:sql && npm run check:origins
 npx wrangler deploy
 ```
-Local dev: `npx wrangler dev` (put `API_TOKEN=...` in `worker/.dev.vars`). Check: `npm run check` (dry-run).
+The sign-in host is attached as a Workers Custom Domain (commented `[[routes]]` block in `wrangler.toml`). Attaching a custom domain creates a DNS record in your zone, so only enable it deliberately.
 
-API (all require `Authorization: Bearer <API_TOKEN>`):
-- `GET /records` — list all
-- `POST /records` — create (id optional)
-- `GET|PUT|DELETE /records/:id`
+### Admin bootstrap (password + TOTP fallback account)
+1. `npx wrangler secret put ADMIN_BOOTSTRAP_TOKEN`
+2. `POST /admin/bootstrap` with `Authorization: Bearer <ADMIN_BOOTSTRAP_TOKEN>` and `{"email","password"}`. It only succeeds while the users table is empty (atomic `INSERT ... WHERE NOT EXISTS`), then returns 404 forever; it is rate-limited and audited (`user.bootstrap`).
+3. Sign in via `POST /auth/login`, enroll TOTP (`/auth/totp/enroll`, `/auth/totp/confirm`).
+4. `npx wrangler secret delete ADMIN_BOOTSTRAP_TOKEN`.
+
+### Cron
+`crons = ["0 8 * * *"]` (daily 08:00 UTC) runs two separate jobs:
+- **purge**: deletes PII past its hard max (`purge_after`) or `PII_RETENTION_DAYS` after confirmation; sessions `SESSION_PURGE_DAYS` after expiry/revocation; used OAuth states (>1 day) and expired handoff codes; finished opt-out records after 730 days and Texas requests after 1095 days (cascades to confirmations and PII).
+- **audit expiry** (`expireAudit`): the only path that deletes audit rows. In one D1 transaction it opens the expiry gate, records the run in `maintenance_log` (job, ran_at, cutoff, rows deleted), deletes rows older than `AUDIT_RETENTION_DAYS` (min 365), and closes the gate.
+
+### Audit log
+`audit_log` is append-only: triggers reject every UPDATE and any DELETE outside the expiry gate (and the gate refuses a cutoff newer than 365 days). Rows record user, action, time, `ip` and `user_agent` (in D1 only, never in Workers Logs; unauthenticated `auth.fail` rows store a NULL user_agent). Retention is 12 months, removed only by the expiry job. `maintenance_log` is append-only too.
+
+### Routes
+Sign-in host (`ACCOUNTS_HOST`):
+- `GET /signin` – sign-in page (Google, Microsoft); `GET /` redirects there.
+- `GET /oauth/{google|microsoft}/start` – consumes the start token, redirects to the provider (PKCE + nonce).
+- `GET /oauth/{google|microsoft}/callback` – verifies the ID token (JWKS), issues a 60 s single-use handoff code.
+- `POST /oauth/{google|microsoft}/bound` – step-up / account-link flow submitted by the browser (`{st}`).
+
+App origin (`/api`, JSON, cookie session `__Host-sid`; state-changing requests need `X-CSRF-Token`):
+- `GET /api/auth/{google|microsoft}/start` – sets `__Host-login`, sends the browser to the sign-in host.
+- `GET /api/auth/complete?code=` – redeems the handoff code, creates the session.
+- `POST /api/auth/{google|microsoft}/stepup`, `POST /api/auth/stepup/password` – re-authentication (valid 10 min). Sensitive routes return `403 {"error":"step_up_required"}` without it.
+- `POST /api/auth/logout`, `GET /api/me`.
+- `POST /api/account/identities/{p}/link`, `DELETE /api/account/identities/{p}`.
+- `GET|PATCH /api/account/profile`, `GET /api/account/optouts`, `GET /api/account/sessions`, `POST /api/account/sessions/{id}/revoke`, `POST /api/account/export`, `POST /api/account/delete`.
+- `POST /api/optouts/signup` – `{fullName, mailingAddress, email, texasResident, phone?}`. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted with the rest of the signup PII.
+
+Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/admin/bootstrap`.
+Legacy KV API (`Authorization: Bearer <API_TOKEN>`): `GET|POST /records`, `GET|PUT|DELETE /records/:id`, `/txrequests`, `/settings/profile`.
+
+### Tests and checks
+```bash
+cd worker
+npm test                 # vitest with @cloudflare/vitest-pool-workers (local D1 + KV, migrations applied per run)
+npm run check:sql        # fails on string-concatenated SQL (prepared statements only)
+npm run check:origins    # fails if ALLOWED_ORIGIN has non-production origins
+npm run check            # wrangler deploy --dry-run
+```
 
 ## Adding a new opt-out service
 Edit `src/services.js` and add an entry to `SERVICES`:
@@ -65,10 +148,10 @@ The **Texas broker requests** tab lists every broker in the [Texas SOS data brok
 ```bash
 cd worker && npx wrangler deploy && cd ..
 # .env must contain VITE_API_URL=https://privacy-dashboard-api.<your-subdomain>.workers.dev
-npm run build && npx wrangler pages deploy dist --project-name privacy-dashboard-bt --branch main
+npm run build && npx wrangler pages deploy dist --project-name <project> --branch main
 ```
 
 Checklist categories now also include People-search sites, Search & apps, and Specialty reports (Innovis, LexisNexis Risk, ChexSystems, NCTUE freezes; 12-month re-verify). Add services in `src/services.js` as before.
 
 ## Social sign-in
-Google and Microsoft sign-in (plus the password + TOTP fallback) and the account area: see [docs/oauth-setup.md](docs/oauth-setup.md).
+Provider console setup for Google and Microsoft sign-in: see [docs/oauth-setup.md](docs/oauth-setup.md).
