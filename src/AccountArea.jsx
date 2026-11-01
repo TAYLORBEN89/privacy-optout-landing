@@ -16,7 +16,7 @@ function StepUp({ me, onDone, onCancel }) {
   const [code, setCode] = useState('');
   const [err, setErr] = useState('');
   const viaProvider = async (p) => {
-    try { const { url } = await api.stepUpProvider(p); location.assign(url); } catch (e) { setErr(e.message); }
+    try { api.submitStart(await api.stepUpProvider(p)); } catch (e) { setErr(e.message); }
   };
   const viaPassword = async (e) => {
     e.preventDefault(); setErr('');
@@ -121,7 +121,7 @@ function Settings({ me, reloadMe, guard, onSignedOut }) {
           <li key={p.id}><span>{p.label}</span>
             {linked.has(p.id)
               ? <button className="acct-btn" onClick={() => run(async () => { await api.unlinkProvider(p.id); await reloadMe(); })}>Remove</button>
-              : <button className="acct-btn" onClick={() => run(async () => { const { url } = await api.linkProvider(p.id); location.assign(url); })}>Connect</button>}
+              : <button className="acct-btn" onClick={() => run(async () => { api.submitStart(await api.linkProvider(p.id)); })}>Connect</button>}
           </li>
         ))}
         <li><span>Password + authenticator</span><span className="muted">{me.user.has_password ? 'On' : 'Not set up'}</span></li>
