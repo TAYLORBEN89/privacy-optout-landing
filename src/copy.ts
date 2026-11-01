@@ -7,3 +7,9 @@ export const SIGN_IN_NOTE =
   "We only use your sign-in to keep your requests together. We never sell your data.";
 
 export const TRUST_LABEL = "How we keep your data safe";
+
+/** Shown wherever accounts would otherwise look available. */
+export const ACCOUNTS_COMING_SOON_TITLE = "Coming soon";
+
+export const ACCOUNTS_COMING_SOON =
+  "Sign in with Google or Microsoft, secure session cookies, and self-service export and delete. Until then, email help@droptexas.com to see or delete your data.";

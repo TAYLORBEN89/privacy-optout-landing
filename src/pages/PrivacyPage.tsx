@@ -1,4 +1,4 @@
-import { DISCLAIMER } from "../copy";
+import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE, DISCLAIMER } from "../copy";
 
 /**
  * REVIEW: Cybersecurity and Compliance Agents must review this copy before launch.
@@ -34,8 +34,8 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   },
   {
     id: "coming-soon",
-    title: "Coming soon",
-    paragraphs: ["Sign in with Google or Microsoft, secure session cookies, and self-service export and delete. Until then, email help@droptexas.com to see or delete your data."],
+    title: ACCOUNTS_COMING_SOON_TITLE,
+    paragraphs: [ACCOUNTS_COMING_SOON],
   },
   {
     id: "limits",

@@ -67,7 +67,7 @@ After deploy, both hostnames should resolve through Cloudflare to this Worker. T
 
 `VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session.
 
-`VITE_ACCOUNTS_LIVE` defaults to off. Until it is `true`, the header does not show Sign in or the account icon. The gate redirect still sends a signed-out visitor to the accounts host when the gate is on.
+`VITE_ACCOUNTS_LIVE` defaults to off. Until it is `true`, the site does not present accounts as available. The header shows neither Sign in nor the account icon. `/account` and the SPA `/signin` page show the same Coming soon sentence as the privacy page, and Start stays on `/start` even when `VITE_AUTH_GATE` is on. Set `VITE_ACCOUNTS_LIVE=true` to show the header control, the account page, and the gate redirect to the accounts host. A direct request to `/signin` on the Worker still redirects to that host; the pages themselves do not link there while the flag is unset.
 
 Sign-in is hosted at `accounts.droptexas.com`, like a separate accounts site. `ACCOUNTS_ORIGIN` defaults to `https://accounts.droptexas.com` and can be overridden with `VITE_ACCOUNTS_ORIGIN`. The header Sign in link, the sign-in gate, and any other sign-in control leave this site with a full page load to `${ACCOUNTS_ORIGIN}/signin?return_to=/start` or `return_to=/account`. `return_to` must be a same-site path that starts with `/` and not `//`. A local visit to `/signin` redirects there and keeps a valid `return_to`.
 
@@ -119,4 +119,50 @@ The browser and the Worker both use `shared/signup.ts`. Bad input returns per-fi
 
 `state` is a USPS abbreviation for a state or the District of Columbia. `zip` matches `^\d{5}(-\d{4})?$`. `dob` is `YYYY-MM-DD`, required, a real calendar date, not in the future, and not more than 120 years ago. `phone`, when present, is E.164 (`+1` and 10 digits). The old keys `fullName` and `mailingAddress` are not accepted.
 
-`src/analytics.ts` has a no-op `track()` for `form_started`, `field_error`, and `submitted`. Events carry a field name and error code, never the value typed into the form. Vite dev logs only the event name.
+`src/analytics.ts` has a no-op `track()` for `form_started`, `field_error`, and `submitted`. Events carry a field name and error code, never the value typed into the form. A phone number, including a rejected one, is not included. Vite dev logs only the event name.
+
+## Topic routes
+
+These are real pages. The homepage does not use hash links for them.
+
+| Path | Page |
+| --- | --- |
+| `/overview` | Overview |
+| `/how-it-works` | How it works |
+| `/personal-information` | Personal information |
+| `/data-brokers` | Data brokers |
+| `/unique-identifiers` | Unique identifiers |
+| `/tdpsa` | TDPSA |
+| `/children` | Children |
+| `/help` | Help |
+| `/share` | Share |
+| `/brokers` | Broker list |
+| `/privacy` | Privacy |
+| `/security` | Security |
+| `/about` | About |
+
+`/start` is the opt-out form. `/account` is the account page only when `VITE_ACCOUNTS_LIVE=true`. Otherwise it shows Coming soon.
+
+## Account API
+
+These routes are on this origin and are forwarded to the `API` service binding when that binding is uncommented in `wrangler.jsonc`. Until then they return JSON 404. The account page calls them only when `VITE_ACCOUNTS_LIVE=true`. Mutations send `X-CSRF-Token` from `GET /api/me`. A `403` body `{ "error": "step_up_required" }` opens step-up. No other 403 does.
+
+The current signup payload keys, also posted to `POST /api/signup`, are `firstName`, `middleName`, `lastName`, `dob`, `addressLine1`, `addressLine2`, `city`, `state`, `zip`, `email`, `phone`, `texasResident`, `submitter`, `child`, `guardianAttestation`, `jurisdiction`, and `nonTexasFlag`. The shape is in the signup payload section above. `child` is `null` for a self request, or an object with `firstName`, `middleName`, `lastName`, `dob`, `sameAddress`, and, when `sameAddress` is false, `addressLine1`, `addressLine2`, `city`, `state`, and `zip`.
+
+`GET /api/me` returns `200` with `user` (`id`, `display_name`, `has_password`, `totp_enabled`, `created_at`), `providers` (each `provider`, and optional `verified`, `private_relay`, `email_verified`, `is_private_relay`), `auth_method`, `mfa`, `limited`, `stepped_up_until`, and `csrf_token`.
+
+`GET /api/account/profile` returns `{ "display_name": string | null, "identifiers_locked": boolean }`. `PATCH /api/account/profile` sends `{ "display_name": string }` and returns `{ "ok": true }`.
+
+`GET /api/account/optouts` returns `{ "optouts": OptOutRecord[] }`. Each record has `id`, `kind`, `status`, `sub_status`, `broker_id`, `service_id`, `created_at`, `updated_at`, `submitted_at`, `confirmed_at`, `finished_at`, and `deadline`. Times are unix seconds. `status` of `denied` is shown as Not completed. `sub_status` of `no_record` is shown as No record found.
+
+`GET /api/account/sessions` returns `{ "sessions": AccountSession[] }`. Each session has `id`, `auth_method`, `created_at`, `last_seen_at`, `expires_at`, and `current`.
+
+`POST /api/account/sessions/{id}/revoke` has an empty body and returns `{ "ok": true }`. The session row is removed. A step-up 403 leaves the row and opens confirmation.
+
+`POST /api/account/export` has an empty body and returns the export JSON, which the browser downloads. This is not a claim that deletion was verified.
+
+`POST /api/account/delete` has an empty body and returns `{ "ok": true }`. The browser then goes to `/`. Cancel sends no request.
+
+`POST /api/auth/google/stepup` and `POST /api/auth/microsoft/stepup` send `{ "return_to": "/account" }` and return `{ "action": "https://...", "method": "POST", "fields": { "st": "..." } }`. The browser posts that form. Apple is not a provider. `POST /api/auth/stepup/password` sends `{ "password": string, "code": string }` and returns `{ "ok": true }`.
+
+`POST /api/account/identities/google/link` and `POST /api/account/identities/microsoft/link` use the same handoff shape. `DELETE /api/account/identities/{google|microsoft}` returns `{ "ok": true }`.

@@ -2,8 +2,10 @@
  * @vitest-environment happy-dom
  */
 import { readFileSync } from "node:fs";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { setAnalyticsSink, type AnalyticsEvent } from "../src/analytics";
 import { DISCLAIMER } from "../src/copy";
 import { SiteFooter } from "../src/Footer";
 import { SignupForm } from "../src/SignupForm";
@@ -11,7 +13,27 @@ import { StartPage } from "../src/pages/StartPage";
 
 afterEach(() => {
   cleanup();
+  setAnalyticsSink(() => {});
+  vi.unstubAllGlobals();
 });
+
+function fillRequest(phone: string) {
+  const values: Record<string, string> = {
+    firstName: "Ada",
+    lastName: "Lovelace",
+    dob: "1990-01-15",
+    addressLine1: "123 Main St",
+    city: "Austin",
+    state: "TX",
+    zip: "78701",
+    email: "ada@example.com",
+    phone,
+  };
+  for (const [id, value] of Object.entries(values)) {
+    fireEvent.change(document.getElementById(id) as HTMLInputElement, { target: { value } });
+  }
+  fireEvent.click(screen.getByLabelText(/I live in Texas/));
+}
 
 describe("signup form copy", () => {
   it("keeps labels and the shortened Texas note, and drops field hints", () => {
@@ -84,5 +106,53 @@ describe("signup form copy", () => {
     const matches = screen.getAllByText(DISCLAIMER);
     expect(matches).toHaveLength(1);
     expect(matches[0]?.closest("footer")).toBeTruthy();
+  });
+});
+
+describe("signup form phone", () => {
+  it("shows the US phone error and keeps the typed number out of analytics", async () => {
+    const user = userEvent.setup();
+    const events: AnalyticsEvent[] = [];
+    setAnalyticsSink((event) => {
+      events.push(event);
+    });
+    const fetchImpl = vi.fn();
+    vi.stubGlobal("fetch", fetchImpl);
+    render(<SignupForm />);
+    fillRequest("123");
+    await user.click(screen.getByRole("button", { name: "Submit opt-out request" }));
+
+    expect(await screen.findByText("Enter a valid US phone number.")).toBeTruthy();
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(events).toContainEqual({ event: "field_error", field: "phone", code: "invalid" });
+    expect(JSON.stringify(events)).not.toContain("123");
+    expect(JSON.stringify(events)).not.toMatch(/\+1\d{10}/);
+  });
+
+  it("posts an E.164 phone and does not send that value to analytics", async () => {
+    const user = userEvent.setup();
+    const events: AnalyticsEvent[] = [];
+    setAnalyticsSink((event) => {
+      events.push(event);
+    });
+    const bodies: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        bodies.push(String(init?.body));
+        return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+      }),
+    );
+    render(<SignupForm />);
+    fillRequest("(512) 555-0100");
+    await user.click(screen.getByRole("button", { name: "Submit opt-out request" }));
+
+    expect(await screen.findByText(/Confirmation received/)).toBeTruthy();
+    expect(JSON.parse(bodies[0] ?? "{}").phone).toBe("+15125550100");
+    expect(events).toContainEqual({ event: "submitted" });
+    const tracked = JSON.stringify(events);
+    expect(tracked).not.toContain("512");
+    expect(tracked).not.toContain("+15125550100");
+    expect(tracked).not.toContain("(512) 555-0100");
   });
 });

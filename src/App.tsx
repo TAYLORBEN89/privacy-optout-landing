@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
+import { accountsLive, authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
+import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE } from "./copy";
 import { Header } from "./Header";
 import { SiteFooter } from "./Footer";
 import { AboutPage } from "./pages/AboutPage";
@@ -78,7 +79,14 @@ export function App() {
   else if (path === "/about") page = <AboutPage />;
   else if (path === "/signin") page = <SignInPage />;
   else if (path === "/start") page = <StartPage action={pageAction} />;
-  else if (path === "/account") {
+  else if (path === "/account" && !accountsLive()) {
+    page = (
+      <article className="panel">
+        <h1>{ACCOUNTS_COMING_SOON_TITLE}</h1>
+        <p>{ACCOUNTS_COMING_SOON}</p>
+      </article>
+    );
+  } else if (path === "/account") {
     page = (
       <AccountPage
         action={pageAction}
