@@ -1533,6 +1533,12 @@ textarea {
   text-align: center;
 }
 
+.benefit-art {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+}
+
 .feature-card-overview {
   background: linear-gradient(160deg, #fff6f7, #ffe4ea);
   color: #ee0014;

@@ -46,19 +46,17 @@ describe("feature panel", () => {
       "/benefits/children",
     );
     expect(screen.getAllByRole("link")).toHaveLength(7);
-    const icons = [...document.querySelectorAll(".feature-card .benefit-icon")];
-    expect(icons).toHaveLength(7);
-    for (const icon of icons) {
-      expect(icon.getAttribute("stroke-width")).toBe("0.9");
-      const tones = [...icon.querySelectorAll("g[stroke]")].map((node) => node.getAttribute("stroke"));
-      expect(new Set(tones).size).toBe(2);
-    }
-    expect(document.querySelector(".feature-card-unique-identifiers .benefit-icon")?.innerHTML).not.toContain(
-      "M12 19c0-3 .2-5 .2-7a3.2 3.2 0 0 1 6.4 0",
-    );
-    expect(document.querySelector(".feature-card-overview .benefit-icon")?.innerHTML).toContain(
-      "M15.2 8.4a3.2 3.2 0 1 1-6.4 0 3.2 3.2 0 0 1 6.4 0",
-    );
+    const icons = [...document.querySelectorAll(".feature-card .benefit-art")];
+    expect(icons.map((icon) => icon.getAttribute("src"))).toEqual([
+      expect.stringContaining("key"),
+      expect.stringContaining("mail"),
+      expect.stringContaining("shield"),
+      expect.stringContaining("clock"),
+      expect.stringContaining("tag"),
+      expect.stringContaining("scales"),
+      expect.stringContaining("house"),
+    ]);
+    expect(document.body.innerHTML).not.toContain("benefit-icons/star");
     expect(document.body.textContent).not.toMatch(/verified/i);
   });
 

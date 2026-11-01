@@ -1,5 +1,21 @@
-import { BenefitIcon } from "./BenefitIcon";
+import keyArt from "../assets/benefit-icons/key.png";
+import mailArt from "../assets/benefit-icons/mail.png";
+import shieldArt from "../assets/benefit-icons/shield.png";
+import clockArt from "../assets/benefit-icons/clock.png";
+import tagArt from "../assets/benefit-icons/tag.png";
+import scalesArt from "../assets/benefit-icons/scales.png";
+import houseArt from "../assets/benefit-icons/house.png";
 import { AppLink } from "../router";
+
+const ART: Record<string, string> = {
+  overview: keyArt,
+  "how-drop-works": mailArt,
+  "personal-information": shieldArt,
+  "data-brokers": clockArt,
+  "unique-identifiers": tagArt,
+  tdpsa: scalesArt,
+  children: houseArt,
+};
 
 const CARDS = [
   {
@@ -67,7 +83,7 @@ export function FeaturePanel() {
         {CARDS.map((card) => (
           <article key={card.id} className={`feature-card feature-card-${card.id}`}>
             <span className="feature-tag">{card.tag}</span>
-            <BenefitIcon id={card.id} />
+            <img className="benefit-art" src={ART[card.id]} alt="" />
             <h3>{card.headline}</h3>
             <p>{card.description}</p>
             <AppLink className="feature-btn" href={card.href}>
