@@ -11,9 +11,10 @@ describe("hero copy", () => {
     expect(hero).not.toContain("for the people");
     expect(hero).not.toContain("Demanding privacy");
     expect(hero).not.toContain("by the people");
-    expect(hero).toContain("DROP Texas is a free service that helps you gain control of your data.{\" \"}");
-    expect(hero).toContain('<br />');
+    expect(hero).toContain('<span className="hero-rule">DROP Texas is a free service that helps you </span>');
+    expect(hero).toContain('<span className="hero-rule">gain control of your data. </span>');
     expect(hero).toContain('<span className="hero-rule">Your data. Your rules.</span>');
+    expect(hero).not.toContain("<br");
     expect(hero).not.toContain("Your data, your rules.");
     expect(hero).not.toContain("to request data brokers not sell their personal information");
     expect(hero.match(/className="lede hero-line"/g)).toHaveLength(1);
@@ -29,7 +30,8 @@ describe("hero copy", () => {
     expect(css).toContain("@keyframes hero-line-in");
     expect(css).toContain("animation: hero-line-in 0.7s ease 0.22s both");
     expect(css).toContain("animation: hero-line-in 0.7s ease 0.44s both");
-    expect(css).toContain(".hero-rule {\n  white-space: nowrap;\n}");
+    expect(css).toContain(".hero-rule {\n  display: block;\n  white-space: nowrap;\n}");
+    expect(css).toContain("font-size: clamp(15px, 4.2vw, 18px)");
     expect(css).not.toContain("animation: hero-line-in 0.7s ease 0.66s both");
     expect(css).toContain(".hero h1,\n  .hero-sub,\n  .hero .hero-line {\n    animation: none;\n  }");
     const html = readFileSync("index.html", "utf8");

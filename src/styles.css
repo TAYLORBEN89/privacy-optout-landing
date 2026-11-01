@@ -194,10 +194,6 @@ body {
   margin-right: auto;
 }
 
-.hero-rule {
-  white-space: nowrap;
-}
-
 .hero .cta {
   margin-left: auto;
   margin-right: auto;
@@ -227,6 +223,16 @@ h1::after {
   color: #3c3c3c;
   font-size: 18px;
   line-height: 1.6;
+}
+
+.hero .lede.hero-line {
+  font-size: clamp(15px, 4.2vw, 18px);
+  letter-spacing: -0.045em;
+}
+
+.hero-rule {
+  display: block;
+  white-space: nowrap;
 }
 
 .hero .note {

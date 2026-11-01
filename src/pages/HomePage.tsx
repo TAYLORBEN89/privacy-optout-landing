@@ -15,8 +15,8 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <h1 id="page-title">Privacy is a right.</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
             <p className="lede hero-line">
-              DROP Texas is a free service that helps you gain control of your data.{" "}
-              <br />
+              <span className="hero-rule">DROP Texas is a free service that helps you </span>
+              <span className="hero-rule">gain control of your data. </span>
               <span className="hero-rule">Your data. Your rules.</span>
             </p>
             <p className="lede note">
