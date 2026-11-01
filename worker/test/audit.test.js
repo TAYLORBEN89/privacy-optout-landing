@@ -34,4 +34,17 @@ describe('audit_log append-only + 12-month expiry', () => {
     expect(await env.DB.prepare('SELECT 1 FROM maintenance_gate').first()).toBeNull(); // gate closed again
     await expect(env.DB.prepare('DELETE FROM maintenance_log').run()).rejects.toThrow(/append-only/);
   });
+
+  it('logs the real number of deleted audit rows, not changes() of the gate delete (regression)', async () => {
+    const t = now();
+    for (let i = 0; i < 3; i++) await add(`r.old${i}`, t - 500 * DAY);
+    await add('r.new', t);
+    const expected = (await env.DB.prepare('SELECT COUNT(*) AS n FROM audit_log WHERE at < ?1').bind(t - 365 * DAY).first()).n;
+    expect(expected).toBeGreaterThanOrEqual(3);
+    const deleted = await expireAudit(env, t);
+    expect(deleted).toBe(expected);
+    const log = await env.DB.prepare("SELECT deleted FROM maintenance_log WHERE job = 'audit_expiry' AND ran_at = ?1").bind(t).first();
+    expect(log.deleted).toBe(expected);
+    expect(log.deleted).not.toBe(1);
+  });
 });

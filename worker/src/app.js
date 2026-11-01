@@ -579,11 +579,16 @@ export async function expireAudit(env, at = now()) {
   const cutoff = at - days * 86400;
   const res = await env.DB.batch([
     env.DB.prepare("INSERT INTO maintenance_gate (name, cutoff) VALUES ('audit_expiry', ?1)").bind(cutoff),
+    // Log first, counting the rows the DELETE below will remove. (changes() after the gate DELETE returned 1, the gate
+    // row, not the audit rows.) Same transaction, so the count and the DELETE see identical data. maintenance_log is
+    // append-only, so the count can't be patched in afterwards.
+    env.DB.prepare(
+      "INSERT INTO maintenance_log (job, ran_at, cutoff, deleted) VALUES ('audit_expiry', ?1, ?2, (SELECT COUNT(*) FROM audit_log WHERE at < ?2))",
+    ).bind(at, cutoff),
     env.DB.prepare('DELETE FROM audit_log WHERE at < ?1').bind(cutoff),
     env.DB.prepare("DELETE FROM maintenance_gate WHERE name = 'audit_expiry'"),
-    env.DB.prepare("INSERT INTO maintenance_log (job, ran_at, cutoff, deleted) VALUES ('audit_expiry', ?1, ?2, changes())").bind(at, cutoff),
   ]);
-  const deleted = res[1].meta.changes;
+  const deleted = res[2].meta.changes;
   console.log('audit_expiry', JSON.stringify({ deleted }));
   return deleted;
 }
