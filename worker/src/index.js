@@ -1,6 +1,6 @@
 // Entry: new D1 auth/opt-out API (/auth/*, /me, /optouts*) + legacy KV routes (/records, /txrequests, /settings).
 import legacy from './legacy.js';
-import { handleApp, isAppPath, allowedOrigins, corsHeaders, purge } from './app.js';
+import { handleApp, isAppPath, allowedOrigins, corsHeaders, purge, expireAudit } from './app.js';
 
 export default {
   async fetch(req, env) {
@@ -18,5 +18,6 @@ export default {
   },
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(purge(env));
+    ctx.waitUntil(expireAudit(env)); // separate job; the only audit_log delete path
   },
 };

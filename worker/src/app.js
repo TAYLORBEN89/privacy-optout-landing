@@ -512,7 +512,7 @@ export const isAppPath = (pathname) => /^\/(auth|me|optouts|brokers|profile|admi
 // Retention (env vars, days): PII_RETENTION_DAYS (after confirmation, 30), PII_HARD_MAX_DAYS (90, enforced via purge_after),
 // SESSION_PURGE_DAYS (after expiry/revocation, 7), FINISHED_RECORD_RETENTION_DAYS (optout kind, 730 = 24 months),
 // TX_RECORD_RETENTION_DAYS (Texas kind, 1095 = 3 years). Record retention counts from finished_at (confirmed/denied).
-// audit_log retention is intentionally NOT handled here (owned by a separate PR).
+// audit_log is NOT purged here; it has its own append-only expiry job (expireAudit) below.
 export function retention(env) {
   return {
     piiDays: num(env.PII_RETENTION_DAYS, 30),
@@ -538,4 +538,22 @@ export async function purge(env, at = now()) {
   const counts = res.map((x) => x.meta.changes);
   console.log('purge', JSON.stringify({ pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] }));
   return counts;
+}
+
+// ---------- audit_log expiry (separate scheduled job) ----------
+// AUDIT_RETENTION_DAYS (min/default 365 = 12 months). The only path that deletes audit rows: opens the DB gate,
+// deletes rows older than the cutoff, closes the gate and records the run in maintenance_log, all in one D1 batch
+// (a single transaction), so the gate is never visible outside this job.
+export async function expireAudit(env, at = now()) {
+  const days = Math.max(365, num(env.AUDIT_RETENTION_DAYS, 365));
+  const cutoff = at - days * 86400;
+  const res = await env.DB.batch([
+    env.DB.prepare("INSERT INTO maintenance_gate (name, cutoff) VALUES ('audit_expiry', ?1)").bind(cutoff),
+    env.DB.prepare('DELETE FROM audit_log WHERE at < ?1').bind(cutoff),
+    env.DB.prepare("DELETE FROM maintenance_gate WHERE name = 'audit_expiry'"),
+    env.DB.prepare("INSERT INTO maintenance_log (job, ran_at, cutoff, deleted) VALUES ('audit_expiry', ?1, ?2, changes())").bind(at, cutoff),
+  ]);
+  const deleted = res[1].meta.changes;
+  console.log('audit_expiry', JSON.stringify({ deleted }));
+  return deleted;
 }

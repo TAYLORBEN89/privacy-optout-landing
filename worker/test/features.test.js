@@ -37,7 +37,7 @@ async function newOptout(h, body = {}) {
 
 beforeEach(async () => {
   IP = `10.1.0.${++n}`;
-  await env.DB.batch(['audit_log', 'confirmations', 'pii_payloads', 'optout_requests', 'sessions', 'users']
+  await env.DB.batch(['confirmations', 'pii_payloads', 'optout_requests', 'sessions', 'users']
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`))); // test-only fixed table names
   await env.DB.prepare("INSERT OR IGNORE INTO brokers (id, name, url, category) VALUES ('spokeo', 'Spokeo', 'https://spokeo.com', 'people'), ('acxiom', 'Acxiom', NULL, 'brokers')").run();
 });

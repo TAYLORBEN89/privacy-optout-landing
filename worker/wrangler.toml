@@ -13,13 +13,14 @@ SESSION_COOKIE_SAMESITE = "Strict"    # "None" only while the dashboard is still
 SESSION_IDLE_SECONDS = "43200"        # 12h idle
 SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (approved)
 PREAUTH_SECONDS = "300"
-# Retention (days). audit_log retention is handled by a separate PR (not in this cron).
+# Retention (days). audit_log: append-only, separate expiry job (AUDIT_RETENTION_DAYS, min 365).
 PII_RETENTION_DAYS = "30"                 # PII deleted 30 days after confirmation
 PII_HARD_MAX_DAYS = "90"                  # PII hard max from first write
 SESSION_PURGE_DAYS = "7"                  # session rows deleted 7 days after expiry/revocation
 FINISHED_RECORD_RETENTION_DAYS = "730"    # Compliance: finished opt-out records kept 24 months
 TX_RECORD_RETENTION_DAYS = "1095"         # Compliance: Texas requests kept 3 years
 PII_KEY_VERSION = "1"
+AUDIT_RETENTION_DAYS = "365"               # audit_log kept 12 months, then expired by expireAudit
 
 [[kv_namespaces]]
 binding = "RECORDS"
@@ -34,7 +35,7 @@ database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
 [triggers]
-crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expired sessions, old audit rows
+crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII/sessions/records + separate audit_log expiry
 
 # NOT ATTACHED. Uncomment only when the owner approves moving the API to the droptexas.com zone.
 # A custom_domain route creates its own DNS record for api.droptexas.com on deploy; it does not touch MX/mail records.
