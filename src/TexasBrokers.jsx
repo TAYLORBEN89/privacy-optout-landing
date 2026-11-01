@@ -10,7 +10,7 @@ export const TX_STATUSES = [
   { id: 'not_sent', label: 'Not sent' },
   { id: 'sent', label: 'Sent – awaiting reply' },
   { id: 'extended', label: 'Extended (+45 days)' },
-  { id: 'completed', label: 'Completed / deleted' },
+  { id: 'completed', label: 'Broker reports completed' },
   { id: 'no_data', label: 'No data held' },
   { id: 'denied', label: 'Denied' },
   { id: 'appealed', label: 'Appealed' },
