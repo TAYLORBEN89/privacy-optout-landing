@@ -71,18 +71,18 @@ describe("explore list", () => {
   }
 
   .nav-panel {
-    padding: 16px 0;
+    padding: 44px 0;
   }
 
   .nav-panel::before,
   .nav-panel::after {
-    height: 12px;
+    height: 34px;
   }
 
   .nav-tiles a {
-    min-height: 0;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    min-height: 86px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }`);
     expect(css).toContain("grid-template-columns: 1fr 1fr");
