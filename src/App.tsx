@@ -5,6 +5,7 @@ import { DISCLAIMER } from "./copy";
 import { Header } from "./Header";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
+import { BrokersPage } from "./pages/BrokersPage";
 import { HomePage } from "./pages/HomePage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { SecurityPage } from "./pages/SecurityPage";
@@ -54,6 +55,7 @@ export function App() {
   let page = <HomePage getStartedHref={getStarted} />;
   if (path === "/security") page = <SecurityPage />;
   else if (path === "/privacy") page = <PrivacyPage />;
+  else if (path === "/brokers") page = <BrokersPage />;
   else if (path === "/about") page = <AboutPage />;
   else if (path === "/signin") page = <SignInPage />;
   else if (path === "/start") page = <StartPage action={pageAction} />;

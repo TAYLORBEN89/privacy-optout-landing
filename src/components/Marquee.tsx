@@ -24,7 +24,7 @@ export function BrokerMarquee() {
           {clones}
         </ul>
       </div>
-      <AppLink className="marquee-more" href="/#data-brokers">
+      <AppLink className="marquee-more" href="/brokers">
         See all brokers &gt;
       </AppLink>
     </section>

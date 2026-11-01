@@ -20,7 +20,7 @@ describe("broker marquee", () => {
     expect(visible).toEqual([...BROKERS]);
     expect(document.querySelector(".chip")).toBeNull();
     const more = screen.getByRole("link", { name: "See all brokers >" });
-    expect(more.getAttribute("href")).toBe("/#data-brokers");
+    expect(more.getAttribute("href")).toBe("/brokers");
   });
 
   it("fades both sides, scrolls, and pauses for hover and reduced motion", () => {

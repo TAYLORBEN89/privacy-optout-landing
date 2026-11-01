@@ -60,4 +60,27 @@ describe("horizontal overflow", () => {
     const wide = box.sections.filter((section) => section.left < -1 || section.right > box.innerWidth + 1);
     expect(wide).toEqual([]);
   });
+
+  it.each([320, 390, 1440])("keeps /brokers within the viewport at %ipx", async (width) => {
+    const page = await browser.newPage();
+    await page.setViewport({ width, height: 800, deviceScaleFactor: 1 });
+    await page.goto(`${origin}/brokers`, { waitUntil: "load", timeout: 20_000 });
+    const box = await page.evaluate(() => {
+      const sections = [...document.querySelectorAll("section, .broker-card")].map((node) => {
+        const rect = node.getBoundingClientRect();
+        return { id: node.id || (node as HTMLElement).className, left: rect.left, right: rect.right };
+      });
+      return {
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+        cards: document.querySelectorAll(".broker-card").length,
+        sections,
+      };
+    });
+    await page.close();
+    expect(box.cards).toBe(9);
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.innerWidth);
+    const wide = box.sections.filter((section) => section.left < -1 || section.right > box.innerWidth + 1);
+    expect(wide).toEqual([]);
+  });
 });
