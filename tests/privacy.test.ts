@@ -18,10 +18,12 @@ describe("privacy page", () => {
     expect(html).not.toMatch(/Strict-Transport-Security|HSTS/i);
     expect(html).toContain("independent, free service");
     expect(html).toContain(
-      "used only to match and locate your records to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them",
+      "If you provide a phone number, it is used only to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
     );
-    expect(html).toContain("not used for marketing, calls, or texts");
-    expect(html).toContain("We keep it only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.");
+    expect(html).not.toContain("match and locate");
+    expect(html).toContain(
+      "We keep what you give us only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
+    );
     expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
     expect(html).toContain("Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256).");
     expect(html).toContain("Coming soon");
@@ -50,5 +52,27 @@ describe("privacy page", () => {
     expect(source).toContain("TODO(retention): no concrete retention period");
     const html = renderToStaticMarkup(createElement(PrivacyPage));
     expect(html).not.toContain("Cybersecurity and Compliance Agents");
+  });
+
+  it("pairs each section with its own icon", () => {
+    const html = renderToStaticMarkup(createElement(PrivacyPage));
+    const items = html.split("<li>").slice(1);
+    const expected = [
+      ["collect", "Data we collect", "M8 7h8M8 12h8M8 17h5"],
+      ["transit", "Encryption in transit", "M8 11V8a4 4 0 0 1 8 0v3"],
+      ["rest", "Encryption at rest", "M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"],
+      ["coming-soon", "Coming soon", "M12 8v4l3 2"],
+      ["limits", "What we don&#x27;t do", "M8 12h8"],
+      ["compliance", "Compliance", "M12 3.5 19 6.5v5c0 4-2.7 6.8-7 8.5-4.3-1.7-7-4.5-7-8.5v-5L12 3.5z"],
+    ] as const;
+    expect(items).toHaveLength(expected.length);
+    for (const [index, [id, title, mark]] of expected.entries()) {
+      expect(items[index]).toContain(`data-icon="${id}"`);
+      expect(items[index]).toContain(title);
+      expect(items[index]).toContain(mark);
+    }
+    expect(items[3]).toContain("<circle");
+    expect(items[5]).not.toContain("M12 8v4l3 2");
+    expect(items[3]).not.toContain("M12 3.5 19 6.5v5");
   });
 });
