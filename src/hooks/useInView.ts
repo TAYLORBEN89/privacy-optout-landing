@@ -1,7 +1,12 @@
 import { useEffect, useState, type RefObject } from "react";
 
+function motionPreference(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
+  const [reduced, setReduced] = useState(motionPreference);
   useEffect(() => {
     if (typeof window.matchMedia !== "function") {
       setReduced(true);

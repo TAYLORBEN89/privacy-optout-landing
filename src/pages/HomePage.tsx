@@ -72,6 +72,8 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
 
       <ValuesSection />
 
+      <Stats stats={buildStats()} />
+
       <section id="how-drop-works" className="block" aria-labelledby="how-heading">
         <Reveal>
           <div className="panel nest">
@@ -108,8 +110,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           </div>
         </Reveal>
       </section>
-
-      <Stats stats={buildStats()} />
 
       <section id="data-brokers" className="block" aria-labelledby="brokers-heading">
         <Reveal>

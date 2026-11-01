@@ -39,7 +39,7 @@ describe("your rights", () => {
   });
 
   it("cites a section number beside each bullet and follows the broker carousel", () => {
-    const source = readFileSync("src/components/Rights.tsx", "utf8");
+    const source = readFileSync("src/data/rights.ts", "utf8");
     const citations = [
       "541.051(b)(1)",
       "541.051(b)(2)",
@@ -58,7 +58,7 @@ describe("your rights", () => {
       cursor = at;
     }
     expect(source).toContain("541.101(c)");
-    expect(source).toContain("541.001(7)");
+    expect(readFileSync("src/components/Rights.tsx", "utf8")).toContain("541.001(7)");
     const page = readFileSync("src/pages/HomePage.tsx", "utf8");
     const marquee = page.indexOf("<BrokerMarquee");
     const rights = page.indexOf("<RightsSection");
