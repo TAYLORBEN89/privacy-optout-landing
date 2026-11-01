@@ -68,9 +68,10 @@ export function HowItWorksPage() {
           <p>Checked means TDPSA. Unchecked still uses TDPSA for now and is marked non-Texas.</p>
         </li>
         <li>
-          <h2>Enter your name, mailing address, and email</h2>
+          <h2>Enter the details the request uses</h2>
           <p>
-            A phone number is optional. Most broker opt-out forms require a physical address. The form
+            The form asks for your name, mailing address, email, Texas residency, and (if you choose to
+            provide it) your phone number. Most broker opt-out forms require a physical address. The form
             does not ask for a device ID, a password, or a government ID number.
           </p>
         </li>
@@ -88,11 +89,11 @@ export function PersonalInformationPage() {
     <Topic
       title="Personal information"
       heading="Personal information"
-      description="DROP Texas asks for your name, mailing address, email, and Texas residency. A phone number is optional."
+      description="The form asks for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
     >
       <p>
-        The form requires your name, mailing address, email, and a yes-or-no answer on Texas residency.
-        Phone number is optional. Those are the details the request uses.
+        The form asks for your name, mailing address, email, Texas residency, and (if you choose to
+        provide it) your phone number.
       </p>
       <p>DROP Texas does not sell that information.</p>
       <p>
@@ -140,13 +141,16 @@ export function UniqueIdentifiersPage() {
     <Topic
       title="Unique identifiers"
       heading="Unique identifiers"
-      description="The DROP Texas form uses your name, mailing address, email, and an optional phone number."
+      description="The form asks for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
     >
       <p>
         Some brokers match people with extra identifiers. This form does not ask for device IDs, account
         passwords, or government ID numbers.
       </p>
-      <p>Your name, mailing address, and email are required. A phone number is optional.</p>
+      <p>
+        The form asks for your name, mailing address, email, Texas residency, and (if you choose to
+        provide it) your phone number.
+      </p>
       <p>
         The <AppLink href="/brokers">brokers page</AppLink> lists categories each company names in its own
         privacy notice, such as email, phone, or address, when that notice says so.
@@ -238,8 +242,8 @@ export function HelpPage() {
         <details>
           <summary>What do I enter?</summary>
           <p>
-            Your name, mailing address, email, and whether you live in Texas. A phone number is optional.
-            The page needs JavaScript to show the form.
+            The form asks for your name, mailing address, email, Texas residency, and (if you choose to
+            provide it) your phone number. The page needs JavaScript to show the form.
           </p>
         </details>
         <details>

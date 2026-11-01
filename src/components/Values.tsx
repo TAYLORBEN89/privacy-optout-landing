@@ -14,7 +14,7 @@ const VALUES = [
   {
     id: "need",
     title: "Only what we need",
-    body: "We collect just enough to send your requests: name, address, email, and Texas residency. Nothing more.",
+    body: "We collect just enough to send your requests: your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. Nothing more.",
   },
   {
     id: "honest",

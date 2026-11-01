@@ -24,7 +24,7 @@ const CARDS = [
     tag: "Personal information",
     headline: "Only what the form needs",
     description:
-      "We ask for your name, mailing address, email, and whether you live in Texas. We do not sell those details.",
+      "We ask for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. We do not sell those details.",
     button: "See what we ask",
     href: "/personal-information",
   },
@@ -42,7 +42,7 @@ const CARDS = [
     tag: "Unique identifiers",
     headline: "How a record is matched",
     description:
-      "Brokers often use an email, a phone number, or another ID. This form uses your name, mailing address, and email.",
+      "Brokers often use an email, a phone number, or another ID. This form uses your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number.",
     button: "See the identifiers",
     href: "/unique-identifiers",
   },

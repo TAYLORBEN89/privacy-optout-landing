@@ -51,8 +51,9 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <h2 id="personal-heading">Your information, protected</h2>
           <p className="personal-sub">Only what we need. Nothing more.</p>
           <p className="personal-body">
-            We collect only your name, address, email, and Texas residency so we can send opt-out requests
-            for you. We never sell your data.
+            We collect only your name, mailing address, email, Texas residency, and (if you
+            choose to provide it) your phone number so we can send opt-out requests for you. We never
+            sell your data.
           </p>
           <p className="personal-preview">{storageNotice()}</p>
           <AppLink className="cta" href="/privacy">

@@ -85,7 +85,7 @@ npm test
 
 ## What the form does
 
-The form collects full name, mailing address, email, and a Texas residency checkbox. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
+The form collects your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
 
 `STORAGE_LIVE` in `worker/storage.ts` is false. The page says the preview does not store submissions. Set that constant to true only when D1 is actually saving records. The replacement sentence is `STORAGE_LIVE_NOTE`.
 

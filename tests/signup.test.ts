@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateSignup } from "../shared/signup";
+import { PHONE_FIELD_LABEL } from "../shared/signup";
 
 const valid = {
   fullName: "Ada Lovelace",
@@ -9,6 +10,10 @@ const valid = {
 };
 
 describe("validateSignup", () => {
+  it("labels the phone field as optional", () => {
+    expect(PHONE_FIELD_LABEL).toBe("Phone number (optional)");
+  });
+
   it("accepts a Texan and normalizes whitespace and email case", () => {
     const result = validateSignup({
       fullName: "  Ada   Lovelace ",

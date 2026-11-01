@@ -4,38 +4,47 @@ import { DISCLAIMER } from "../copy";
  * REVIEW: Cybersecurity and Compliance Agents must review this copy before launch.
  * Only claims that are true of this stack belong here. HSTS is not set in this
  * Worker, so it is omitted. Do not write "certified".
+ * TODO(retention): no concrete retention period is stated for form fields.
+ * Phone is kept on the same terms as the other form fields. Do not invent a number of days.
  */
 
-const SECTIONS = [
+const COLLECTED =
+  "your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number";
+
+const SECTIONS: { title: string; paragraphs: string[] }[] = [
   {
     title: "Data we collect",
-    body: "The form asks only for your name, mailing address, email, and whether you live in Texas. The browser checks those fields, and the server checks them again.",
+    paragraphs: [
+      `The form asks for ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
+      "If you provide a phone number, it is used only to match and locate your records when sending opt-out, do-not-sell, and deletion requests to data brokers on your behalf. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
+      "A phone number you provide is kept on the same terms as your name, mailing address, email, and Texas residency.",
+    ],
   },
   {
     title: "Encryption in transit",
-    body: "Every page and API call is served over HTTPS with TLS through Cloudflare.",
+    paragraphs: ["Every page and API call is served over HTTPS with TLS through Cloudflare."],
   },
   {
     title: "Encryption at rest",
-    body: "Information that is saved is stored in Cloudflare D1 and Workers KV. Cloudflare encrypts those stores at rest.",
+    paragraphs: ["Information that is saved is stored in Cloudflare D1 and Workers KV. Cloudflare encrypts those stores at rest."],
   },
   {
     title: "Secure sign-in",
-    body: "You sign in with Google or Microsoft at accounts.droptexas.com. The session cookie is HttpOnly and uses the __Host- prefix. Changes send a CSRF token. Exporting your data or deleting your account asks you to confirm it is you first.",
+    paragraphs: ["You sign in with Google or Microsoft at accounts.droptexas.com. The session cookie is HttpOnly and uses the __Host- prefix. Changes send a CSRF token. Exporting your data or deleting your account asks you to confirm it is you first."],
   },
   {
     title: "Your controls",
-    body: "From your account you can export your data, delete your account, and sign out of other sessions.",
+    paragraphs: ["From your account you can export your data, delete your account, and sign out of other sessions."],
   },
   {
     title: "What we don't do",
-    body: "We do not sell your data. This site does not load advertising trackers.",
+    paragraphs: ["We do not sell your data. This site does not load advertising trackers."],
   },
   {
     title: "Compliance",
-    body: "DROP Texas is built to SOC 2 standards. That is not a certification.",
+    paragraphs: ["DROP Texas is built to SOC 2 standards. That is not a certification."],
   },
-] as const;
+];
 
 function SectionIcon({ index }: { index: number }) {
   const common = {
@@ -115,7 +124,9 @@ export function PrivacyPage() {
             <SectionIcon index={index} />
             <div>
               <h2>{section.title}</h2>
-              <p>{section.body}</p>
+              {section.paragraphs.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </div>
           </li>
         ))}

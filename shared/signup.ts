@@ -8,7 +8,7 @@
 export const SIGNUP_FIELDS = ["fullName", "mailingAddress", "email", "phone", "texasResident"] as const;
 
 /** UI copy for the optional phone input on the signup / opt-out form. */
-export const PHONE_FIELD_LABEL = "Phone number (recommended)";
+export const PHONE_FIELD_LABEL = "Phone number (optional)";
 export const PHONE_FIELD_HINT = "Data brokers also track people by phone number.";
 
 export type SignupField = (typeof SIGNUP_FIELDS)[number];
