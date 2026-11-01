@@ -26,7 +26,7 @@ function Topic({
       <h1>{heading}</h1>
       {children}
       <AppLink className="cta" href="/start">
-        Start Removing Me
+        Start my opt-out
       </AppLink>
       <p className="independence">{DISCLAIMER}</p>
     </article>

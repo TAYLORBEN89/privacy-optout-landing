@@ -38,7 +38,7 @@ describe("explore pages", () => {
       cleanup();
       render(<Page />);
       expect(screen.getByRole("heading", { level: 1, name: heading })).toBeTruthy();
-      expect(screen.getByRole("link", { name: /Start Removing Me/i }).getAttribute("href")).toBe("/start");
+      expect(screen.getByRole("link", { name: "Start my opt-out" }).getAttribute("href")).toBe("/start");
       expect(document.body.textContent).not.toMatch(/verified deletion|certified/i);
     }
   });

@@ -23,7 +23,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
               TDPSA for now, and the request is marked non-Texas.
             </p>
             <AppLink className="cta" href={getStartedHref}>
-              Start Removing Me
+              Start my opt-out
             </AppLink>
         </div>
       </section>
@@ -73,7 +73,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       <section className="closing" aria-labelledby="closing-heading">
         <h2 id="closing-heading">Ready to take back your privacy?</h2>
         <AppLink className="cta" href={getStartedHref}>
-          Start Removing Me
+          Start my opt-out
         </AppLink>
       </section>
     </>
