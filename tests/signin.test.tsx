@@ -35,6 +35,7 @@ describe("sign-in redirect", () => {
         signedIn={false}
         csrf={null}
         signInHref={signInHrefFor("/start")}
+        accountsLive
         onSignedOut={() => undefined}
       />,
     );

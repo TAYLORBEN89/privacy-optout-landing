@@ -13,6 +13,15 @@ export function authGateEnabled(raw?: string): boolean {
   return value !== "false" && value !== "0";
 }
 
+/**
+ * Header sign-in stays hidden until the accounts host is ready.
+ * Unset, empty, and "false" are off. Set VITE_ACCOUNTS_LIVE=true to show it.
+ */
+export function accountsLive(raw?: string): boolean {
+  const value = raw === undefined ? import.meta.env.VITE_ACCOUNTS_LIVE : raw;
+  return value === "true" || value === "1";
+}
+
 export function startHref(gateEnabled: boolean, signedIn: boolean): string {
   if (!gateEnabled || signedIn) return "/start";
   return SIGN_IN_HREF;

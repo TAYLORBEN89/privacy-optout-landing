@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { exportAccount, optOutLabel, patchDisplayName, type OptOutRecord } from "../src/api/account";
 import { isStepUpRequired, stepUpChoices } from "../src/api/stepUp";
 import { LOGOUT_PATH } from "../src/api";
-import { fetchMe, type MeOk } from "../src/authGate";
+import { fetchMe, signInHrefFor, type MeOk } from "../src/authGate";
 import { Header } from "../src/Header";
 import { AccountPage, AccountView } from "../src/pages/AccountPage";
 
@@ -115,7 +115,7 @@ describe("csrf_token", () => {
 
     const user = userEvent.setup();
     vi.stubGlobal("fetch", fetchImpl);
-    render(<Header signedIn csrf="csrf-1" signInHref="/signin?return_to=/start" onSignedOut={() => undefined} />);
+    render(<Header signedIn csrf="csrf-1" signInHref={signInHrefFor("/start")} accountsLive onSignedOut={() => undefined} />);
     await user.click(screen.getByRole("button", { name: "Account" }));
     await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
     const logout = calls.find((call) => call.url === LOGOUT_PATH);

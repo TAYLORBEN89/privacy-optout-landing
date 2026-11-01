@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { LOGOUT_PATH } from "./api";
+import { accountsLive as accountsLiveDefault } from "./authGate";
 import { UserGlyph, Wordmark } from "./Brand";
 import { nextMenuOpen } from "./menuState";
 import { NAV_ITEMS } from "./navItems";
@@ -14,11 +15,13 @@ export function Header({
   csrf,
   signInHref,
   onSignedOut,
+  accountsLive = accountsLiveDefault(),
 }: {
   signedIn: boolean;
   csrf: string | null;
   signInHref: string;
   onSignedOut: () => void;
+  accountsLive?: boolean;
 }) {
   const menuId = useId();
   const accountId = useId();
@@ -98,34 +101,36 @@ export function Header({
           <span className="visually-hidden">{menuOpen ? "Close menu" : "Open menu"}</span>
         </button>
         <Wordmark header />
-        <div className="account">
-          {signedIn ? (
-            <button
-              type="button"
-              className="account-button"
-              aria-label="Account"
-              aria-expanded={accountOpen}
-              aria-controls={accountId}
-              onClick={() => setAccountOpen((open) => !open)}
-            >
-              <UserGlyph />
-            </button>
-          ) : (
-            <AppLink className="sign-in-link" href={signInHref}>
-              Sign in
-            </AppLink>
-          )}
-          {signedIn && accountOpen ? (
-            <div className="account-menu" id={accountId} role="menu">
-              <AppLink href="/account" role="menuitem" onClick={() => setAccountOpen(false)}>
-                Your requests
-              </AppLink>
-              <button type="button" role="menuitem" onClick={() => void signOut()}>
-                Sign out
+        {accountsLive ? (
+          <div className="account">
+            {signedIn ? (
+              <button
+                type="button"
+                className="account-button"
+                aria-label="Account"
+                aria-expanded={accountOpen}
+                aria-controls={accountId}
+                onClick={() => setAccountOpen((open) => !open)}
+              >
+                <UserGlyph />
               </button>
-            </div>
-          ) : null}
-        </div>
+            ) : (
+              <AppLink className="sign-in-link" href={signInHref}>
+                Sign in
+              </AppLink>
+            )}
+            {signedIn && accountOpen ? (
+              <div className="account-menu" id={accountId} role="menu">
+                <AppLink href="/account" role="menuitem" onClick={() => setAccountOpen(false)}>
+                  Your requests
+                </AppLink>
+                <button type="button" role="menuitem" onClick={() => void signOut()}>
+                  Sign out
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {menuOpen ? (
         <div className="drawer-root">
