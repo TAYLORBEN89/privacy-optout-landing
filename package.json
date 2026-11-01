@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "test:labels": "node --test scripts/status-labels.test.mjs",
-    "test:storage": "node --test scripts/legacy-storage.test.mjs",
+    "test:storage": "node --test scripts/legacy-storage.test.mjs scripts/profile-storage.test.mjs",
     "preview": "vite preview",
     "check:no-legacy": "bash scripts/check-no-legacy.sh"
   },

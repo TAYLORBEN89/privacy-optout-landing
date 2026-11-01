@@ -1,9 +1,10 @@
 // Storage module. The Cloudflare Worker (see /worker) is the only store. Nothing about the user (records,
 // Texas requests, identifiers/profile) is written to localStorage any more; old plaintext caches are wiped on load.
 import { SERVICES } from './services.js';
-import { call, ApiError } from './authApi.js';
+import { call } from './authApi.js';
+import { SessionAuthError, sessionReason, SIGNED_OUT } from './sessionErrors.js';
 
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '');
 const KEY_STORAGE = 'privacy-dashboard:access-key';
 
 // Legacy shared access key: per-tab sessionStorage only (gone when the tab closes), until the legacy routes retire.
@@ -81,19 +82,22 @@ export async function saveTxRequest(req) {
 // migrated) fall back to the legacy KV route /settings/profile, so they keep access until the KV->D1 migration.
 // loadProfile resolves { profile, source: 'session' | 'legacy' }. It throws ProfileAuthError when neither a session
 // nor a legacy key is available, AuthError when the legacy key is rejected, and rethrows anything else (network, 5xx) so the UI can tell the two apart.
-export class ProfileAuthError extends Error {}
-const isAuthStatus = (e) => e instanceof ApiError && (e.status === 401 || e.status === 403);
+// ProfileAuthError.reason is one of sessionErrors' reasons. The legacy KV fallback is used ONLY when there is no
+// session at all (401 from /api/me) and a legacy key exists: an MFA-pending or not-stepped-up session never falls back.
+export class ProfileAuthError extends SessionAuthError {}
+const toProfileErr = (e) => { const r = sessionReason(e); return r ? new ProfileAuthError(r) : e; };
 export async function loadProfile() {
   try {
-    await call('/me'); // restores the in-memory CSRF token after a reload (needed for the PUT)
-    return { profile: await call('/profile'), source: 'session' };
+    await call('/api/me'); // restores the in-memory CSRF token after a reload (needed for the PUT)
   } catch (e) {
-    if (!isAuthStatus(e)) throw e;
+    if (sessionReason(e) !== SIGNED_OUT) throw toProfileErr(e);
+    if (!getKey() || !API_URL) throw new ProfileAuthError(SIGNED_OUT);
+    // A rejected legacy key throws AuthError (key cleared), which the page routes to onAuthFail as before.
+    return { profile: await api('/settings/profile'), source: 'legacy' };
   }
-  if (!getKey() || !API_URL) throw new ProfileAuthError('sign in required');
-  // A rejected legacy key throws AuthError (key cleared), which the page routes to onAuthFail as before.
-  return { profile: await api('/settings/profile'), source: 'legacy' };
+  try { return { profile: await call('/api/profile'), source: 'session' }; } catch (e) { throw toProfileErr(e); }
 }
-export const saveProfile = (p, source) => (source === 'legacy'
-  ? api('/settings/profile', { method: 'PUT', body: JSON.stringify(p) })
-  : call('/profile', { method: 'PUT', body: p }));
+export async function saveProfile(p, source) {
+  if (source === 'legacy') return api('/settings/profile', { method: 'PUT', body: JSON.stringify(p) });
+  try { return await call('/api/profile', { method: 'PUT', body: p }); } catch (e) { throw toProfileErr(e); }
+}

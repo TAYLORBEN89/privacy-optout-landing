@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import bundled from './data/tx-brokers.json';
+import { SESSION_NOTES } from './sessionErrors.js';
 import { AuthError, ProfileAuthError, loadProfile, loadTxRequests, saveProfile, saveTxRequest } from './storage.js';
 import { AG_COMPLAINT_URL, EMPTY_PROFILE, RESPONSE_DAYS, buildEmail } from './txProfile.js';
 
@@ -130,9 +131,9 @@ function ProfileEditor({ profile, onSave, readOnly }) {
     for (const [k, , multi] of FIELDS) if (multi) clean[k] = (clean[k] || []).map((x) => x.trim()).filter(Boolean);
     if (readOnly) return;
     try { await onSave(clean); setMsg('Saved to your Worker ✓'); } catch (e) {
-      setMsg(e instanceof AuthError || e?.status === 401 || e?.status === 403
-        ? 'Not saved: sign in at #/account (nothing is stored in this browser)'
-        : 'Not saved: the server could not be reached. Try again.');
+      setMsg(e instanceof ProfileAuthError ? `Not saved. ${SESSION_NOTES[e.reason]}`
+        : e instanceof AuthError ? 'Not saved: sign in at #/account (nothing is stored in this browser)'
+          : 'Not saved: the server could not be reached. Try again.');
     }
     setTimeout(() => setMsg(''), 2500);
   };
@@ -168,7 +169,7 @@ export default function TexasBrokers({ onAuthFail }) {
       if (e instanceof AuthError) { onAuthFail(e); return; } // legacy key rejected: same path as every other legacy call
       setProfile(EMPTY_PROFILE); setProfileSource(null);
       setProfileNote(e instanceof ProfileAuthError
-        ? 'Sign in at #/account to load and save your identifiers. They are stored encrypted on the server, never in this browser.'
+        ? `Your identifiers: ${SESSION_NOTES[e.reason]}`
         : 'Could not load your identifiers (server unreachable). Editing is disabled so nothing gets overwritten; reload to retry.');
     });
   }, []);
