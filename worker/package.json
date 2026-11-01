@@ -7,6 +7,7 @@
     "check": "wrangler deploy --dry-run --outdir dist",
     "test": "vitest run",
     "check:sql": "bash scripts/check-no-sql-concat.sh",
+    "check:origins": "bash scripts/check-prod-origins.sh",
     "db:migrate:local": "wrangler d1 migrations apply DB --local"
   },
   "devDependencies": {
@@ -15,6 +16,8 @@
     "wrangler": "^4.86.0"
   },
   "dependencies": {
+    "arctic": "^3.7.0",
+    "jose": "^6.2.14",
     "otplib": "^12.0.1"
   }
 }

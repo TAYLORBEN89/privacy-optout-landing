@@ -37,7 +37,7 @@ async function newOptout(h, body = {}) {
 
 beforeEach(async () => {
   IP = `10.1.0.${++n}`;
-  await env.DB.batch(['audit_log', 'confirmations', 'pii_payloads', 'optout_requests', 'sessions', 'users']
+  await env.DB.batch(['confirmations', 'pii_payloads', 'optout_requests', 'sessions', 'users']
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`))); // test-only fixed table names
   await env.DB.prepare("INSERT OR IGNORE INTO brokers (id, name, url, category) VALUES ('spokeo', 'Spokeo', 'https://spokeo.com', 'people'), ('acxiom', 'Acxiom', NULL, 'brokers')").run();
 });
@@ -173,6 +173,18 @@ describe('encrypted PII + profile', () => {
     const row = await env.DB.prepare('SELECT payload_enc FROM profiles WHERE user_id = ?1').bind(u.id).first();
     expect(row.payload_enc).not.toContain('Test Person');
     expect(await (await req('GET', '/profile', undefined, h)).json()).toEqual(p);
+  });
+
+  it('legacy GET/PUT /profile and GET /optouts/:id/pii require step-up (M1)', async () => {
+    const u = await makeUser(); const h = await fullLogin(u);
+    const id = await newOptout(h);
+    await req('PATCH', `/optouts/${id}`, { pii: { full_name: 'X' } }, h);
+    await env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1 WHERE user_id = ?2').bind(Math.floor(Date.now() / 1000) - 601, u.id).run();
+    for (const [m, path, body] of [['GET', '/profile'], ['PUT', '/profile', { name: 'n' }], ['GET', `/optouts/${id}/pii`]]) {
+      const r = await req(m, path, body, h);
+      expect(r.status).toBe(403);
+      expect((await r.json()).error).toBe('step_up_required');
+    }
   });
 
   it('GET /brokers lists brokers for MFA sessions only', async () => {
