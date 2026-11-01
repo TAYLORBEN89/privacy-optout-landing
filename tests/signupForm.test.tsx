@@ -3,7 +3,10 @@
  */
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { DISCLAIMER } from "../src/copy";
+import { SiteFooter } from "../src/Footer";
 import { SignupForm } from "../src/SignupForm";
+import { StartPage } from "../src/pages/StartPage";
 
 afterEach(() => {
   cleanup();
@@ -34,5 +37,22 @@ describe("signup form copy", () => {
     const state = screen.getByLabelText(/State/) as HTMLSelectElement;
     expect(state.value).toBe("TX");
     expect(state.querySelectorAll("option")).toHaveLength(51);
+  });
+
+  it("does not repeat the disclaimer above the form, and the footer still has it", () => {
+    const page = render(<StartPage action="form" />);
+    expect(page.queryByText(DISCLAIMER)).toBeNull();
+    expect(page.getByRole("heading", { name: "Send your request" })).toBeTruthy();
+    page.unmount();
+
+    render(
+      <>
+        <StartPage action="form" />
+        <SiteFooter />
+      </>,
+    );
+    const matches = screen.getAllByText(DISCLAIMER);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]?.closest("footer")).toBeTruthy();
   });
 });

@@ -689,10 +689,6 @@ button[type="submit"]:disabled {
   color: var(--red);
 }
 
-.form-section .note {
-  margin: 0 0 16px;
-}
-
 .faq details {
   border-top: 1px solid var(--line);
 }
