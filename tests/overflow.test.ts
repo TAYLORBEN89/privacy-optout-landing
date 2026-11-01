@@ -83,4 +83,30 @@ describe("horizontal overflow", () => {
     const wide = box.sections.filter((section) => section.left < -1 || section.right > box.innerWidth + 1);
     expect(wide).toEqual([]);
   });
+
+  it.each([390, 1440])("keeps the explore pages within the viewport at %ipx", async (width) => {
+    const paths = [
+      "/overview",
+      "/how-it-works",
+      "/personal-information",
+      "/data-brokers",
+      "/unique-identifiers",
+      "/tdpsa",
+      "/help",
+      "/share",
+    ];
+    for (const path of paths) {
+      const page = await browser.newPage();
+      await page.setViewport({ width, height: 800, deviceScaleFactor: 1 });
+      await page.goto(`${origin}${path}`, { waitUntil: "load", timeout: 20_000 });
+      const box = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+        heading: document.querySelector(".topic-page h1")?.textContent ?? "",
+      }));
+      await page.close();
+      expect(box.heading.length).toBeGreaterThan(0);
+      expect(box.scrollWidth).toBeLessThanOrEqual(box.innerWidth);
+    }
+  });
 });

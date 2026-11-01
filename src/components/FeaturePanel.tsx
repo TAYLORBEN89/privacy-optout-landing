@@ -9,7 +9,7 @@ const CARDS = [
     description:
       "DROP Texas is a free service for Texans to request data brokers not sell their personal information.",
     button: "See the overview",
-    href: "/#overview",
+    href: "/overview",
   },
   {
     id: "how-drop-works",
@@ -17,7 +17,7 @@ const CARDS = [
     headline: "Three steps to opt out",
     description: "Sign up, confirm your details, and we send opt-out requests to data brokers for you.",
     button: "See how it works",
-    href: "/#how-drop-works",
+    href: "/how-it-works",
   },
   {
     id: "personal-information",
@@ -26,7 +26,7 @@ const CARDS = [
     description:
       "We ask for your name, mailing address, email, and whether you live in Texas. We do not sell those details.",
     button: "See what we ask",
-    href: "/#personal-information",
+    href: "/personal-information",
   },
   {
     id: "data-brokers",
@@ -35,7 +35,7 @@ const CARDS = [
     description:
       "Opt-out requests can go to Acxiom, Experian, Equifax, TransUnion, Spokeo, Whitepages, and others named on this page.",
     button: "See the brokers",
-    href: "/#data-brokers",
+    href: "/data-brokers",
   },
   {
     id: "unique-identifiers",
@@ -44,7 +44,7 @@ const CARDS = [
     description:
       "Brokers often use an email, a phone number, or another ID. This form uses your name, mailing address, and email.",
     button: "See the identifiers",
-    href: "/#unique-identifiers",
+    href: "/unique-identifiers",
   },
   {
     id: "tdpsa",
@@ -53,7 +53,7 @@ const CARDS = [
     description:
       "The Texas box means the Texas Data Privacy and Security Act. An unchecked box still uses TDPSA for now and is marked non-Texas.",
     button: "Read about TDPSA",
-    href: "/#tdpsa",
+    href: "/tdpsa",
   },
 ] as const;
 

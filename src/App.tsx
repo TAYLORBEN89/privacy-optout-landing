@@ -7,6 +7,16 @@ import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { BrokersPage } from "./pages/BrokersPage";
 import { HomePage } from "./pages/HomePage";
+import {
+  DataBrokersPage,
+  HelpPage,
+  HowItWorksPage,
+  OverviewPage,
+  PersonalInformationPage,
+  SharePage,
+  TdpsaPage,
+  UniqueIdentifiersPage,
+} from "./pages/topics";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { SecurityPage } from "./pages/SecurityPage";
 import { SignInPage } from "./pages/SignInPage";
@@ -56,6 +66,14 @@ export function App() {
   if (path === "/security") page = <SecurityPage />;
   else if (path === "/privacy") page = <PrivacyPage />;
   else if (path === "/brokers") page = <BrokersPage />;
+  else if (path === "/overview") page = <OverviewPage />;
+  else if (path === "/how-it-works") page = <HowItWorksPage />;
+  else if (path === "/personal-information") page = <PersonalInformationPage />;
+  else if (path === "/data-brokers") page = <DataBrokersPage />;
+  else if (path === "/unique-identifiers") page = <UniqueIdentifiersPage />;
+  else if (path === "/tdpsa") page = <TdpsaPage />;
+  else if (path === "/help") page = <HelpPage />;
+  else if (path === "/share") page = <SharePage />;
   else if (path === "/about") page = <AboutPage />;
   else if (path === "/signin") page = <SignInPage />;
   else if (path === "/start") page = <StartPage action={pageAction} />;

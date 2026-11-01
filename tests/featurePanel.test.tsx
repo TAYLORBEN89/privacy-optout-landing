@@ -15,8 +15,8 @@ describe("feature panel", () => {
     render(<FeaturePanel />);
     expect(screen.getByRole("heading", { name: "Three steps to opt out" })).toBeTruthy();
     expect(screen.getByText("Sign up, confirm your details, and we send opt-out requests to data brokers for you.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "See how it works >" }).getAttribute("href")).toBe("/#how-drop-works");
-    expect(screen.getByRole("link", { name: "See the brokers >" }).getAttribute("href")).toBe("/#data-brokers");
+    expect(screen.getByRole("link", { name: "See how it works >" }).getAttribute("href")).toBe("/how-it-works");
+    expect(screen.getByRole("link", { name: "See the brokers >" }).getAttribute("href")).toBe("/data-brokers");
     expect(screen.getByText(/Acxiom, Experian/)).toBeTruthy();
     expect(screen.getAllByRole("link")).toHaveLength(6);
     expect(document.body.textContent).not.toMatch(/verified/i);
