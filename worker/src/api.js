@@ -17,7 +17,7 @@ const now = () => Math.floor(Date.now() / 1000);
 const NO_PASSWORD = '!';            // sentinel pw_hash for social-only users; verifyPassword() never accepts it
 const UNAUTH = (ctx) => json(ctx, { error: 'unauthorized' }, 401);
 const FORBIDDEN = (ctx) => json(ctx, { error: 'forbidden' }, 403);
-const STEP_UP_REQUIRED = (ctx) => json(ctx, { error: 'step_up_required' }, 403);
+const STEP_UP_REQUIRED = (ctx) => json(ctx, { error: 'step_up_required', code: 'step_up_required' }, 403);
 
 const redirect = (location, cookies = []) => {
   const h = new Headers({ Location: location, 'Cache-Control': 'no-store' });
@@ -30,6 +30,8 @@ const LEGACY_AUTH_ALIASES = new Set([
   '/api/auth/login', '/api/auth/totp/verify', '/api/auth/totp/enroll', '/api/auth/totp/confirm',
   '/api/auth/refresh', '/api/auth/backup-codes/regenerate',
 ]);
+
+const SESSION_ALIASES = /^\/api\/tx-requests(\/[^/]+)?$/;
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -516,7 +518,8 @@ export async function handleApi(req, env) {
   if (/^\/api\/(auth|account\/identities)\/apple(\/|$)/.test(path)) return json(ctx, { error: 'not found' }, 404);
   if (STATE_CHANGING.has(m) && !(origin && allowedOrigins(env).includes(origin))) return FORBIDDEN(ctx);
 
-  if (LEGACY_AUTH_ALIASES.has(path)) {
+  // Same-origin aliases for the session routes the dashboard uses: /api/tx-requests[/:id] -> /tx-requests[/:id].
+  if (LEGACY_AUTH_ALIASES.has(path) || SESSION_ALIASES.test(path)) {
     const u = new URL(req.url); u.pathname = path.slice(4);
     return handleApp(new Request(u, req), env);
   }
@@ -533,7 +536,7 @@ export async function handleApi(req, env) {
 
   if (m === 'GET' && path === '/api/me') return me(ctx, cur);
   if (m === 'POST' && path === '/api/auth/logout') return logout(ctx, cur);
-  if (cur.limited) return json(ctx, { error: 'mfa required' }, 403); // password session that hasn't finished TOTP
+  if (cur.limited) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403); // password session that hasn't finished TOTP
 
   if (m === 'POST' && path === '/api/auth/stepup/password') return stepUpPassword(ctx, cur);
   pm = path.match(/^\/api\/auth\/(google|microsoft)\/stepup$/);

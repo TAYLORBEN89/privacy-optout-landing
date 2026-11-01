@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import bundled from './data/tx-brokers.json';
-import { loadProfile, loadTxRequests, saveProfile, saveTxRequest } from './storage.js';
+import { createTxSaver } from './txSaver.js';
+import { SESSION_NOTES } from './sessionErrors.js';
+import { SessionAuthError, TxRateLimitError, loadProfile, loadTxRequests, saveProfile, saveTxRequest } from './storage.js';
 import { AG_COMPLAINT_URL, EMPTY_PROFILE, RESPONSE_DAYS, buildEmail } from './txProfile.js';
 
 // Texas data broker registry -> TDPSA deletion/opt-out requests.
@@ -166,9 +168,27 @@ export default function TexasBrokers({ onAuthFail }) {
   const [limit, setLimit] = useState(50);
   const [err, setErr] = useState('');
 
-  useEffect(() => { loadTxRequests().then(({ map, online }) => { setReqs(map); setOnline(online); }).catch(onAuthFail); }, []);
+  // Texas requests use the signed-in session. Load failures: SessionAuthError -> a reason-specific note (not
+  // "offline", not the legacy key prompt); 429 -> a visible rate-limit error. Writes go through txSaver, which
+  // debounces per broker and keeps every unsent edit until the server stores it.
+  const [txAuth, setTxAuth] = useState(null); // null | sessionErrors reason
+  const [txLoadLimited, setTxLoadLimited] = useState(false);
+  const [save, setSave] = useState({ status: 'idle', pending: 0 });
+  const saver = useMemo(() => createTxSaver({ save: saveTxRequest, onState: setSave }), []);
+  const onTxErr = (e) => {
+    if (e instanceof SessionAuthError) { setTxAuth(e.reason); setReqs((m) => m || {}); return; }
+    if (e instanceof TxRateLimitError) { setTxLoadLimited(true); setReqs((m) => m || {}); return; }
+    onAuthFail(e);
+  };
+  useEffect(() => { loadTxRequests().then(({ map, online }) => { setReqs(map); setOnline(online); }).catch(onTxErr); }, []);
+  useEffect(() => { if (save.status === 'auth') setTxAuth(save.reason); }, [save.status, save.reason]);
+  const pendingWarn = save.pending > 0;
+  useEffect(() => {
+    const h = (ev) => { if (pendingWarn) { ev.preventDefault(); ev.returnValue = ''; } };
+    window.addEventListener('beforeunload', h); return () => window.removeEventListener('beforeunload', h);
+  }, [pendingWarn]);
 
-  const update = (r) => { setReqs((m) => ({ ...m, [r.id]: r })); saveTxRequest(r).then(setOnline).catch(onAuthFail); };
+  const update = (r) => { if (txAuth || !online) return; setReqs((m) => ({ ...m, [r.id]: r })); saver.queue(r); };
 
   const upload = async (e) => {
     const f = e.target.files?.[0]; if (!f) return;
@@ -202,6 +222,10 @@ export default function TexasBrokers({ onAuthFail }) {
 
   return (
     <>
+      {txAuth && <div className="tx-note">Texas requests: {SESSION_NOTES[txAuth]}{save.pending ? ` ${save.pending} unsaved change(s) are kept on this page: sign in in another tab, then Retry saving.` : ''}{save.pending > 0 && <button className="link-btn" onClick={() => { setTxAuth(null); saver.flush(); }}>Retry saving</button>}</div>}
+      {txLoadLimited && <div className="tx-alert-note" role="alert">Too many requests right now: your Texas requests could not be loaded. Wait a minute and reload.</div>}
+      {save.status === 'rate_limited' && <div className="tx-alert-note" role="alert">Saving paused: too many changes in a short time. {save.pending} unsaved change(s) are kept and will retry automatically{save.retryAt ? ` at ${new Date(save.retryAt).toLocaleTimeString()}` : ''}. Keep this page open.</div>}
+      {save.status === 'offline' && save.pending > 0 && <div className="tx-alert-note" role="alert">Server unreachable: {save.pending} unsaved change(s) kept; retrying. Keep this page open.</div>}
       <ProfileEditor profile={profile} onSave={storeProfile} />
       <section className="progress-wrap">
         <div className="progress-label">

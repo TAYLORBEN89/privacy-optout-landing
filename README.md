@@ -51,8 +51,9 @@ npx wrangler d1 create privacy-dashboard            # paste database_id into [[d
 | `0004_audit_append_only.sql` | append-only triggers on audit_log, the expiry gate and maintenance_log (idempotent) |
 | `0007_social_auth.sql` | user_identities (google/microsoft), oauth_states_used, auth_handoffs, step-up columns, audit ip/user_agent |
 | `0008_rate_limits.sql` | strongly consistent fixed-window rate-limit counters (replaces the old KV limiter) |
+| `0011_tx_requests_per_user.sql` | partial unique index `(user_id, service_id) WHERE kind = 'tx' AND service_id LIKE 'tx-%'`: one Texas request row per user per broker (signup rows, `service_id = 'signup'`, are excluded) |
 
-There are no 0005/0006 files (numbers were skipped). Wrangler applies whatever is unapplied, in file order:
+There are no 0005/0006 files (numbers were skipped); 0009 is reserved for the planned email work and 0010 for inactive accounts (PR #4). Wrangler applies whatever is unapplied, in file order:
 ```bash
 npm run db:migrate:local                                  # = wrangler d1 migrations apply DB --local
 npx wrangler d1 migrations apply DB --remote              # production; only with the owner's approval
@@ -93,6 +94,8 @@ The sign-in host `accounts.droptexas.com` is a live Workers Custom Domain, decla
 - Over the limit: `429` with the usual body and `Retry-After` = seconds until the window ends. Because windows are fixed, up to 2x the limit can land across a window boundary (the old KV TTL restarted on every hit).
 - Reserve-then-verify: every limited request first increments the counter atomically and decides from the returned count; above the limit it gets 429 without any password/TOTP/token verification, so at most `max` attempts per window reach a verifier even under parallel bursts. Credential checks (password login, TOTP/backup code, step-up password, admin bootstrap) refund their slot on success, so only failures stay counted. Other scopes (OAuth start/callback, handoff, opt-out writes, backup-code regen) count every attempt.
 - Opt-out writes (`POST /optouts`, `PATCH /optouts/:id`, `POST /api/optouts/signup`) share one limit of 30 per hour per user (keyed by user id, not IP). Every attempt counts, including rejected ones: 400 (validation) and 404 (unknown id) responses count toward the 30, and the 31st write in the hour gets 429 with Retry-After. A user can only lock out their own opt-out writes, never login or another account.
+- Texas broker request edits (`PUT /tx-requests/:id`) have a separate `tx` limit: 1000 per hour per user. A full pass over the 445-broker registry is about one write per broker, plus some notes and corrections. The dashboard debounces each broker's edits (800 ms), so typing notes sends one PUT, not one per keystroke. When it does get a `429`, it shows a visible "Saving paused" error with the retry time, keeps every unsent edit, and retries after `Retry-After`. It never reports this as offline. Texas edits never use up the 30/hour opt-out bucket, and opt-outs never use up the Texas one.
+- Session errors on these routes are distinct: `401 {error:'unauthorized'}` means no session, `403 {code:'mfa_required'}` means a password session without TOTP, and `403 {code:'step_up_required'}` means re-authentication is needed. The dashboard shows a different note for each one and keeps unsent edits.
 - The daily cron deletes ended windows. Old `rl:*` keys in KV are no longer read or written and expire on their own TTL.
 
 ### Admin bootstrap (password + TOTP fallback account)
@@ -125,7 +128,7 @@ App origin (`/api`, JSON, cookie session `__Host-sid`; state-changing requests n
 - `GET|PATCH /api/account/profile`, `GET /api/account/optouts`, `GET /api/account/sessions`, `POST /api/account/sessions/{id}/revoke`, `POST /api/account/export`, `POST /api/account/delete`.
 - `POST /api/optouts/signup` – `{fullName, mailingAddress, email, texasResident, phone?}`. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted with the rest of the signup PII.
 
-Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/admin/bootstrap`.
+Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/tx-requests` (below), `/admin/bootstrap`.
 Legacy KV API (`Authorization: Bearer <API_TOKEN>`): `GET|POST /records`, `GET|PUT|DELETE /records/:id`, `/txrequests`, `/settings/profile`.
 
 ### Tests and checks
@@ -153,7 +156,11 @@ Edit `src/services.js` and add an entry to `SERVICES`:
 The **Texas broker requests** tab lists every broker in the [Texas SOS data broker registry](https://texas-sos.appianportalsgov.com/data-broker-registry) (bundled export: `src/data/tx-brokers.json`, 445 brokers, exported 2026-10-21). For each broker it builds a Texas Data Privacy and Security Act deletion + opt-out email with **Copy email** and **Open in mail app** (mailto:) buttons. The dashboard never sends email; you send it, then mark it sent.
 
 - Tracking per broker: date sent, 45-day deadline (auto), status (sent, extended +45, completed, no data, not completed (stored as `denied`), appealed +60, AG complaint), response notes. Overdue requests show in red with appeal / AG complaint guidance.
-- Requests sync through the Worker at `/txrequests` (KV prefix `txreq:`).
+- Requests are per-user D1 rows (`optout_requests`, `kind = 'tx'`, cascade-deleted with the user) on the signed-in session (cookie + MFA; CSRF on writes). The legacy KV `/txrequests` route stays only for not-yet-migrated data. Nothing is cached in the browser; a 401/403 shows a "sign in" note, not "offline".
+  - `GET /tx-requests` → `[{id, status, sentDate, deadline, notes, updatedAt}]` (max 5000, newest first).
+  - `GET /tx-requests/:id` → one object, or `404`.
+  - `PUT /tx-requests/:id` with `{status, sentDate?, deadline?, notes?}` → the stored object. `id` is `tx-` + 1–61 of `[a-z0-9-]` (else `400`). `status` is one of `not_sent, sent, extended, appealed, completed, no_data, denied, ag_complaint` (else `400`). Dates are `YYYY-MM-DD`; `notes` is capped at 2000 characters (stored as plain text, like opt-out notes). Writes have their own limiter, `tx` (1000/hour per user; rejected requests count; `429` + `Retry-After`), and write an `audit_log` row. The dashboard calls these on the same origin as `/api/tx-requests[/:id]` (an alias to the routes above).
+  - D1 mapping (same as `scripts/kv-mapping.mjs`): `not_sent→queued`, `sent→submitted`, `extended/appealed→pending`, `completed/no_data→confirmed` (`no_data` kept as `sub_status = no_record`), `denied/ag_complaint→denied`. The exact client status round-trips via `sub_status`.
 - **Your identifiers** (name, aliases, addresses, phones, emails) live only in the Worker at `/settings/profile` (KV key `settings:profile`), edited from the "Your identifiers" panel. They are not in the site's code.
 - **Refreshing the registry:** on the registry site click "Export to Excel", then use "Upload newer registry export" in the tab (XLSX or CSV). An uploaded list is kept in that browser only; to update the bundled list for all devices, replace `src/data/tx-brokers.json` and redeploy.
 
