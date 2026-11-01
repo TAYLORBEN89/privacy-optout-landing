@@ -12,6 +12,7 @@ import {
   loginCookie, clearLoginCookie, readLoginCookie,
 } from './oauth.js';
 import { validateSignup } from './shared/signup.ts';
+import { toStoredSignup, readSignupPayload } from './signupPayload.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const NO_PASSWORD = '!';            // sentinel pw_hash for social-only users; verifyPassword() never accepts it
@@ -445,7 +446,7 @@ async function exportAccount(ctx, cur) {
   const opts = (await env.DB.prepare('SELECT * FROM optout_requests WHERE user_id = ?1 ORDER BY created_at').bind(uid).all()).results;
   const pii = (await env.DB.prepare('SELECT p.request_id, p.payload_enc, p.key_version FROM pii_payloads p JOIN optout_requests o ON o.id = p.request_id WHERE o.user_id = ?1').bind(uid).all()).results;
   const piiById = {};
-  for (const p of pii) piiById[p.request_id] = JSON.parse(await decryptPii(env, p.payload_enc, p.key_version, `pii:${p.request_id}`));
+  for (const p of pii) piiById[p.request_id] = readSignupPayload(JSON.parse(await decryptPii(env, p.payload_enc, p.key_version, `pii:${p.request_id}`)));
   const events = (await env.DB.prepare('SELECT action, target, at FROM audit_log WHERE user_id = ?1 ORDER BY at LIMIT 5000').bind(uid).all()).results;
   await audit(ctx, uid, 'account.export');
   const body = {
@@ -489,7 +490,9 @@ async function signup(ctx, cur) {
   if (!v.ok) return json(ctx, v, 400); // static messages only; submitted values are never echoed
   const id = crypto.randomUUID();
   const t = now();
-  const pii = { ...v.value, jurisdiction: 'TDPSA', nonTexasFlag: !v.value.texasResident };
+  // v2 payload (landing PR 12 shape); jurisdiction/nonTexasFlag are derived by validateSignup, never client-set.
+  // Child signups carry the child's name, DOB and (optional) address: encrypted like every other field, never logged.
+  const pii = toStoredSignup(v.value);
   const { blob, version } = await encryptPii(ctx.env, JSON.stringify(pii), `pii:${id}`);
   const hardMax = (Number(ctx.env.PII_HARD_MAX_DAYS) > 0 ? Number(ctx.env.PII_HARD_MAX_DAYS) : 90) * 86400;
   await ctx.env.DB.batch([

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { validatePhone, validateSignup, PHONE_FIELD_LABEL, PHONE_FIELD_HINT, SIGNUP_FIELDS } from '../src/shared/signup.ts';
+import { validatePhone, validateSignup, PHONE_FIELD_LABEL, SIGNUP_FIELDS } from '../src/shared/signup.ts';
 
-const base = { fullName: 'Pat Example', mailingAddress: '1 Main St, Somewhere, TX 75001', email: 'p@example.test', texasResident: true };
+const base = { firstName: 'Pat', lastName: 'Example', dob: '1990-04-02', addressLine1: '1 Main St', city: 'Somewhere', state: 'TX', zip: '75001', email: 'p@example.test', texasResident: true };
 
 describe('validatePhone', () => {
   it.each([
@@ -31,8 +31,7 @@ describe('validatePhone', () => {
 
 describe('validateSignup phone', () => {
   it('exposes UI copy and field name', () => {
-    expect(PHONE_FIELD_LABEL).toBe('Phone number (recommended)');
-    expect(PHONE_FIELD_HINT).toMatch(/phone number/);
+    expect(PHONE_FIELD_LABEL).toBe('Phone number (optional)');
     expect(SIGNUP_FIELDS).toContain('phone');
   });
   it('normalizes phone and keeps it optional', () => {
