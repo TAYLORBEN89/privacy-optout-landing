@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { authenticator } from 'otplib';
 import worker from '../src/index.js';
 import { hashPassword, encryptStr, encryptPii, decryptPii } from '../src/crypto.js';
-import { purge } from '../src/app.js';
+import { purge, inactiveAccounts } from '../src/app.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -317,5 +317,15 @@ describe('last_active_at', () => {
     const r = await env.DB.prepare('SELECT last_active_at, inactivity_warned_at FROM users WHERE id = ?1').bind(u.id).first();
     expect(r.last_active_at).toBeGreaterThan(1_700_000_000);
     expect(r.inactivity_warned_at).toBeNull();
+  });
+  it('a login during the warning window cancels deletion (login race)', async () => {
+    const u = await makeUser({ email: 'race@example.test' });
+    const t = Math.floor(Date.now() / 1000);
+    await env.DB.prepare('UPDATE users SET created_at = 1, last_active_at = ?1, inactivity_warned_at = ?2 WHERE id = ?3')
+      .bind(t - 800 * DAY, t - 20 * DAY, u.id).run();
+    await fullLogin(u); // signs in after the warning, before the cron's DELETE
+    const r = await inactiveAccounts({ ...env, MAILER: { send: async () => ({}) }, MAIL_FROM: 'a@example.test' }, t + 60);
+    expect(r.deleted).toBe(0);
+    expect(await env.DB.prepare('SELECT 1 FROM users WHERE id = ?1').bind(u.id).first()).not.toBeNull();
   });
 });

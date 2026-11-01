@@ -59,8 +59,38 @@ describe('inactive accounts', () => {
     await user(`${crypto.randomUUID()}@users.invalid`, T - 400 * DAY);
     await inactiveAccounts(e, T);
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0].text).toContain('about 12 months');
-    expect(send.mock.calls[0][0].text).toContain('within 30 days');
+    expect(send.mock.calls[0][0].text).toContain('about 13 months');
+    expect(send.mock.calls[0][0].text).toContain('within 14 days'); // past 395 days already: notice floor applies
     expect(send.mock.calls[0][0].text).not.toContain('23 months');
+  });
+
+  it('on-time warning states the 24-month deadline (29 days left at day 701)', async () => {
+    const send = vi.fn(async () => ({}));
+    await user('ontime@example.test', T - 701 * DAY);
+    await inactiveAccounts({ ...env, MAILER: { send }, MAIL_FROM: 'a@example.test' }, T);
+    expect(send.mock.calls[0][0].text).toContain('within 29 days');
+    expect(send.mock.calls[0][0].text).toContain(`by ${new Date((T + 29 * DAY) * 1000).toISOString().slice(0, 10)} UTC`);
+  });
+
+  it('late warning (already past 24 months) states the 14-day notice and is deleted only after it', async () => {
+    const send = vi.fn(async () => ({}));
+    const e = { ...env, MAILER: { send }, MAIL_FROM: 'a@example.test' };
+    const id = await user('late@example.test', T - 760 * DAY);
+    await inactiveAccounts(e, T);
+    const text = send.mock.calls[0][0].text;
+    expect(text).toContain('within 14 days');
+    expect(text).not.toContain('30 days');
+    expect(text).toContain(`by ${new Date((T + 14 * DAY) * 1000).toISOString().slice(0, 10)} UTC`);
+    await inactiveAccounts(e, T + 13 * DAY);
+    expect(await exists(id)).toBe(true);
+    await inactiveAccounts(e, T + 14 * DAY);
+    expect(await exists(id)).toBe(false);
+  });
+
+  it('partly late warning gets whichever is later: 24 months or 14 days', async () => {
+    const send = vi.fn(async () => ({}));
+    await user('mid@example.test', T - 720 * DAY);
+    await inactiveAccounts({ ...env, MAILER: { send }, MAIL_FROM: 'a@example.test' }, T);
+    expect(send.mock.calls[0][0].text).toContain('within 14 days');
   });
 });
