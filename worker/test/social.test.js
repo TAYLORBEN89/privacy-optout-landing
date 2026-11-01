@@ -655,6 +655,29 @@ describe('accounts host + handoff', () => {
     expect((await SELF.fetch(`${BASE}/api/me`, { headers: { ...hdrs(), Origin: ACC } })).status).toBe(403);
   });
 
+  it('sign-in page footer: link rows, accordion, dark band; absolute app-origin links; CSP unchanged', async () => {
+    const r = await SELF.fetch(`${ACC}/signin`, { headers: hdrs() });
+    const html = await r.text();
+    expect(html).toContain('<footer class="site-footer">');
+    const rows = [...html.matchAll(/<p class="footer-row">(.*?)<\/p>/g)].map((m) => [...m[1].matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map((a) => [a[2], a[1]]));
+    const abs = (r) => r.map(([l, h]) => [l, BASE + h]);
+    expect(rows).toEqual([
+      abs([['Overview', '/overview'], ['How It Works', '/how-it-works'], ['Data Brokers', '/data-brokers'], ['Brokers list', '/brokers'], ['TDPSA', '/tdpsa'], ['Help', '/help']]),
+      abs([['About', '/about'], ['Share', '/share'], ['Start', '/start'], ['Privacy', '/privacy'], ['Security', '/security']]),
+    ]);
+    expect((html.match(/<span class="footer-pipe"/g) || []).length).toBe(9);
+    expect((html.match(/<details>/g) || []).length).toBe(5);
+    const footer = html.slice(html.indexOf('<footer'));
+    for (const [, href] of footer.matchAll(/href="([^"]+)"/g)) expect(href.startsWith(`${BASE}/`)).toBe(true);
+    expect(footer).toContain('© 2026 DROP Texas. All rights reserved.');
+    expect(footer).toContain('It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.');
+    expect(footer).toContain('<svg class="mark"');
+    expect(html).not.toMatch(/<script|style="|\son[a-z]+=/i);
+    const nonce = html.match(/<style nonce="([^"]+)">/)[1];
+    expect((html.match(/<style/g) || []).length).toBe(1);
+    expect(r.headers.get('Content-Security-Policy')).toBe(`default-src 'none'; style-src 'nonce-${nonce}'; img-src 'self'; script-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'`);
+  });
+
   it('sign-in page: two providers, password fallback, strict security headers, no scripts', async () => {
     const r = await SELF.fetch(`${ACC}/signin?return_to=%2Faccount`, { headers: hdrs() });
     expect(r.status).toBe(200);
