@@ -92,7 +92,7 @@ export default function Account() {
     <div className="app">
       <header>
         <div><h1>DROP Texas</h1><p className="sub">DROP Texas · Free privacy opt-out for Texans</p></div>
-        <div className="header-actions"><a className="link-btn" href="#/">Legacy dashboard (access key)</a></div>
+        {import.meta.env.VITE_API_URL && <div className="header-actions"><a className="link-btn" href="#/">Legacy dashboard (access key)</a></div>}
       </header>
       {stage === 'loading' && <p>Loading…</p>}
       {stage === 'password' && (
