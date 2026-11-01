@@ -23,11 +23,11 @@ const ACCENTS: Record<string, string> = {
   share: "#d4890b",
 };
 
-function TileIcon({ id }: { id: string }) {
+export function TileIcon({ id, size = 40 }: { id: string; size?: number }) {
   const common = {
     viewBox: "0 0 24 24",
-    width: 40,
-    height: 40,
+    width: size,
+    height: size,
     fill: "none",
     stroke: "currentColor",
     strokeWidth: 2,

@@ -1,3 +1,4 @@
+import { FeaturePanel } from "../components/FeaturePanel";
 import { TopNav } from "../components/TopNav";
 import { PeopleArt, ShieldArt } from "../components/Illustrations";
 import { BrokerMarquee } from "../components/Marquee";
@@ -38,6 +39,22 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
         <TopNav />
       </section>
 
+      <FeaturePanel />
+
+      <section className="yellow-band" aria-labelledby="watch-heading">
+        <div className="overlap-card">
+          <ShieldArt />
+          <div>
+            <h2 id="watch-heading">A private request, not a government order</h2>
+            <p>
+              DROP Texas asks data brokers on your behalf. There is no fee to submit. A later status,
+              if one is shown, is only Submitted, Confirmed, Pending, Not completed, or No record found. Confirmed
+              means confirmation received. It does not mean deletion was verified.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <BrokerMarquee />
 
       <section id="how-drop-works" className="block" aria-labelledby="how-heading">
@@ -75,20 +92,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             </AppLink>
           </div>
         </Reveal>
-      </section>
-
-      <section className="yellow-band" aria-labelledby="watch-heading">
-        <div className="overlap-card">
-          <ShieldArt />
-          <div>
-            <h2 id="watch-heading">A private request, not a government order</h2>
-            <p>
-              DROP Texas asks data brokers on your behalf. There is no fee to submit. A later status,
-              if one is shown, is only Submitted, Confirmed, Pending, Not completed, or No record found. Confirmed
-              means confirmation received. It does not mean deletion was verified.
-            </p>
-          </div>
-        </div>
       </section>
 
       <section id="personal-information" className="block" aria-labelledby="personal-heading">
