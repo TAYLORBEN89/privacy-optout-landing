@@ -2,7 +2,7 @@
 
 v1 landing page for DROP Texas, a private, free privacy opt-out service. The page is a Vite + React app. Cloudflare Workers serves the built files as static assets and handles `POST /api/signup`.
 
-DROP Texas is an independent, free service run by a private individual. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.
+DROP Texas is an independent, free service run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.
 
 This version checks the form and returns success. It does not save the submission. A later backend owns D1/KV. See `worker/storage.ts`.
 

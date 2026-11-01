@@ -1,14 +1,33 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DISCLAIMER } from "../src/copy";
 
 const EXACT =
-  "DROP Texas is an independent, free service run by a private individual. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.";
+  "DROP Texas is an independent, free service run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.";
+
+function sourceFiles(dir: string): string[] {
+  const found: string[] = [];
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === "dist") continue;
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) found.push(...sourceFiles(path));
+    else if (/\.(tsx?|md|html|css|jsonc)$/.test(name)) found.push(path);
+  }
+  return found;
+}
 
 describe("disclaimer", () => {
-  it("uses the approved private-individual wording", () => {
+  it("uses the approved private-enterprise wording", () => {
     expect(DISCLAIMER).toBe(EXACT);
     expect(DISCLAIMER).not.toMatch(/California|CalPrivacy/);
+  });
+
+  it("does not leave the old private-individual wording in source", () => {
+    const retired = ["private", "individual"].join(" ");
+    const files = [...sourceFiles("src"), ...sourceFiles("tests"), "README.md", "index.html"];
+    const hits = files.filter((file) => readFileSync(file, "utf8").includes(retired));
+    expect(hits).toEqual([]);
   });
 
   it("does not leave the old California wording in shipped copy", () => {

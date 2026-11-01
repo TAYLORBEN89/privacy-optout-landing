@@ -24,7 +24,7 @@ const VALUES = [
   {
     id: "independent",
     title: "Independent",
-    body: "DROP Texas is run by a private individual. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.",
+    body: "DROP Texas is run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.",
   },
 ] as const;
 
