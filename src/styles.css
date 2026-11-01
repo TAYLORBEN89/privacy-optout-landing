@@ -539,6 +539,7 @@ button[type="submit"]:disabled {
   margin-top: 0;
   padding: 0;
   background: #f5f6f8;
+  background-image: none;
   border-top: 0;
 }
 
@@ -620,6 +621,7 @@ button[type="submit"]:disabled {
 .footer-dark {
   padding: 40px 24px 48px;
   background: #0c1220;
+  background-image: none;
   color: #fff;
   text-align: center;
 }

@@ -13,7 +13,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       <section id="overview" className="hero" aria-labelledby="page-title">
         <div className="hero-inner">
             <h1 id="page-title">Privacy is a right.</h1>
-            <p className="hero-sub">Let's get you started.</p>
+            <h2 className="hero-sub">Let's get you started.</h2>
             <p className="lede">
               DROP Texas is a free service for Texans to request data brokers not sell their personal information.
             </p>

@@ -1,6 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
+import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -75,5 +76,14 @@ describe("site footer", () => {
       else expect(href).toBe(TEXAS_STATUTE_URL);
     }
     expect(FOOTER_DESKTOP_ROWS.flat().every((link) => ROUTES.has(link.href))).toBe(true);
+  });
+
+  it("uses flat solid colors", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    const footer = css.slice(css.indexOf(".site-footer {"), css.indexOf(".text-link"));
+    expect(footer).toContain("background: #f5f6f8");
+    expect(footer).toContain("background: #0c1220");
+    expect(footer).not.toContain("linear-gradient");
+    expect(footer).not.toContain("radial-gradient");
   });
 });
