@@ -9,7 +9,8 @@ All periods **approved by the operator 2026-10-31**. The **daily** purge job is 
 ## Retention table (per user)
 | Data element | Store | Rule | Status |
 |---|---|---|---|
-| Identifier payloads (`pii_payloads`) | D1, encrypted | Delete 30 d after confirmation; 90 d hard max | Coded on branch, not deployed |
+| Account phone number(s) (approved by the operator 2026-10-31) | D1, per-user, encrypted (planned) | Keep while the account is active; delete with the account (on request, or at 24 months inactive with the 30-day warning) | Approved, not yet implemented |
+| Identifier payloads (`pii_payloads`, including any phone number copied into a request) | D1, encrypted | Delete 30 d after confirmation; 90 d hard max | Coded on branch, not deployed |
 | Finished opt-out records (`optout_requests` + `confirmations`; legacy KV `record:*`) | D1 / KV | Delete 24 months after final status | Approved, not yet implemented |
 | Texas TDPSA requests | Per-user D1 rows (confirmed; today shared KV `txreq:*`) | Delete 3 years after final status | Approved, not yet implemented; per-user D1 not yet live |
 | Inactive accounts (`users`, cascades) | D1 | Warning email 30 days before deletion; delete after 24 months with no sign-in | Approved, not yet implemented |
@@ -29,7 +30,7 @@ All periods **approved by the operator 2026-10-31**. The **daily** purge job is 
 1. Request arrives through in-app "Delete my account" (planned) or by email to the privacy contact.
 2. Verify identity with a signed-in MFA session or a reply from the account email. Responses are uniform (no account enumeration).
 3. Log it with the due date (+45 d).
-4. Delete the `users` row, which cascades to sessions, requests, confirmations, Texas requests, and identifiers. Delete any legacy KV keys.
+4. Delete the `users` row, which cascades to sessions, requests, confirmations, Texas requests, identifiers, and account phone number(s). Delete any legacy KV keys.
 5. Keep a minimal audit_log entry (`account.delete`, user id, time, IP, user-agent), with no request identifiers, for its 12 months.
 6. Backups age out within 90 d; this is disclosed.
 7. Confirm in writing and record it in the change log.

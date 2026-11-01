@@ -15,6 +15,7 @@
 | Sessions: hashed token, CSRF token, timestamps | Keep you signed in safely | D1 `sessions`; 12 h idle / 7 d max (planned) |
 | Opt-out requests: broker, status, dates, re-verify date, notes | Track each request | D1 `optout_requests` (planned) |
 | Confirmations: confirmation number, channel, time | Record of what the broker told us | D1 `confirmations` (planned) |
+| Phone number(s) on your account profile | Data brokers key profiles off phone numbers, so we use it to find your listings and to fill in opt-out requests to brokers | D1, per-user, AES-GCM encrypted (planned) |
 | Identifiers needed for a request (name, addresses, phones, emails) | Fill in broker requests | D1 `pii_payloads`, AES-GCM encrypted (planned) |
 | Texas TDPSA requests: broker, date sent, deadline, status, notes | Track 45-day deadlines | Per-user D1 rows (confirmed design; not yet live) |
 | Security audit log: user id, action, target, time, IP address, browser user-agent (IP and user-agent are personal data) | Security monitoring; kept 12 months | D1 `audit_log`, append-only (planned) |
@@ -25,10 +26,11 @@
 No analytics, advertising, or tracking scripts. We do not sell personal data, use it for targeted advertising, or profile you.
 
 ## 2. Processors
-Cloudflare, Inc. (Workers, D1, KV, Pages); Apple iCloud Mail for the help@droptexas.com contact inbox. Your own email provider when you send a request from your mail app. Brokers receive only what is needed to process your request.
+Cloudflare, Inc. (Workers, D1, KV, Pages); Apple iCloud Mail for the help@droptexas.com contact inbox. Your own email provider when you send a request from your mail app. Brokers receive only what is needed to process your request, which can include your phone number.
 
 ## 3. Retention
-- Identifiers for a request: deleted 30 days after the broker confirms; never kept more than 90 days.
+- Phone number(s) on your account profile: kept while your account is active; deleted when the account is deleted (by you, or after 24 months without sign-in).
+- Identifiers copied into a specific request (including a phone number): deleted 30 days after the broker confirms; never kept more than 90 days.
 - Finished opt-out records: deleted 24 months after completion.
 - Texas TDPSA request records: deleted 3 years after final status.
 - Security audit log (including IP address and user-agent): kept 12 months, append-only; rows older than 12 months are removed only by an approved scheduled job.
