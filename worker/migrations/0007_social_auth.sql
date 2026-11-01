@@ -44,10 +44,17 @@ CREATE TABLE auth_handoffs (
   intent       TEXT NOT NULL CHECK (intent IN ('login','stepup','link')),
   auth_method  TEXT NOT NULL CHECK (auth_method IN ('google','microsoft')),
   session_hash TEXT,
+  -- sha256 of the apex __Host-login cookie; /api/auth/complete requires the same browser (login-CSRF defence).
+  browser_hash TEXT NOT NULL,
   return_to    TEXT NOT NULL,
   auth_at      INTEGER NOT NULL,
   expires_at   INTEGER NOT NULL,
-  used_at      INTEGER
+  used_at      INTEGER,
+  -- intent='link' only: identity staged at the callback, inserted by /api/auth/complete after the session matches.
+  link_sub               TEXT,
+  link_email             TEXT,   -- AES-GCM(PII_ENC_KEY), AAD "identity:<provider>:<sub>"
+  link_email_key_version INTEGER,
+  link_email_verified    INTEGER
 );
 
 -- Audit context (approved): client IP (CF-Connecting-IP) and User-Agent (<=512 chars). Stored only here,

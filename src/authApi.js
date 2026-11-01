@@ -48,6 +48,16 @@ export const patchProfile = (body) => call('/api/account/profile', { method: 'PA
 export const optouts = () => call('/api/account/optouts');
 export const sessions = () => call('/api/account/sessions');
 export const revokeSession = (id) => call(`/api/account/sessions/${id}/revoke`, { method: 'POST' });
+// Step-up / link responses are {action, method:'POST', fields:{st}}: submit them as a top-level form POST so the
+// session-bound start token never appears in a URL, history entry or Referer.
+export function submitStart({ action, method, fields }) {
+  const f = document.createElement('form');
+  f.method = method || 'POST'; f.action = action;
+  for (const [k, v] of Object.entries(fields || {})) {
+    const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f.appendChild(i);
+  }
+  document.body.appendChild(f); f.submit();
+}
 export const linkProvider = (provider) => call(`/api/account/identities/${provider}/link`, { method: 'POST', body: { return_to: '/account' } });
 export const unlinkProvider = (provider) => call(`/api/account/identities/${provider}`, { method: 'DELETE' });
 export const exportData = () => call('/api/account/export', { method: 'POST' }); // POST + CSRF (was GET)
