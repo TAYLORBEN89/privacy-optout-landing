@@ -11,20 +11,20 @@ export interface StepUpStart {
 export interface StepUpChoices {
   providers: string[];
   offerPassword: boolean;
-  needsAnotherMethod: boolean;
 }
 
-/** Providers that can confirm the user, excluding Apple. Password is a separate option. */
+const STEP_UP_PROVIDERS = new Set(["google", "microsoft"]);
+
+/** Linked Google or Microsoft accounts, plus password when the account has one. */
 export function stepUpChoices(
   providers: { provider: string }[] | null | undefined,
   hasPassword: boolean,
 ): StepUpChoices {
-  const linked = (providers ?? []).map((item) => item.provider.trim()).filter((provider) => provider.length > 0);
-  const usable = linked.filter((provider) => provider.toLowerCase() !== "apple");
-  const onlyApple = linked.length > 0 && linked.every((provider) => provider.toLowerCase() === "apple");
+  const linked = (providers ?? [])
+    .map((item) => item.provider.trim().toLowerCase())
+    .filter((provider) => STEP_UP_PROVIDERS.has(provider));
   return {
-    providers: usable,
+    providers: linked,
     offerPassword: hasPassword,
-    needsAnotherMethod: onlyApple && !hasPassword,
   };
 }

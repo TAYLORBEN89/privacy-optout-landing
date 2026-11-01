@@ -189,6 +189,12 @@ export async function handleRequest(
   if (url.pathname === "/api/signup") {
     return handleSignup(request);
   }
+  if (url.pathname === "/api/auth/apple" || url.pathname.startsWith("/api/auth/apple/")) {
+    return json(
+      { ok: false, errors: {}, form: { code: "not_found", message: "Not found." } },
+      404,
+    );
+  }
   if (url.pathname.startsWith("/api/")) {
     if (deps.forwardApi) return deps.forwardApi();
     return json(

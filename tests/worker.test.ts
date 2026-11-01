@@ -169,6 +169,22 @@ describe("POST /api/signup", () => {
     expect(response.status).toBe(200);
   });
 
+  it("returns JSON 404 for removed auth routes and does not forward them", async () => {
+    for (const path of ["/api/auth/apple/start", "/api/auth/apple/stepup"]) {
+      let forwarded = false;
+      const response = await handleRequest(new Request(`https://optout.example${path}`), {
+        ...assets(),
+        forwardApi: () => {
+          forwarded = true;
+          return Promise.resolve(new Response("nope", { status: 200 }));
+        },
+      });
+      expect(response.status).toBe(404);
+      expect(response.headers.get("content-type")).toContain("application/json");
+      expect(forwarded).toBe(false);
+    }
+  });
+
   it("keeps signup local even when a backend binding exists", async () => {
     let forwarded = false;
     const response = await handleRequest(post(valid), {

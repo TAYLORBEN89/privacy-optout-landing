@@ -26,7 +26,7 @@ const me: MeOk = {
     totp_enabled: false,
     created_at: 1_700_000_000,
   },
-  providers: [{ provider: "google" }, { provider: "apple" }],
+  providers: [{ provider: "google" }, { provider: "microsoft" }],
   auth_method: "google",
   mfa: false,
   limited: false,
@@ -137,21 +137,18 @@ describe("step-up", () => {
     expect(isStepUpRequired(403, "step_up_required")).toBe(false);
   });
 
-  it("offers linked providers except Apple, and a password form when one is set", () => {
-    expect(stepUpChoices([{ provider: "google" }, { provider: "apple" }], false)).toEqual({
+  it("offers linked Google or Microsoft accounts, plus password when one is set", () => {
+    expect(stepUpChoices([{ provider: "google" }, { provider: "microsoft" }], false)).toEqual({
+      providers: ["google", "microsoft"],
+      offerPassword: false,
+    });
+    expect(stepUpChoices([{ provider: "google" }, { provider: "other" }], true)).toEqual({
       providers: ["google"],
-      offerPassword: false,
-      needsAnotherMethod: false,
-    });
-    expect(stepUpChoices([{ provider: "apple" }], false)).toEqual({
-      providers: [],
-      offerPassword: false,
-      needsAnotherMethod: true,
-    });
-    expect(stepUpChoices([{ provider: "Apple" }], true)).toEqual({
-      providers: [],
       offerPassword: true,
-      needsAnotherMethod: false,
+    });
+    expect(stepUpChoices([], false)).toEqual({
+      providers: [],
+      offerPassword: false,
     });
   });
 
@@ -171,7 +168,8 @@ describe("step-up", () => {
 
     render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} goTo={goTo} />);
     expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Continue with Apple" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continue with Microsoft" })).toBeTruthy();
     expect(screen.queryByText("Password + authenticator code")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Continue with Google" }));
 
@@ -209,12 +207,12 @@ describe("step-up", () => {
     render(
       <AccountPage
         action="form"
-        me={{ ...me, user: { ...me.user, has_password: true }, providers: [{ provider: "apple" }] }}
+        me={{ ...me, user: { ...me.user, has_password: true }, providers: [{ provider: "microsoft" }] }}
         fetchImpl={fetchImpl}
       />,
     );
     expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Continue with Apple" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Continue with Microsoft" })).toBeTruthy();
     expect(screen.getByText("Password + authenticator code")).toBeTruthy();
     await user.type(screen.getByLabelText("Password"), "secret-pass");
     await user.type(screen.getByLabelText("Authenticator code"), "123456");
@@ -231,27 +229,6 @@ describe("step-up", () => {
     expect(window.sessionStorage.length).toBe(0);
     expect(screen.queryByLabelText("Password")).toBeNull();
     expect(screen.queryByRole("dialog", { name: "Confirm it's you" })).toBeNull();
-  });
-
-  it("says another sign-in method is needed when Apple is the only provider", async () => {
-    const fetchImpl = (async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
-      if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
-      if (url.endsWith("/api/account/optouts")) return json(403, { error: "step_up_required" });
-      return json(404, { error: "not_found" });
-    }) as typeof fetch;
-
-    render(
-      <AccountPage
-        action="form"
-        me={{ ...me, user: { ...me.user, has_password: false }, providers: [{ provider: "apple" }] }}
-        fetchImpl={fetchImpl}
-      />,
-    );
-    expect(await screen.findByText("Another sign-in method is needed to confirm it's you.")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Continue with Apple" })).toBeNull();
-    expect(screen.queryByText("Password + authenticator code")).toBeNull();
   });
 
   it("posts the data export with the csrf token", async () => {
@@ -301,7 +278,6 @@ describe("account dashboard", () => {
         ]}
         stepUpProviders={["google"]}
         offerPassword={false}
-        needsAnotherMethod={false}
         editing={false}
         draft=""
         profileError={false}

@@ -4,7 +4,6 @@ import { AppLink } from "../router";
 
 const LABELS: Record<(typeof AUTH_PROVIDERS)[number], string> = {
   google: "Continue with Google",
-  apple: "Continue with Apple",
   microsoft: "Continue with Microsoft",
 };
 

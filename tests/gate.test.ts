@@ -26,7 +26,6 @@ describe("auth gate", () => {
     expect(startHref(true, true)).toBe("/start");
     expect(API_BASE).toBe("");
     expect(authStartPath("google")).toBe("/api/auth/google/start?return_to=/start");
-    expect(authStartPath("apple")).toBe("/api/auth/apple/start?return_to=/start");
     expect(authStartPath("microsoft")).toBe("/api/auth/microsoft/start?return_to=/start");
   });
 });

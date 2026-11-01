@@ -5,7 +5,7 @@ export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
-export const AUTH_PROVIDERS = ["google", "apple", "microsoft"] as const;
+export const AUTH_PROVIDERS = ["google", "microsoft"] as const;
 
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 

@@ -25,9 +25,8 @@ const EMPTY_PROFILE: AccountProfile = { display_name: null, identifiers_locked: 
 
 function providerLabel(provider: string): string {
   if (provider === "google") return "Google";
-  if (provider === "apple") return "Apple";
   if (provider === "microsoft") return "Microsoft";
-  return provider;
+  return "Sign-in";
 }
 
 function optOutTitle(record: OptOutRecord): string {
@@ -95,7 +94,6 @@ export function AccountView({
   sessions,
   stepUpProviders,
   offerPassword,
-  needsAnotherMethod,
   editing,
   draft,
   profileError,
@@ -124,7 +122,6 @@ export function AccountView({
   sessions: AccountSession[];
   stepUpProviders: string[];
   offerPassword: boolean;
-  needsAnotherMethod: boolean;
   editing: boolean;
   draft: string;
   profileError: boolean;
@@ -296,7 +293,6 @@ export function AccountView({
               ))}
             </div>
             {offerPassword ? <PasswordStepUpForm onSubmit={onPasswordStepUp} /> : null}
-            {needsAnotherMethod ? <p>Another sign-in method is needed to confirm it's you.</p> : null}
             {stepUpError ? <p role="alert">{stepUpError}</p> : null}
           </div>
         </div>
@@ -492,7 +488,6 @@ export function AccountPage({
       sessions={sessions}
       stepUpProviders={choices.providers}
       offerPassword={choices.offerPassword}
-      needsAnotherMethod={choices.needsAnotherMethod}
       editing={editing}
       draft={draft}
       profileError={profileError}
