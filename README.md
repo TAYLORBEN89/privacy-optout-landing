@@ -19,13 +19,18 @@ Consider also putting the dashboard behind Cloudflare Access.
 
 ### Deploy frontend (Cloudflare Pages)
 ```bash
-VITE_API_URL=https://privacy-dashboard-api.<your-subdomain>.workers.dev npm run build
+VITE_API_URL= npm run build   # empty = same-origin: the app calls /api/* on its own origin (see "Topology")
 npx wrangler pages deploy dist --project-name <project> --branch main
 ```
 
 ## Worker (Cloudflare) setup
 
-The API is one Worker (`privacy-dashboard-api`, `worker/`) with a D1 database (binding `DB`) and a KV namespace (binding `RECORDS`, legacy records). It serves two hosts, picked by the request `Host`: the sign-in host (`ACCOUNTS_HOST`, e.g. `accounts.droptexas.com`) and the API on the app origin (`APP_ORIGIN`, e.g. `https://droptexas.com/api/*`). During development it is reachable at `https://privacy-dashboard-api.<your-subdomain>.workers.dev` or a custom domain such as `privacy-api.example.com` in your zone.
+The API is one Worker (`privacy-dashboard-api`, `worker/`) with a D1 database (binding `DB`) and a KV namespace (binding `RECORDS`, legacy records). It serves two hosts, picked by the request `Host`: the sign-in host (`ACCOUNTS_HOST`, e.g. `accounts.droptexas.com`) and the API on the app origin (`APP_ORIGIN`, e.g. `https://droptexas.com/api/*`). 
+**Topology (production).** `workers_dev = false` and `preview_urls = false`, so there is no `*.workers.dev` URL. The Worker's only route is the custom domain `accounts.droptexas.com` (`[[routes]]` in `wrangler.toml`), which serves the sign-in and OAuth pages. The JSON API is same-origin at `https://droptexas.com/api/*`: the landing site forwards `/api/*` to this Worker through its `env.API` service binding. Frontend builds therefore leave `VITE_API_URL` empty (`src/authApi.js` then calls `/api/*` on its own origin). For a different setup, use your own custom domain in your zone (e.g. `privacy-api.example.com`) and set `VITE_API_URL` to it.
+
+The legacy KV dashboard client (`src/storage.js`: `/records`, `/txrequests`, `/settings`) requires a non-empty `VITE_API_URL` pointing at a host that routes *all* paths to this Worker. Production has no such host, so use it only against `wrangler dev` (below) or a custom domain you attach for it.
+
+**Development.** `cd worker && npx wrangler dev` serves the Worker at `http://localhost:8787` with local D1/KV (put secrets in `worker/.dev.vars`, and dev origins in `ALLOWED_ORIGIN` there). Point the frontend at it with `VITE_API_URL=http://localhost:8787`.
 
 ### 1. Install and create storage
 ```bash
@@ -81,6 +86,12 @@ npm test && npm run check:sql && npm run check:origins
 npx wrangler deploy
 ```
 The sign-in host is attached as a Workers Custom Domain (commented `[[routes]]` block in `wrangler.toml`). Attaching a custom domain creates a DNS record in your zone, so only enable it deliberately.
+
+### Rate limits (`rate_limits`, migration 0008)
+- Columns: `key` (sha256 of `scope|id`, where id is IP + account identifier or user id; no raw IPs or emails), `window_start`, `count`, `expires_at` (window end). Primary key `(key, window_start)`, index on `expires_at`.
+- Fixed windows (`LIMITS` in `worker/src/ratelimit.js`, e.g. login: 5 failures / 15 min per IP+account, shared by password, TOTP and step-up). Each counted request is one atomic `INSERT ... ON CONFLICT DO UPDATE SET count = count + 1 RETURNING count`; D1 is strongly consistent.
+- Over the limit: `429` with the usual body and `Retry-After` = seconds until the window ends. Because windows are fixed, up to 2x the limit can land across a window boundary (the old KV TTL restarted on every hit).
+- The daily cron deletes ended windows. Old `rl:*` keys in KV are no longer read or written and expire on their own TTL.
 
 ### Admin bootstrap (password + TOTP fallback account)
 1. `npx wrangler secret put ADMIN_BOOTSTRAP_TOKEN`
@@ -148,7 +159,7 @@ The **Texas broker requests** tab lists every broker in the [Texas SOS data brok
 
 ```bash
 cd worker && npx wrangler deploy && cd ..
-# .env must contain VITE_API_URL=https://privacy-dashboard-api.<your-subdomain>.workers.dev
+# production build: leave VITE_API_URL empty (same-origin /api/* on droptexas.com via the service binding)
 npm run build && npx wrangler pages deploy dist --project-name <project> --branch main
 ```
 

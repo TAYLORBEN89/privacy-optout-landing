@@ -40,7 +40,7 @@ export async function hit(env, scope, id, at = nowSec()) {
 
 export const purgeRateLimitsStmt = (env, at) => env.DB.prepare('DELETE FROM rate_limits WHERE expires_at < ?1').bind(at);
 
-// Uniform 429 body per scope family, with Retry-After.
+// Retry-After header for 429 responses (bodies stay the per-scope uniform messages).
 export const retryHeaders = (secs, extra = {}) => ({ 'Retry-After': String(secs), ...extra });
 
 export const clientIp = (req) => req.headers.get('CF-Connecting-IP') || 'unknown';
