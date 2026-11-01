@@ -26,7 +26,13 @@ describe("signup form copy", () => {
     expect(screen.getByLabelText(/ZIP code/)).toBeTruthy();
     expect(screen.getByLabelText(/Phone number \(optional\)/)).toBeTruthy();
     expect(screen.getByLabelText(/I live in Texas/)).toBeTruthy();
-    expect(screen.getByText("Check this if you live in Texas. An unchecked box still uses TDPSA for now and is marked non-Texas.")).toBeTruthy();
+    const hint = document.getElementById("texasResident-hint");
+    expect(hint?.textContent?.replace(/\s+/g, " ").trim()).toBe(
+      "Texas residents are covered by the Texas Data Privacy and Security Act (TDPSA). See your rights.",
+    );
+    expect(screen.getByRole("link", { name: "See your rights" }).getAttribute("href")).toBe("/tdpsa");
+    expect(screen.getByLabelText(/I live in Texas/).getAttribute("aria-describedby")).toBe("texasResident-hint");
+    expect(document.querySelectorAll(".hint")).toHaveLength(1);
     expect(document.body.textContent).not.toContain("Data brokers also track people by phone number.");
     expect(document.body.textContent).not.toContain("First and last name.");
     expect(document.body.textContent).not.toContain("Street, city, state, and ZIP code.");

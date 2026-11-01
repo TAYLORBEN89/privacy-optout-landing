@@ -8,6 +8,7 @@ import {
 } from "../shared/signup";
 import { storageNotice, submissionConfirmation } from "../worker/storage";
 import { fieldErrorEvents, track } from "./analytics";
+import { AppLink } from "./router";
 import { submitSignup } from "./submitSignup";
 
 const EMPTY_ERRORS: SignupIssues = {};
@@ -24,9 +25,6 @@ const FOCUS_ORDER = [
   "phone",
   "texasResident",
 ] as const satisfies readonly SignupField[];
-
-const TEXAS_HINT =
-  "Check this if you live in Texas. An unchecked box still uses TDPSA for now and is marked non-Texas.";
 
 export function SignupForm() {
   const [firstName, setFirstName] = useState("");
@@ -279,9 +277,7 @@ export function SignupForm() {
         />
         <div>
           <label htmlFor="texasResident">I live in Texas</label>
-          <p className="hint" id="texasResident-hint">
-            {TEXAS_HINT}
-          </p>
+          <p className="hint" id="texasResident-hint">Texas residents are covered by the Texas Data Privacy and Security Act (TDPSA). <AppLink href="/tdpsa">See your rights</AppLink>.</p>
           {errors.texasResident ? (
             <p className="error" id="texasResident-error" role="alert">
               {errors.texasResident.message}

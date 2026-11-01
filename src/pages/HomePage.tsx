@@ -19,11 +19,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
               <span className="hero-rule">gain control of your data. </span>
               <span className="hero-rule">Your data. Your rules.</span>
             </p>
-            <p className="lede note">
-              If you live in Texas, check the box. That means the Texas Data Privacy and Security Act
-              (TDPSA). If you live somewhere else, you can still submit. An unchecked box still uses
-              TDPSA for now, and the request is marked non-Texas.
-            </p>
             <AppLink className="cta" href={getStartedHref}>
               Start my opt-out
             </AppLink>

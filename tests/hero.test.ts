@@ -20,7 +20,9 @@ describe("hero copy", () => {
     expect(hero.match(/className="lede hero-line"/g)).toHaveLength(1);
     expect(hero.match(/<p className="lede hero-line"/g)).toHaveLength(1);
     expect(hero).not.toContain("You can ask data brokers to delete");
-    expect(hero).toContain("Texas Data Privacy and Security Act");
+    expect(hero).not.toContain("If you live in Texas, check the box");
+    expect(hero).not.toContain('className="lede note"');
+    expect(hero).not.toContain("Texas Data Privacy and Security Act");
     expect(hero).not.toContain("<Reveal");
     expect(hero).toContain('id="page-title"');
     expect(hero).toContain('<h2 className="hero-sub">');
