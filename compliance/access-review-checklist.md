@@ -1,4 +1,4 @@
-# Opt Out Texas — Monthly Access Review Checklist (DRAFT)
+# DROP Texas — Monthly Access Review Checklist (DRAFT)
 
 Month: ______ · Reviewer: the operator (sole reviewer; there is no second reviewer) · Date: ______
 
@@ -26,9 +26,9 @@ Month: ______ · Reviewer: the operator (sole reviewer; there is no second revie
 - [ ] No secrets, Cloudflare account/KV/D1 IDs, `.env`/`.dev.vars`, or PII in repos or history
 - [ ] Account MFA on
 
-**Supabase / Vercel:** not used by Opt Out Texas (checked 2026-10-31). Confirm still N/A.
+**Supabase / Vercel:** not used by DROP Texas (checked 2026-10-31). Confirm still N/A.
 
-**Zoho Mail (once live):** admin users, MFA, forwarding rules for info@droptexas.com.
+**iCloud Mail (droptexas.com custom domain):** Apple ID two-factor on, help@droptexas.com address exists and receives mail, forwarding rules for help@droptexas.com reviewed.
 
 **Secrets rotation**
 - [ ] `API_TOKEN` 90 days old or less (rotate on any leak); `TOTP_ENC_KEY` reviewed annually

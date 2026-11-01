@@ -1,6 +1,6 @@
-# Opt Out Texas — SOC 2 Roadmap (DRAFT)
+# DROP Texas — SOC 2 Roadmap (DRAFT)
 
-Opt Out Texas is **built to SOC 2 standards**. It has no audit, report, or certification.
+DROP Texas is **built to SOC 2 standards**. It has no audit, report, or certification.
 
 **SOC 2 Type 1:** a later milestone, not a day-one requirement. **Proposed (not committed) as-of date: April 30, 2027**, report around June 2027. No audit budget has been set. Scope: Security (Common Criteria) for a multi-user service. The operator approves all merges and deploys.
 
