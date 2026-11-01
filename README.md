@@ -1,7 +1,7 @@
 # Privacy Opt-Out Dashboard
 
 DROP Texas: a privacy opt-out tracker for Texans covering direct mail, data brokers, credit freezes, Do Not Call, and paid removal services.
-Vite + React frontend, Cloudflare Worker + D1/KV backend (source of truth), localStorage as an offline cache.
+Vite + React frontend, Cloudflare Worker + D1/KV backend (the only store). Nothing about the user (records, Texas requests, identifiers) is kept in browser storage; plaintext caches left by older versions are wiped on every load.
 
 ## Frontend setup
 ```bash
@@ -10,11 +10,13 @@ cp .env.example .env   # VITE_API_URL: empty for same-origin /api/* (production)
 npm run dev            # http://localhost:5173
 npm run build          # production build to dist/
 ```
-If the API is unreachable, the app falls back to cached data in localStorage and shows "offline (cached)".
+If the API is unreachable, the legacy dashboard shows "offline: read-only, reload to retry" and disables editing, so it can never overwrite server state with defaults. There is no offline cache. `npm run test:storage` checks the cache wipe and the read-only rules.
 
-### Access key
-The access key (the Worker's `API_TOKEN` secret) is **not** built into the bundle. On first load the dashboard asks for it and stores it in this browser's localStorage.
-Use **Forget key** in the header to remove it. If the API ever returns 401, the key is cleared and you are prompted again.
+### Access key (legacy dashboard, dev builds only)
+Identifiers ("Your identifiers" on the Texas tab) load from `GET/PUT /profile` on the signed-in session (encrypted in D1). Users with only the legacy key fall back to the KV route `/settings/profile` until they migrate. If neither is available, or the server is unreachable, the editor is read-only.
+
+The access key (the Worker's `API_TOKEN` secret) is **not** built into the bundle. On first load the dashboard asks for it and keeps it in this tab's sessionStorage only (gone when the tab closes). Old copies in localStorage are deleted on load.
+Use **Forget key** in the header to remove it sooner. If the API ever returns 401, the key is cleared and you are prompted again.
 Consider also putting the dashboard behind Cloudflare Access.
 
 ### Deploy frontend (Cloudflare Pages)

@@ -1,6 +1,6 @@
 // Personal details used in TDPSA request emails. Edit here if anything changes.
-// The profile (name, aliases, addresses, phones, emails) is NOT in this bundle. It lives in the Worker
-// at /settings/profile (KV key settings:profile) and is edited in the "Your identifiers" panel.
+// The profile (name, aliases, addresses, phones, emails) is NOT in this bundle or in browser storage. It lives
+// server-side at GET/PUT /profile (signed-in session, encrypted in D1) and is edited in the "Your identifiers" panel.
 export const EMPTY_PROFILE = { id: 'profile', name: '', aliases: [], addresses: [], phones: [], emails: [], replyTo: '' };
 
 export const RESPONSE_DAYS = 45; // Tex. Bus. & Com. Code § 541.052: respond within 45 days (one 45-day extension allowed with notice)
