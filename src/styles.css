@@ -1205,27 +1205,35 @@ textarea {
 }
 
 .nav-panel {
-  overflow: hidden;
+  position: relative;
+  overflow: visible;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 10px 28px rgba(16, 16, 16, 0.05);
+  padding: 72px 0;
 }
 
-@media (max-width: 799px) {
-  .explore {
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-  }
+.nav-panel::before,
+.nav-panel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 56px;
+  pointer-events: none;
+  z-index: 1;
+}
 
-  .nav-panel {
-    max-height: min(68vh, 640px);
-    margin-inline: 8px;
-    overflow-y: auto;
-    border-radius: 0;
-    mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
-  }
+.nav-panel::before {
+  top: 0;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(to bottom, #f7f7f8 0%, #f7f7f8 18%, rgba(247, 247, 248, 0) 100%);
+}
+
+.nav-panel::after {
+  bottom: 0;
+  border-radius: 0 0 16px 16px;
+  background: linear-gradient(to top, #f7f7f8 0%, #f7f7f8 18%, rgba(247, 247, 248, 0) 100%);
 }
 
 .nav-tiles {
@@ -1237,13 +1245,16 @@ textarea {
 }
 
 .nav-tiles a {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  min-height: 110px;
-  padding: 12px 16px;
+  gap: 10px;
+  min-height: 0;
+  padding: 20px 36px 22px;
   background: #fff;
   color: #010101;
+  text-align: center;
   text-decoration: none;
 }
 
@@ -1263,7 +1274,9 @@ textarea {
 .tile-copy {
   display: grid;
   gap: 4px;
+  justify-items: center;
   min-width: 0;
+  text-align: center;
 }
 
 .tile-title {
@@ -1280,8 +1293,11 @@ textarea {
 }
 
 .tile-chevron {
+  position: absolute;
+  top: 22px;
+  right: 14px;
   flex: none;
-  margin-left: auto;
+  margin-left: 0;
   color: #9a9a9a;
 }
 
@@ -1328,7 +1344,7 @@ textarea {
 }
 
 .feature-card-data-brokers {
-  background: linear-gradient(160deg, #fffaf0, #fff1d6);
+  background: #f7f7f8;
   color: #b8860b;
 }
 
@@ -1982,7 +1998,8 @@ textarea {
   margin-right: calc(50% - 50vw);
   margin-top: 12px;
   padding: 48px 16px;
-  background: linear-gradient(180deg, #fff 0%, #ffe7a3 100%);
+  background: #fff;
+  background-image: none;
   text-align: center;
 }
 
@@ -2057,15 +2074,6 @@ textarea {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
-
-  .nav-panel {
-    max-height: none;
-    margin-inline: 0;
-    overflow: visible;
-    border-radius: 16px;
-    mask-image: none;
-    -webkit-mask-image: none;
-  }
 }
 
 @media (min-width: 900px) {
@@ -2111,7 +2119,6 @@ textarea {
 
 @media (max-width: 860px) {
   .topbar-inner,
-  .top-nav,
   .shell,
   .solo {
     width: min(720px, calc(100% - 32px));

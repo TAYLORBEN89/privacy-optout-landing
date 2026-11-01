@@ -32,6 +32,12 @@ describe("feature panel", () => {
     expect(css).toContain("box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12)");
     expect(css).toContain("padding: 140px 24px 72px");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
+    const brokers = css.slice(css.indexOf(".feature-card-data-brokers {"), css.indexOf(".feature-card-unique-identifiers"));
+    expect(brokers).toContain("background: #f7f7f8");
+    expect(brokers).not.toContain("linear-gradient");
+    const closing = css.slice(css.indexOf(".closing {"), css.indexOf(".closing .cta"));
+    expect(closing).toContain("background: #fff");
+    expect(closing).not.toContain("linear-gradient");
     expect(css).toContain("width: min(1100px, 100%)");
     expect(css).toContain("border: 1.5px solid currentColor");
   });
