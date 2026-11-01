@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]   # otplib uses node:crypto HMAC
 # Comma-separated list of exact origins allowed by CORS (no trailing slashes).
 # droptexas.com plan: dashboard https://droptexas.com, API https://api.droptexas.com (same site -> SameSite=Strict).
 # The pages.dev origin stays until the dashboard has moved; remove it afterwards.
-ALLOWED_ORIGIN = "https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev,http://localhost:5173"
+ALLOWED_ORIGIN = "https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev"
 SESSION_COOKIE_SAMESITE = "Strict"    # "None" only while the dashboard is still on pages.dev
 SESSION_IDLE_SECONDS = "43200"        # 12h idle
 SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (approved)
