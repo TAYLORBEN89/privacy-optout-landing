@@ -1704,10 +1704,10 @@ textarea {
   z-index: 1;
   width: min(720px, calc(100% - 32px));
   margin: -80px auto 0;
-  padding: 40px 28px 36px;
+  padding: 40px 28px 64px;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(16, 16, 16, 0.08);
+  box-shadow: 0 8px 18px rgba(16, 16, 16, 0.06);
   text-align: center;
 }
 
@@ -2028,7 +2028,7 @@ textarea {
 
   .values-card {
     width: min(1000px, calc(100% - 48px));
-    padding: 48px 48px 40px;
+    padding: 48px 48px 80px;
   }
 
   .values-list {

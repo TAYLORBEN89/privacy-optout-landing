@@ -62,8 +62,11 @@ describe("about us values", () => {
     expect(card).toContain("margin: -80px auto 0");
     expect(card).toContain("border-radius: 16px");
     expect(card).toContain("width: min(720px, calc(100% - 32px))");
+    expect(card).toContain("padding: 40px 28px 64px");
+    expect(card).toContain("box-shadow: 0 8px 18px rgba(16, 16, 16, 0.06)");
     const wide = css.slice(css.indexOf(".values-card {", css.indexOf("@media (min-width: 900px)")));
     expect(wide).toContain("width: min(1000px, calc(100% - 48px))");
+    expect(wide).toContain("padding: 48px 48px 80px");
     expect(wide).toContain("grid-template-columns: 1fr 1fr");
     const title = css.slice(css.indexOf(".values-list h3 {"), css.indexOf(".values-list p"));
     expect(title).toContain("font-size: 28px");
