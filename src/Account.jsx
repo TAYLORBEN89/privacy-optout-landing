@@ -1,8 +1,10 @@
-// Account sign-in (D1 auth): email + password -> TOTP or backup code; TOTP enrollment with QR; backup codes; logout.
+// Account sign-in (D1 auth): Continue with Google/Apple/Microsoft, or email + password -> TOTP or backup code
+// (fallback); TOTP enrollment with QR; backup codes. Signed-in users get the account area (AccountArea.jsx).
 // The legacy shared-key dashboard is still available at "#/" until the KV -> D1 migration is finished.
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import * as api from './authApi.js';
+import AccountArea from './AccountArea.jsx';
 
 const errText = (e) => (e?.status === 429 ? 'Too many attempts. Wait 15 minutes and try again.'
   : e?.status === 401 ? 'Invalid credentials.' : e?.message || 'Something went wrong.');
@@ -60,7 +62,7 @@ export default function Account() {
   const [err, setErr] = useState('');
 
   const refreshMe = async () => {
-    try { const u = await api.me(); setUser(u); setStage(u.totp_enabled ? 'signed-in' : 'enroll'); }
+    try { const u = await api.me(); setUser(u); setStage(u.limited ? 'enroll' : 'signed-in'); }
     catch { setStage('password'); }
   };
   useEffect(() => { refreshMe(); }, []);
@@ -81,7 +83,6 @@ export default function Account() {
       if (e2?.status === 401) { setPreauth(''); setCode(''); setStage('password'); } // pre-auth token may be spent; restart
     }
   };
-  const doLogout = async () => { try { await api.logout(); } catch { /* ignore */ } setUser(null); setStage('password'); };
   const regen = async () => {
     if (!confirm('Replace all existing backup codes?')) return;
     try { setCodes((await api.regenerateBackupCodes()).backup_codes); setStage('codes'); } catch (e2) { setErr(errText(e2)); }
@@ -90,7 +91,7 @@ export default function Account() {
   return (
     <div className="app">
       <header>
-        <div><h1>Privacy Opt-Out Dashboard</h1><p className="sub">Account sign-in</p></div>
+        <div><h1>DROP Texas</h1><p className="sub">DROP Texas · Free privacy opt-out for Texans</p></div>
         <div className="header-actions"><a className="link-btn" href="#/">Legacy dashboard (access key)</a></div>
       </header>
       {stage === 'loading' && <p>Loading…</p>}
@@ -98,6 +99,11 @@ export default function Account() {
         <form className="key-prompt" onSubmit={doLogin}>
           <h2>Sign in</h2>
           {err && <div className="badge-red">{err}</div>}
+          {new URLSearchParams(location.search).get('auth_error') && <div className="badge-red">Sign-in didn't complete. Please try again.</div>}
+          <div className="social">
+            {api.PROVIDERS.map((p) => <a key={p.id} href={api.socialStartUrl(p.id)}>Continue with {p.label}</a>)}
+          </div>
+          <div className="divider">or use email and password</div>
           <input type="email" autoComplete="username" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
           <input type="password" autoComplete="current-password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <button className="toggle" type="submit">Continue</button>
@@ -115,13 +121,11 @@ export default function Account() {
       {stage === 'enroll' && <Enroll onEnrolled={(c) => { setCodes(c); setStage('codes'); }} />}
       {stage === 'codes' && <BackupCodes codes={codes} onDone={() => { setCodes([]); refreshMe(); }} />}
       {stage === 'signed-in' && user && (
-        <div className="key-prompt">
-          <h2>Signed in</h2>
-          <p className="sub">{user.email} · two-factor {user.totp_enabled ? 'on' : 'off'}</p>
+        <>
           {err && <div className="badge-red">{err}</div>}
-          <button className="toggle" onClick={regen}>Regenerate backup codes</button>
-          <button className="toggle" onClick={doLogout}>Log out</button>
-        </div>
+          <AccountArea me={user} reloadMe={refreshMe} onSignedOut={() => { api.setCsrf(''); setUser(null); setStage('password'); }} />
+          {user.user.has_password && <p className="muted"><button className="link-btn" onClick={regen}>Regenerate backup codes</button></p>}
+        </>
       )}
     </div>
   );

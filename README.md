@@ -1,6 +1,6 @@
 # Privacy Opt-Out Dashboard
 
-DropTexas: a privacy opt-out tracker for Texans covering direct mail, data brokers, credit freezes, Do Not Call, and paid removal services.
+DROP Texas: a privacy opt-out tracker for Texans covering direct mail, data brokers, credit freezes, Do Not Call, and paid removal services.
 Vite + React frontend, Cloudflare Worker + KV backend (source of truth), localStorage as an offline cache.
 
 ## Frontend setup
@@ -69,3 +69,6 @@ npm run build && npx wrangler pages deploy dist --project-name privacy-dashboard
 ```
 
 Checklist categories now also include People-search sites, Search & apps, and Specialty reports (Innovis, LexisNexis Risk, ChexSystems, NCTUE freezes; 12-month re-verify). Add services in `src/services.js` as before.
+
+## Social sign-in
+Google, Apple and Microsoft sign-in (plus the password + TOTP fallback) and the account area: see [docs/oauth-setup.md](docs/oauth-setup.md).
