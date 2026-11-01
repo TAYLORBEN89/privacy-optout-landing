@@ -14,7 +14,7 @@ describe("hero visibility", () => {
   it("does not hide the hero on mount", () => {
     render(<HomePage getStartedHref="/start" />);
     const title = document.getElementById("page-title");
-    expect(title?.textContent).toContain("Demanding privacy");
+    expect(title?.textContent).toContain("Privacy is a right.");
     expect(title?.closest(".reveal")).toBeNull();
     expect(title?.closest(".is-waiting")).toBeNull();
     expect(getComputedStyle(title as HTMLElement).color).not.toBe("transparent");

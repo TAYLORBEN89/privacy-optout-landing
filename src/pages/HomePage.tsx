@@ -12,11 +12,8 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
     <>
       <section id="overview" className="hero" aria-labelledby="page-title">
         <div className="hero-inner">
-            <h1 id="page-title">
-              <span>Demanding privacy</span>
-              <span>for the people</span>
-              <span>by the people</span>
-            </h1>
+            <h1 id="page-title">Privacy is a right.</h1>
+            <p className="hero-sub">Let's get you started.</p>
             <p className="lede">
               DROP Texas gives you more control over your data. You can demand data brokers delete your personal information and not sell it.
             </p>
