@@ -44,7 +44,7 @@ describe("explore list", () => {
     expect(css).toContain("width: 32px");
     expect(css).toContain("min-height: 110px");
     expect(css).toContain("font-size: 22px");
-    expect(css).toContain("width: min(960px, calc(100% - 48px))");
+    expect(css).toContain(".explore {\n  width: 100%;");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(css).toContain(".nav-tiles a:focus-visible");
     expect(css).not.toContain(".nav-tiles li + li");
