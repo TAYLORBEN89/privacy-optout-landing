@@ -359,6 +359,27 @@ describe('POST /api/optouts/signup (gate)', () => {
     expect(JSON.stringify(b)).not.toContain('Madonna');
     expect((await api('POST', '/api/optouts/signup', a, [])).status).toBe(400);
   });
+  it('phone: optional, normalized, encrypted, exported, and an invalid phone is a 400', async () => {
+    const a = await socialLogin('google');
+    const r1 = await api('POST', '/api/optouts/signup', a, { ...good, phone: '(512) 555-0100' });
+    expect(r1.status).toBe(200);
+    const t1 = await r1.text();
+    expect(t1).not.toContain('555');
+    const { id } = JSON.parse(t1);
+    const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
+    expect(String(p.payload_enc)).not.toContain('5125550100');
+    expect((await api('POST', '/api/optouts/signup', a, good)).status).toBe(200);
+    const bad = await api('POST', '/api/optouts/signup', a, { ...good, phone: '112-555-0100' });
+    expect(bad.status).toBe(400);
+    const bb = await bad.json();
+    expect(Object.keys(bb.errors)).toEqual(['phone']);
+    expect(JSON.stringify(bb)).not.toContain('555');
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    const phones = exp.optouts.map((o) => o.pii.phone).sort();
+    expect(phones).toEqual(['+15125550100', null].sort());
+    expect((await api('POST', '/api/account/delete', a)).status).toBe(200);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS c FROM pii_payloads').first()).c).toBe(0);
+  });
   it('opt-out rows are per-user', async () => {
     const a = await socialLogin('google', { sub: 'one' });
     await api('POST', '/api/optouts/signup', a, good);

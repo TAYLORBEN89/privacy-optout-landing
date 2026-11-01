@@ -1,8 +1,15 @@
 // COPIED FROM: github.com/TAYLORBEN89/privacy-optout-landing, branch cursor/privacy-optout-landing-6b72,
-// file shared/signup.ts (commit a4231243148a2353ca78acde521beeeab62cd6a6). Body below is unchanged.
+// file shared/signup.ts (commit a4231243148a2353ca78acde521beeeab62cd6a6).
+// CHANGED HERE (not yet in the landing repo): optional `phone` field (US/NANP, normalized to E.164) plus
+// PHONE_FIELD_LABEL / PHONE_FIELD_HINT. Sync this file back to the landing repo's shared/signup.ts and render
+// the phone input on the landing signup form before relying on it.
 // KEEP IN SYNC: the landing page and this Worker must apply the same signup validation rules. If you change
 // one copy, change the other in the same release.
-export const SIGNUP_FIELDS = ["fullName", "mailingAddress", "email", "texasResident"] as const;
+export const SIGNUP_FIELDS = ["fullName", "mailingAddress", "email", "phone", "texasResident"] as const;
+
+/** UI copy for the optional phone input on the signup / opt-out form. */
+export const PHONE_FIELD_LABEL = "Phone number (recommended)";
+export const PHONE_FIELD_HINT = "Data brokers also track people by phone number.";
 
 export type SignupField = (typeof SIGNUP_FIELDS)[number];
 
@@ -15,6 +22,8 @@ export interface SignupInput {
   fullName: string;
   mailingAddress: string;
   email: string;
+  /** Optional. E.164 (+1XXXXXXXXXX) when given, otherwise null. */
+  phone: string | null;
   texasResident: boolean;
   /** Always TDPSA for now, including when the Texas box is unchecked. */
   jurisdiction: Jurisdiction;
@@ -106,6 +115,30 @@ function validateEmail(value: unknown): { value: string } | { error: FieldIssue 
   return { value: email };
 }
 
+/**
+ * Optional US phone. Accepts common formats such as (512) 555-0100, 512-555-0100, 512.555.0100,
+ * +1 512 555 0100, 1-512-555-0100. Normalizes to E.164. Rejects NANP area codes or exchanges that
+ * start with 0 or 1 and wrong lengths. Empty / missing is allowed.
+ */
+export function validatePhone(value: unknown): { value: string | null } | { error: FieldIssue } {
+  if (value === undefined || value === null) return { value: null };
+  if (typeof value !== "string") return { error: issue("invalid", "Enter a valid US phone number.") };
+  const raw = value.trim();
+  if (raw === "") return { value: null };
+  if (raw.length > 32 || !/^\+?[\d\s().-]+$/.test(raw)) {
+    return { error: issue("invalid", "Enter a valid US phone number.") };
+  }
+  let digits = raw.replace(/\D/g, "");
+  if (raw.startsWith("+") && !digits.startsWith("1")) {
+    return { error: issue("invalid", "Enter a valid US phone number.") };
+  }
+  if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
+    return { error: issue("invalid", "Enter a valid US phone number.") };
+  }
+  return { value: `+1${digits}` };
+}
+
 function validateTexasResident(value: unknown): { value: boolean } | { error: FieldIssue } {
   if (typeof value !== "boolean") {
     return { error: issue("invalid", "Say whether you live in Texas.") };
@@ -135,7 +168,9 @@ export function validateSignup(input: unknown): SignupResult {
   const address = validateMailingAddress(input.mailingAddress);
   const email = validateEmail(input.email);
   const texasResident = validateTexasResident(input.texasResident);
+  const phone = validatePhone(input.phone);
 
+  if ("error" in phone) errors.phone = phone.error;
   if ("error" in name) errors.fullName = name.error;
   if ("error" in address) errors.mailingAddress = address.error;
   if ("error" in email) errors.email = email.error;
@@ -145,7 +180,8 @@ export function validateSignup(input: unknown): SignupResult {
     "error" in name ||
     "error" in address ||
     "error" in email ||
-    "error" in texasResident
+    "error" in texasResident ||
+    "error" in phone
   ) {
     return { ok: false, errors };
   }
@@ -156,6 +192,7 @@ export function validateSignup(input: unknown): SignupResult {
       fullName: name.value,
       mailingAddress: address.value,
       email: email.value,
+      phone: phone.value,
       texasResident: texasResident.value,
       // Derived here so a client cannot swap in another law label.
       jurisdiction: JURISDICTION_TDPSA,
