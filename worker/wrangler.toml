@@ -1,0 +1,73 @@
+name = "privacy-dashboard-api"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]   # otplib uses node:crypto HMAC
+
+# Production: no *.workers.dev URL and no per-version preview URLs; the Worker is reachable only via its custom domains.
+workers_dev = false
+preview_urls = false
+# account_id: not tracked; set CLOUDFLARE_ACCOUNT_ID in the environment
+
+[vars]
+# Comma-separated list of exact origins allowed by CORS (no trailing slashes).
+# droptexas.com: app + JSON API same-origin at https://droptexas.com/api/* (landing service binding); sign-in at accounts.droptexas.com.
+# The pages.dev origin stays until the dashboard has moved; remove it afterwards.
+# Production origins only. Dev/preview origins (localhost, pages.dev) go in .dev.vars (see .dev.vars.example).
+# `npm run check:origins` fails if anything else appears here.
+ALLOWED_ORIGIN = "https://droptexas.com,https://www.droptexas.com"
+SESSION_COOKIE_SAMESITE = "Lax"       # Lax: OAuth callbacks are top-level cross-site navigations (Strict would drop the cookie). "None" only for a cross-site pages.dev setup.
+SESSION_IDLE_SECONDS = "43200"        # 12h idle
+SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (approved)
+PREAUTH_SECONDS = "300"
+# Retention (days). audit_log retention is handled by a separate PR (not in this cron).
+PII_RETENTION_DAYS = "30"                 # PII deleted 30 days after confirmation
+PII_HARD_MAX_DAYS = "90"                  # PII hard max from first write
+SESSION_PURGE_DAYS = "7"                  # session rows deleted 7 days after expiry/revocation
+FINISHED_RECORD_RETENTION_DAYS = "730"    # Compliance: finished opt-out records kept 24 months
+TX_RECORD_RETENTION_DAYS = "1095"         # Compliance: Texas requests kept 3 years
+PII_KEY_VERSION = "1"
+AUDIT_RETENTION_DAYS = "365"               # audit_log kept 12 months, then expired by expireAudit (append-only otherwise)
+
+# Social sign-in (public client IDs; placeholders until the provider apps are registered - see docs/oauth-setup.md).
+GOOGLE_CLIENT_ID = "<google-client-id>.apps.googleusercontent.com"
+MICROSOFT_CLIENT_ID = "00000000-0000-0000-0000-000000000000"
+# Exact redirect_uri allowlist (comma-separated). Must match the provider consoles character for character.
+OAUTH_REDIRECT_URIS = "https://accounts.droptexas.com/oauth/google/callback,https://accounts.droptexas.com/oauth/microsoft/callback"
+# Sign-in host (served by this Worker, selected by Host) and the app origin that receives the handoff + session cookie.
+ACCOUNTS_HOST = "accounts.droptexas.com"
+APP_ORIGIN = "https://droptexas.com"
+
+[[kv_namespaces]]
+binding = "RECORDS"
+# KV namespace privacy-dashboard-api-RECORDS (legacy records; rate limits moved to D1 in 0008)
+id = "00000000000000000000000000000000"
+
+# Production D1 (created 2026-10-31 on the project Cloudflare account, region ENAM).
+[[d1_databases]]
+binding = "DB"
+database_name = "privacy-dashboard"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expired sessions, old audit rows
+
+# NOT ATTACHED. Uncomment only when the owner approves moving the API to the droptexas.com zone.
+# A custom_domain route creates its own DNS record for api.droptexas.com on deploy; it does not touch MX/mail records.
+# routes = [
+#   { pattern = "api.droptexas.com", custom_domain = true }
+# ]
+
+# ATTACHED (live since deploy 4736795c). Sign-in host accounts.droptexas.com, served by this same Worker
+# (branching on the request Host). The JSON API is reached same-origin at https://droptexas.com/api/* through the
+# landing site's service binding, so it needs no route here. With workers_dev = false this is the only public URL.
+# (If the api.droptexas.com list above is ever enabled, merge both entries into one routes list.)
+[[routes]]
+pattern = "accounts.droptexas.com"
+custom_domain = true
+
+# Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
+# ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists).
+# Social sign-in secrets: GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET,
+# OAUTH_COOKIE_KEY (base64 32 bytes). See docs/oauth-setup.md. Optional during PII key rotation: PII_ENC_KEY_PREV + PII_PREV_KEY_VERSION.
+# Local dev values go in .dev.vars (gitignored).
