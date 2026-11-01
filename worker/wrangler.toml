@@ -58,12 +58,13 @@ crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expire
 #   { pattern = "api.droptexas.com", custom_domain = true }
 # ]
 
-# NOT ATTACHED. Sign-in host accounts.droptexas.com, served by this same Worker (branching on the request Host).
-# A Workers Custom Domain creates its own DNS record on deploy, so uncomment ONLY with the owner's explicit yes.
-# (If the api.droptexas.com list above is enabled too, merge both entries into one routes list.)
-# [[routes]]
-# pattern = "accounts.droptexas.com"
-# custom_domain = true
+# ATTACHED (live since deploy 4736795c). Sign-in host accounts.droptexas.com, served by this same Worker
+# (branching on the request Host). The JSON API is reached same-origin at https://droptexas.com/api/* through the
+# landing site's service binding, so it needs no route here. With workers_dev = false this is the only public URL.
+# (If the api.droptexas.com list above is ever enabled, merge both entries into one routes list.)
+[[routes]]
+pattern = "accounts.droptexas.com"
+custom_domain = true
 
 # Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
 # ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists).
