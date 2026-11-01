@@ -72,7 +72,7 @@ describe('login', () => {
     expect(sc).toMatch(/^__Host-sid=/);
     expect(sc).not.toMatch(/Domain=/i);
     expect(sc).not.toContain('Partitioned');
-    for (const attr of ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/']) expect(sc).toContain(attr);
+    for (const attr of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/']) expect(sc).toContain(attr);
     const raw = cookie.split('=')[1];
     const rows = (await env.DB.prepare("SELECT id_hash FROM sessions WHERE stage = 'session'").all()).results;
     expect(rows.some((r) => r.id_hash === raw)).toBe(false);

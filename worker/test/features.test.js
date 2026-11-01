@@ -175,6 +175,18 @@ describe('encrypted PII + profile', () => {
     expect(await (await req('GET', '/profile', undefined, h)).json()).toEqual(p);
   });
 
+  it('legacy GET/PUT /profile and GET /optouts/:id/pii require step-up (M1)', async () => {
+    const u = await makeUser(); const h = await fullLogin(u);
+    const id = await newOptout(h);
+    await req('PATCH', `/optouts/${id}`, { pii: { full_name: 'X' } }, h);
+    await env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1 WHERE user_id = ?2').bind(Math.floor(Date.now() / 1000) - 601, u.id).run();
+    for (const [m, path, body] of [['GET', '/profile'], ['PUT', '/profile', { name: 'n' }], ['GET', `/optouts/${id}/pii`]]) {
+      const r = await req(m, path, body, h);
+      expect(r.status).toBe(403);
+      expect((await r.json()).error).toBe('step_up_required');
+    }
+  });
+
   it('GET /brokers lists brokers for MFA sessions only', async () => {
     const u = await makeUser(); const h = await fullLogin(u);
     const list = await (await req('GET', '/brokers', undefined, h)).json();
