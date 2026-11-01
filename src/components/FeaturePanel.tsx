@@ -1,4 +1,4 @@
-import { TileIcon } from "./TopNav";
+import { BenefitIcon } from "./BenefitIcon";
 import { AppLink } from "../router";
 
 const CARDS = [
@@ -67,7 +67,7 @@ export function FeaturePanel() {
         {CARDS.map((card) => (
           <article key={card.id} className={`feature-card feature-card-${card.id}`}>
             <span className="feature-tag">{card.tag}</span>
-            <TileIcon id={card.id} size={48} />
+            <BenefitIcon id={card.id} />
             <h3>{card.headline}</h3>
             <p>{card.description}</p>
             <AppLink className="feature-btn" href={card.href}>
