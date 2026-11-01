@@ -38,9 +38,8 @@ export function OverviewPage() {
     <Topic
       title="Overview"
       heading="Overview"
-      description="DROP Texas is a free service for Texans to request data brokers not sell their personal information."
+      description="What DROP Texas does, and what an opt-out request is."
     >
-      <p>{SHARE_TEXT}</p>
       <p>
         You sign up, confirm your details, and DROP Texas sends opt-out requests for you. An opt-out
         request asks a data broker not to sell your personal information. DROP Texas does not check

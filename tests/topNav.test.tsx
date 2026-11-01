@@ -8,7 +8,7 @@ import { TopNav } from "../src/components/TopNav";
 import { NAV_ITEMS } from "../src/navItems";
 
 const BLURBS = [
-  "DROP Texas is a free service for Texans to request data brokers not sell their personal information.",
+  "What DROP Texas does, and what an opt-out request is.",
   "The steps from signup to opt-out requests.",
   "What we collect and why.",
   "The companies we send opt-out requests to.",
