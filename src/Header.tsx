@@ -43,7 +43,9 @@ export function Header({
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <Wordmark header />
+        <AppLink className="brand-home" href="/">
+          <Wordmark header />
+        </AppLink>
         <div className="account">
           {accountsLive && signedIn ? (
             <button
