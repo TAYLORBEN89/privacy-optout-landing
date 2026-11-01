@@ -863,5 +863,9 @@ describe('pre-deploy: handoff scrubbing, purge, 429 cookie clear', () => {
     const r = await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: { ...hdrs(), Cookie: '__Host-login=' + 'A'.repeat(43) } });
     expect(r.status).toBe(429);
     expect(setCookies(r).some((c) => c.startsWith('__Host-login=;') && c.includes('Max-Age=0'))).toBe(true);
+    // D1 limiter: the 429 also carries Retry-After (both headers present together).
+    expect(Number(r.headers.get('Retry-After'))).toBeGreaterThan(0);
+    expect(Number(r.headers.get('Retry-After'))).toBeLessThanOrEqual(600);
+    expect((await env.RECORDS.list({ prefix: 'rl:' })).keys.length).toBe(0);
   });
 });
