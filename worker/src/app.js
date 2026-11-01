@@ -5,6 +5,7 @@ import {
   encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
 import { reserve, refund, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
+import { log } from './log.js';
 
 const COOKIE = '__Host-sid';
 const STEP = 30;
@@ -572,7 +573,7 @@ export async function purge(env, at = now()) {
   ]);
   const all = res.map((x) => x.meta.changes);
   const counts = [all[0], all[1], all[2], all[5], all[6]]; // all[3] oauth_states_used, all[4] auth_handoffs (not reported)
-  console.log('purge', JSON.stringify({ pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] }));
+  log('purge', { counts: { pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] } });
   return counts;
 }
 
@@ -595,6 +596,6 @@ export async function expireAudit(env, at = now()) {
     env.DB.prepare("DELETE FROM maintenance_gate WHERE name = 'audit_expiry'"),
   ]);
   const deleted = res[2].meta.changes;
-  console.log('audit_expiry', JSON.stringify({ deleted }));
+  log('audit_expiry', { deleted });
   return deleted;
 }
