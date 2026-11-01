@@ -171,7 +171,7 @@ describe("POST /api/signup", () => {
   });
 
   it("serves the SPA shell for client routes", async () => {
-    for (const path of ["/security", "/start", "/about", "/account"]) {
+    for (const path of ["/security", "/privacy", "/start", "/about", "/account"]) {
       const response = await handleRequest(new Request(`https://optout.example${path}`), assets());
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");

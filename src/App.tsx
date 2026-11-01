@@ -6,6 +6,7 @@ import { Header } from "./Header";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { HomePage } from "./pages/HomePage";
+import { PrivacyPage } from "./pages/PrivacyPage";
 import { SecurityPage } from "./pages/SecurityPage";
 import { SignInPage } from "./pages/SignInPage";
 import { StartPage } from "./pages/StartPage";
@@ -52,6 +53,7 @@ export function App() {
 
   let page = <HomePage getStartedHref={getStarted} />;
   if (path === "/security") page = <SecurityPage />;
+  else if (path === "/privacy") page = <PrivacyPage />;
   else if (path === "/about") page = <AboutPage />;
   else if (path === "/signin") page = <SignInPage />;
   else if (path === "/start") page = <StartPage action={pageAction} />;
@@ -80,6 +82,9 @@ export function App() {
       <footer className="site-footer">
         <div className="footer-inner">
           <Wordmark />
+          <p className="footer-links">
+            <AppLink href="/privacy">Privacy & Security</AppLink>
+          </p>
           <p className="independence">{DISCLAIMER}</p>
           <AppLink className="cta" href={getStarted}>
             Start Removing Me

@@ -19,6 +19,7 @@ describe("disclaimer", () => {
       "src/pages/SignInPage.tsx",
       "src/pages/StartPage.tsx",
       "src/pages/SecurityPage.tsx",
+      "src/pages/PrivacyPage.tsx",
       "README.md",
       "index.html",
     ];

@@ -1,6 +1,6 @@
 import { FeaturePanel } from "../components/FeaturePanel";
 import { TopNav } from "../components/TopNav";
-import { PeopleArt, ShieldArt } from "../components/Illustrations";
+import { PeopleArt } from "../components/Illustrations";
 import { BrokerMarquee } from "../components/Marquee";
 import { Reveal } from "../components/Reveal";
 import { Stats } from "../components/Stats";
@@ -41,17 +41,27 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
 
       <FeaturePanel />
 
-      <section className="yellow-band" aria-labelledby="watch-heading">
-        <div className="overlap-card">
-          <ShieldArt />
-          <div>
-            <h2 id="watch-heading">A private request, not a government order</h2>
-            <p>
-              DROP Texas asks data brokers on your behalf. There is no fee to submit. A later status,
-              if one is shown, is only Submitted, Confirmed, Pending, Not completed, or No record found. Confirmed
-              means confirmation received. It does not mean deletion was verified.
-            </p>
-          </div>
+      {/* A real, permissioned quote can be added here later. Do not invent a testimonial. */}
+      <section id="personal-information" className="yellow-band" aria-labelledby="personal-heading">
+        <div className="personal-protect">
+          <svg className="personal-icon" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+            <rect x="8" y="14" width="48" height="36" rx="6" fill="none" stroke="#056cb8" strokeWidth="2.4" />
+            <circle cx="24" cy="30" r="6" fill="none" stroke="#ee0014" strokeWidth="2.4" />
+            <path d="M14 44c1.6-5 5-7.5 10-7.5s8.4 2.5 10 7.5" fill="none" stroke="#ee0014" strokeWidth="2.4" strokeLinecap="round" />
+            <rect x="36" y="26" width="14" height="12" rx="2" fill="none" stroke="#b8860b" strokeWidth="2.4" />
+            <path d="M39 26v-3a4 4 0 0 1 8 0v3" fill="none" stroke="#b8860b" strokeWidth="2.4" strokeLinecap="round" />
+          </svg>
+          <p className="personal-kicker">Personal information</p>
+          <h2 id="personal-heading">Your information, protected</h2>
+          <p className="personal-sub">Only what we need. Nothing more.</p>
+          <p className="personal-body">
+            We collect only your name, address, email, and Texas residency so we can send opt-out requests
+            for you. We never sell your data.
+          </p>
+          <p className="personal-preview">{storageNotice()}</p>
+          <AppLink className="cta" href="/privacy">
+            How we protect it
+          </AppLink>
         </div>
       </section>
 
@@ -90,16 +100,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <AppLink className="cta" href={getStartedHref}>
               Start Removing Me
             </AppLink>
-          </div>
-        </Reveal>
-      </section>
-
-      <section id="personal-information" className="block" aria-labelledby="personal-heading">
-        <Reveal>
-          <div className="panel">
-            <h2 id="personal-heading">Personal Information</h2>
-            <p>The form asks only for your name, mailing address, email, and whether you live in Texas.</p>
-            <p>{storageNotice()} We do not sell the information you type here.</p>
           </div>
         </Reveal>
       </section>

@@ -26,7 +26,7 @@ describe("feature panel", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(css).toContain("margin: 28px auto -100px");
     expect(css).toContain("box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12)");
-    expect(css).toContain("padding: 140px 24px 64px");
+    expect(css).toContain("padding: 140px 24px 72px");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(css).toContain("width: min(1100px, 100%)");
     expect(css).toContain("border: 1.5px solid currentColor");
