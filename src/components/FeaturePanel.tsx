@@ -15,7 +15,7 @@ const CARDS = [
     id: "how-drop-works",
     tag: "How it works",
     headline: "Three steps to opt out",
-    description: "Sign up, confirm your details, and we send opt-out requests to data brokers for you.",
+    description: "Free tools to send opt-out and deletion requests to data brokers and track every reply.",
     button: "See how it works",
     href: "/how-it-works",
   },

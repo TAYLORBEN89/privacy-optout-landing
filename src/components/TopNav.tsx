@@ -5,7 +5,7 @@ const BLURBS: Record<string, string> = {
   overview: "DROP Texas is a free service for Texans to request data brokers not sell their personal information.",
   "how-drop-works": "The steps from signup to opt-out requests.",
   "personal-information": "What we collect and why.",
-  "data-brokers": "The companies we send opt-out requests to.",
+  "data-brokers": "The companies you can send opt-out requests to.",
   "unique-identifiers": "Emails, phones, and IDs brokers track you by.",
   tdpsa: "Your rights under the Texas Data Privacy and Security Act.",
   help: "Answers to common questions.",
