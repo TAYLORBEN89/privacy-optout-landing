@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import {
   PHONE_FIELD_LABEL,
   US_STATES,
@@ -6,7 +6,9 @@ import {
   type SignupField,
   type SignupIssues,
 } from "../shared/signup";
+import { BROKER_SENDS } from "../worker/brokerSends";
 import { storageNotice, submissionConfirmation } from "../worker/storage";
+import { optOutLabel } from "./api/account";
 import { fieldErrorEvents, track } from "./analytics";
 import { AppLink } from "./router";
 import { submitSignup } from "./submitSignup";
@@ -72,7 +74,7 @@ export function SignupForm() {
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const started = useRef(false);
-  const statusRef = useRef<HTMLParagraphElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
   const focusTarget = useRef<"status" | "form" | SignupField | null>(null);
   const [focusToken, setFocusToken] = useState(0);
@@ -80,7 +82,10 @@ export function SignupForm() {
   useEffect(() => {
     if (focusToken === 0) return;
     const target = focusTarget.current;
-    if (target === "status") statusRef.current?.focus();
+    if (target === "status") {
+      statusRef.current?.focus({ preventScroll: true });
+      statusRef.current?.scrollIntoView({ block: "start" });
+    }
     else if (target === "form") formErrorRef.current?.focus();
     else if (target) document.getElementById(target)?.focus();
   }, [focusToken]);
@@ -166,6 +171,8 @@ export function SignupForm() {
       onFocus={markStarted}
       onSubmit={onSubmit}
     >
+      {success ? <PendingStatus statusRef={statusRef} /> : null}
+      <div hidden={success || undefined}>
       <fieldset className="submitter-field">
         <legend>I&apos;m submitting for</legend>
         <div className="segmented">
@@ -198,11 +205,6 @@ export function SignupForm() {
         </div>
       </fieldset>
       <h2 id="form-heading">{submitter === "child" ? "Your details (parent or guardian)" : "Send your request"}</h2>
-      {success ? (
-        <p className="status" role="status" tabIndex={-1} ref={statusRef}>
-          {submissionConfirmation()} {storageNotice()}
-        </p>
-      ) : null}
       {formError ? (
         <p className="error form-error" id="form-error" role="alert" tabIndex={-1} ref={formErrorRef}>
           {formError.message}
@@ -561,7 +563,34 @@ export function SignupForm() {
       </button>
       </div>
       <p className="fine-print">{storageNotice()}</p>
+      </div>
     </form>
+  );
+}
+
+function PendingStatus({ statusRef }: { statusRef: RefObject<HTMLDivElement | null> }) {
+  const label = optOutLabel({ status: "pending", sub_status: null });
+  return (
+    <div className="status" role="status" tabIndex={-1} ref={statusRef}>
+      <p>
+        {submissionConfirmation()} {storageNotice()}
+      </p>
+      <p className="pending-intro">Each company is {label}. DROP Texas recorded the request. Finish it on that company&apos;s page.</p>
+      <ul className="pending-list">
+        {BROKER_SENDS.map((target) => (
+          <li key={target.id}>
+            <div className="pending-row">
+              <strong>{target.name}</strong>
+              <span className="pending-mark">{label}</span>
+            </div>
+            <p>{target.detail}</p>
+            <a href={target.url} target="_blank" rel="noopener noreferrer">
+              {target.name} page
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

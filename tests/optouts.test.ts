@@ -14,6 +14,8 @@ describe("broker send catalog", () => {
       expect(target.channel).toBe("web_form");
       expect(target.url.startsWith("https://")).toBe(true);
       expect(OPT_OUT_BLOCK_CODES).toContain(target.errorCode);
+      expect(target.detail.length).toBeGreaterThan(20);
+      expect(target.detail.toLowerCase()).not.toContain("confirmed");
     }
     expect(BROKER_SENDS.find((target) => target.id === "equifax")?.errorCode).toBe("fcra_and_form");
     expect(BROKER_SENDS.find((target) => target.id === "spokeo")?.errorCode).toBe("profile_url");

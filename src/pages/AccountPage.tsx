@@ -23,6 +23,7 @@ import type { ApiErr, ApiOk } from "../api/http";
 import { stepUpChoices } from "../api/stepUp";
 import type { MeOk } from "../authGate";
 import { AuthErrorNotice } from "../components/AuthErrorNotice";
+import { RequestDashboard } from "../components/RequestDashboard";
 import { type StartAction, signInHrefFor } from "../authGate";
 
 const EMPTY_PROFILE: AccountProfile = { display_name: null, identifiers_locked: true };
@@ -233,6 +234,7 @@ export function AccountView({
             </tbody>
           </table>
         ) : null}
+        <RequestDashboard optouts={optouts} />
       </section>
 
       <section className="account-section" aria-labelledby="reminders-heading">

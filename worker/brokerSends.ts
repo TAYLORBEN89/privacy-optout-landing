@@ -26,6 +26,8 @@ export interface BrokerSendTarget {
   mode: "interactive";
   channel: "web_form";
   errorCode: OptOutBlockCode;
+  /** Plain reason shown after signup. Status stays Pending. */
+  detail: string;
 }
 
 /**
@@ -41,6 +43,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "account",
+    detail: "This company asks you to sign in on its site.",
   },
   "Catalog Choice": {
     id: "catalog-choice",
@@ -48,6 +51,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "account",
+    detail: "This company asks you to sign in on its site.",
   },
   Acxiom: {
     id: "acxiom",
@@ -55,6 +59,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "captcha",
+    detail: "This form uses a captcha.",
   },
   Epsilon: {
     id: "epsilon",
@@ -62,6 +67,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "interactive_form",
+    detail: "This form is filled out on the company's site.",
   },
   Equifax: {
     id: "equifax",
@@ -69,6 +75,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "fcra_and_form",
+    detail: "This is a credit bureau. A sale opt-out is separate from a credit freeze.",
   },
   Experian: {
     id: "experian",
@@ -76,6 +83,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "fcra_and_form",
+    detail: "This is a credit bureau. A sale opt-out is separate from a credit freeze.",
   },
   TransUnion: {
     id: "transunion",
@@ -83,6 +91,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "fcra_and_form",
+    detail: "This is a credit bureau. A sale opt-out is separate from a credit freeze.",
   },
   Spokeo: {
     id: "spokeo",
@@ -90,6 +99,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "profile_url",
+    detail: "This form asks for the web address of your listing and uses a captcha.",
   },
   Whitepages: {
     id: "whitepages",
@@ -97,6 +107,7 @@ const SEND_BY_NAME: Record<BrokerName, Omit<BrokerSendTarget, "name">> = {
     mode: "interactive",
     channel: "web_form",
     errorCode: "profile_url",
+    detail: "This form asks for the web address of your listing and checks it by phone.",
   },
 };
 

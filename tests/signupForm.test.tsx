@@ -10,6 +10,7 @@ import { DISCLAIMER } from "../src/copy";
 import { SiteFooter } from "../src/Footer";
 import { SignupForm } from "../src/SignupForm";
 import { StartPage } from "../src/pages/StartPage";
+import { BROKER_SENDS } from "../worker/brokerSends";
 
 afterEach(() => {
   cleanup();
@@ -150,6 +151,19 @@ describe("signup form phone", () => {
     await user.click(screen.getByRole("button", { name: "Submit opt-out request" }));
 
     expect(await screen.findByText(/Opt-out request submitted/)).toBeTruthy();
+    const status = screen.getByRole("status");
+    expect(status.textContent).toContain("Each company is Pending.");
+    expect(screen.getAllByText("Pending")).toHaveLength(BROKER_SENDS.length);
+    for (const target of BROKER_SENDS) {
+      const link = screen.getByRole("link", { name: `${target.name} page` });
+      expect(link.getAttribute("href")).toBe(target.url);
+      expect(status.textContent).toContain(target.detail);
+    }
+    const shown = status.textContent ?? "";
+    expect(shown.toLowerCase()).not.toContain("confirmed");
+    expect(shown.toLowerCase()).not.toContain("verified");
+    expect(shown).toContain("auto-deleted per our retention policy");
+    expect(screen.queryByRole("button", { name: "Submit opt-out request" })).toBeNull();
     expect(JSON.parse(bodies[0] ?? "{}").phone).toBe("+15125550100");
     expect(events).toContainEqual({ event: "submitted" });
     const tracked = JSON.stringify(events);

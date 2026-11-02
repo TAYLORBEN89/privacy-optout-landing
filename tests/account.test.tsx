@@ -427,7 +427,7 @@ describe("account dashboard", () => {
       />,
     );
     expect(screen.getByText("Display name: Ada Lovelace")).toBeTruthy();
-    expect(screen.getByText("Submitted")).toBeTruthy();
+    expect(screen.getAllByText("Submitted").length).toBeGreaterThan(0);
     expect(screen.getByText("No record found")).toBeTruthy();
     expect(screen.getByText("Not completed")).toBeTruthy();
     expect(screen.queryByText("denied")).toBeNull();
@@ -437,7 +437,9 @@ describe("account dashboard", () => {
     expect(screen.getByRole("button", { name: "Unlink Google" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Link Microsoft" })).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: /confirmation/i })).toBeNull();
-    expect(screen.queryByText(/verified/i)).toBeNull();
+    const history = screen.getAllByRole("table").find((table) => table.textContent?.includes("Request"))?.textContent ?? "";
+    expect(history.toLowerCase()).not.toContain("verified");
+    expect(history.toLowerCase()).not.toContain("confirmation");
   });
 
   it("renders empty states when account endpoints 404", async () => {

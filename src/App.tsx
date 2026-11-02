@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { accountsLive, authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
+import { RequestDashboard } from "./components/RequestDashboard";
 import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE } from "./copy";
 import { Header } from "./Header";
 import { SiteFooter } from "./Footer";
@@ -100,6 +101,7 @@ export function App() {
       <article className="panel">
         <h1>{ACCOUNTS_COMING_SOON_TITLE}</h1>
         <p>{ACCOUNTS_COMING_SOON}</p>
+        <RequestDashboard optouts={[]} />
       </article>
     );
   } else if (path === "/account") {
