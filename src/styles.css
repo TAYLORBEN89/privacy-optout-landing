@@ -2005,8 +2005,11 @@ textarea {
 
 .values-icon {
   display: block;
+  width: 64px;
+  height: 64px;
   align-self: flex-start;
   margin: 0;
+  object-fit: contain;
 }
 
 .values-list li > div {

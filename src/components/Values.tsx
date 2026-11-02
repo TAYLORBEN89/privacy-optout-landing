@@ -1,3 +1,8 @@
+import privacyArt from "../assets/values-icons/privacy.png";
+import freeArt from "../assets/values-icons/free.png";
+import needArt from "../assets/values-icons/need.png";
+import honestArt from "../assets/values-icons/honest.png";
+import independentArt from "../assets/values-icons/independent.png";
 import { AppLink } from "../router";
 
 const VALUES = [
@@ -28,58 +33,16 @@ const VALUES = [
   },
 ] as const;
 
+const VALUE_ART: Record<(typeof VALUES)[number]["id"], string> = {
+  privacy: privacyArt,
+  free: freeArt,
+  need: needArt,
+  honest: honestArt,
+  independent: independentArt,
+};
+
 function ValueIcon({ id }: { id: (typeof VALUES)[number]["id"] }) {
-  if (id === "privacy") {
-    return (
-      <svg className="values-icon" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
-        <circle cx="34" cy="14" r="8" fill="#ffe7a3" />
-        <path d="M24 7.5 36.5 12v11.5c0 8.2-5.4 13.6-12.5 16.5C16.9 37.1 11.5 31.7 11.5 23.5V12L24 7.5z" fill="#fff" stroke="#010101" strokeWidth="1.8" strokeLinejoin="round" />
-        <path d="M24 16.5 31 19v6.2c0 4.2-3 7-7 8.6-4-1.6-7-4.4-7-8.6V19l7-2.5z" fill="#f8d0d4" />
-        <path d="M19.2 25.2 22.6 28.5 29.2 21.4" fill="none" stroke="#ee0014" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (id === "free") {
-    return (
-      <svg className="values-icon" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
-        <circle cx="15" cy="33" r="8" fill="#ffe7a3" />
-        <path d="M18.2 28.5V16.2a2.1 2.1 0 0 1 4.2 0V27" fill="none" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M22.4 26.2V14a2.1 2.1 0 0 1 4.2 0V27" fill="none" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M26.6 26.4V15.2a2.1 2.1 0 0 1 4.2 0V28" fill="none" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M30.8 27.4V18.4a2.1 2.1 0 0 1 4.2 0V31c0 5.6-3.8 9.6-9.6 9.6h-3.4c-5 0-8.2-3-8.2-7.6v-4.6a2.1 2.1 0 0 1 4.2 0" fill="#fff" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (id === "need") {
-    return (
-      <svg className="values-icon" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
-        <circle cx="34" cy="16" r="8" fill="#ffe7a3" />
-        <rect x="12" y="22" width="22" height="16" rx="3" fill="#f8d0d4" stroke="#010101" strokeWidth="1.8" />
-        <path d="M17 22v-4.2a6 6 0 0 1 12 0V22" fill="none" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" />
-        <circle cx="23" cy="29.5" r="1.7" fill="#ee0014" />
-        <path d="M23 31.2v3" stroke="#ee0014" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (id === "honest") {
-    return (
-      <svg className="values-icon" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
-        <rect x="12" y="8" width="24" height="32" rx="3" fill="#fff6dc" stroke="#010101" strokeWidth="1.8" />
-        <path d="M18 18.5 20.2 20.8 24.5 16" fill="none" stroke="#ee0014" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M18 26.5 20.2 28.8 24.5 24" fill="none" stroke="#ee0014" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M18 34.5 20.2 36.8 24.5 32" fill="none" stroke="#ee0014" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M27 18.5h5M27 26.5h5M27 34.5h5" fill="none" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg className="values-icon" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
-      <circle cx="33" cy="14" r="7" fill="#ffe7a3" />
-      <circle cx="22" cy="15" r="6" fill="#f8d0d4" stroke="#010101" strokeWidth="1.8" />
-      <path d="M10.5 38.5c1.2-7 5.2-10.5 11.5-10.5s10.3 3.5 11.5 10.5" fill="#fff" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M29 31.5c3.2-.8 6.2.6 8 4.2" fill="none" stroke="#010101" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
+  return <img className="values-icon" src={VALUE_ART[id]} alt="" />;
 }
 
 function MosaicIcon({ kind }: { kind: "lock" | "shield" | "print" }) {

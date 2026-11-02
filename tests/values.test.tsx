@@ -39,8 +39,7 @@ describe("about us values", () => {
         "DROP Texas is run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.",
       ),
     ).toBeTruthy();
-    expect(document.querySelectorAll(".values-icon")).toHaveLength(5);
-    expect(document.querySelector("img")).toBeNull();
+    expect(document.querySelectorAll("img.values-icon")).toHaveLength(5);
     const more = screen.getByRole("link", { name: "More about us >" });
     expect(more.getAttribute("href")).toBe("/about");
   });
