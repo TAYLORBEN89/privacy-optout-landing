@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { validateSignup } from "../shared/signup";
-import { handleRequest } from "../worker/handle";
+import { handleRequest, type RequestDeps } from "../worker/handle";
+import type { SignupRecord, SignupStore } from "../worker/storage";
 
 const valid = {
   firstName: "Ada",
@@ -23,6 +24,16 @@ function assets() {
   };
 }
 
+function saving(): { deps: RequestDeps; saved: SignupRecord[] } {
+  const saved: SignupRecord[] = [];
+  const signupStore: SignupStore = {
+    save: async (record) => {
+      saved.push(record);
+    },
+  };
+  return { deps: { ...assets(), signupStore }, saved };
+}
+
 function post(body: unknown, headers: HeadersInit = {}): Request {
   return new Request("https://optout.example/api/signup", {
     method: "POST",
@@ -41,10 +52,15 @@ describe("POST /api/signup", () => {
   });
 
   it("accepts a non-Texan without echoing the submission", async () => {
-    const response = await handleRequest(post(valid), assets());
+    const { deps, saved } = saving();
+    const response = await handleRequest(post(valid), deps);
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({ ok: true });
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.jurisdiction).toBe("TDPSA");
+    expect(saved[0]?.nonTexasFlag).toBe(true);
+    expect(saved[0]?.firstName).toBe("Ada");
   });
 
   it("rejects a missing or impossible date of birth with the shared error", async () => {
@@ -172,7 +188,8 @@ describe("POST /api/signup", () => {
       texasResident: true,
       ssn: "123-45-6789",
     };
-    const response = await handleRequest(post(body), assets());
+    const { deps } = saving();
+    const response = await handleRequest(post(body), deps);
     expect(response.status).toBe(200);
     const dumped = `${JSON.stringify(await response.clone().json())}\n${lines.join("\n")}`;
     expect(dumped).not.toContain("Zephyr");
@@ -188,21 +205,23 @@ describe("POST /api/signup", () => {
       lines.push(String(message));
     });
 
-    const missing = await handleRequest(post(valid), assets());
+    const { deps, saved } = saving();
+    const missing = await handleRequest(post(valid), deps);
     expect(missing.status).toBe(200);
 
-    const empty = await handleRequest(post({ ...valid, phone: "" }), assets());
+    const empty = await handleRequest(post({ ...valid, phone: "" }), deps);
     expect(empty.status).toBe(200);
 
-    const blank = await handleRequest(post({ ...valid, phone: null }), assets());
+    const blank = await handleRequest(post({ ...valid, phone: null }), deps);
     expect(blank.status).toBe(200);
 
-    const accepted = await handleRequest(post({ ...valid, phone: "1 (512) 555-0100" }), assets());
+    const accepted = await handleRequest(post({ ...valid, phone: "1 (512) 555-0100" }), deps);
     expect(accepted.status).toBe(200);
     const acceptedBody = JSON.stringify(await accepted.json());
     expect(acceptedBody).not.toContain("512");
     expect(lines.join("\n")).not.toContain("5125550100");
     expect(lines.join("\n")).not.toContain("+15125550100");
+    expect(saved.at(-1)?.phone).toBe("+15125550100");
   });
 
   it("rejects a phone number that is not a US number", async () => {
@@ -217,6 +236,39 @@ describe("POST /api/signup", () => {
       message: "Enter a valid US phone number.",
     });
     expect(JSON.stringify(payload)).not.toContain("123");
+  });
+
+  it("returns 503 when live storage has no store, without echoing the body", async () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    const response = await handleRequest(post({ ...valid, firstName: "Zephyr" }), assets());
+    expect(response.status).toBe(503);
+    const dumped = `${JSON.stringify(await response.json())}\n${lines.join("\n")}`;
+    expect(dumped).not.toContain("Zephyr");
+    expect(lines.join("\n")).toContain("signup_store_missing");
+  });
+
+  it("returns 500 when the store fails, without echoing the body", async () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    const deps: RequestDeps = {
+      ...assets(),
+      signupStore: {
+        save: async () => {
+          throw new Error("disk_full");
+        },
+      },
+    };
+    const response = await handleRequest(post({ ...valid, firstName: "Zephyr" }), deps);
+    expect(response.status).toBe(500);
+    const dumped = `${JSON.stringify(await response.json())}\n${lines.join("\n")}`;
+    expect(dumped).not.toContain("Zephyr");
+    expect(dumped).not.toContain("disk_full");
+    expect(lines.join("\n")).toContain("signup_store_failed");
   });
 
   it("redirects www to the apex before API forwarding or assets", async () => {
@@ -423,7 +475,9 @@ describe("POST /api/signup", () => {
 
   it("keeps signup local even when a backend binding exists", async () => {
     let forwarded = false;
+    const { deps } = saving();
     const response = await handleRequest(post(valid), {
+      ...deps,
       forwardApi: () => {
         forwarded = true;
         return Promise.resolve(new Response("nope", { status: 500 }));

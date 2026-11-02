@@ -1,12 +1,10 @@
 import { accountsSignInUrl } from "../shared/accounts";
 import { validateSignup, type FieldIssue, type SignupIssues } from "../shared/signup";
+import { STORAGE_LIVE, saveSignup, type SignupStore } from "./storage";
 
 /**
- * Signup API. Validates and acknowledges. Does not persist.
+ * Signup API. Validates, then persists when STORAGE_LIVE.
  * Never log field values, raw bodies, or error messages copied from input.
- *
- * TODO(storage): on success, call saveSignup() from ./storage.ts with the
- * validated value only. No D1/KV binding is configured in this v1.
  */
 
 const MAX_BODY_BYTES = 8_192;
@@ -25,6 +23,7 @@ export interface RequestDeps {
    * Absent means the binding is not configured.
    */
   forwardApi?: () => Promise<Response>;
+  signupStore?: SignupStore;
 }
 
 interface ErrorBody {
@@ -114,7 +113,7 @@ async function readLimitedText(request: IncomingHttpRequest, maxBytes: number): 
   return text;
 }
 
-async function handleSignup(request: IncomingHttpRequest): Promise<Response> {
+async function handleSignup(request: IncomingHttpRequest, store?: SignupStore): Promise<Response> {
   if (request.method !== "POST") {
     return formError("method_not_allowed", "Use the form on this page to submit.", 405, request);
   }
@@ -168,10 +167,35 @@ async function handleSignup(request: IncomingHttpRequest): Promise<Response> {
     );
   }
 
-  // Validated value is ready for storage and is intentionally discarded.
-  // TODO(storage): saveSignup(store, { ...result.value, receivedAt }).
-  // Never log result.value.
-  void result.value;
+  if (STORAGE_LIVE) {
+    if (!store) {
+      logOutcome({
+        message: "signup_store_missing",
+        method: request.method,
+        path: new URL(request.url).pathname,
+        status: 503,
+      });
+      return json(
+        { ok: false, errors: {}, form: { code: "unavailable", message: "Something went wrong. Try again." } },
+        503,
+      );
+    }
+    try {
+      await saveSignup(store, { ...result.value, receivedAt: new Date().toISOString() });
+    } catch (error) {
+      logOutcome({
+        message: "signup_store_failed",
+        method: request.method,
+        path: new URL(request.url).pathname,
+        status: 500,
+        codes: [error instanceof Error ? error.name : "Error"],
+      });
+      return json(
+        { ok: false, errors: {}, form: { code: "unavailable", message: "Something went wrong. Try again." } },
+        500,
+      );
+    }
+  }
 
   logOutcome({
     message: "signup_accepted",
@@ -202,7 +226,7 @@ export async function handleRequest(
   const redirected = wwwRedirect(url, request.method);
   if (redirected) return redirected;
   if (url.pathname === "/api/signup") {
-    return handleSignup(request);
+    return handleSignup(request, deps.signupStore);
   }
   if (url.pathname === "/api/auth/apple" || url.pathname.startsWith("/api/auth/apple/")) {
     return json(

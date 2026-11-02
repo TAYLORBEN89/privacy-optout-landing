@@ -4,7 +4,7 @@ v1 landing page for DROP Texas, a private, free privacy opt-out service. The pag
 
 DROP Texas is an independent, free service run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.
 
-This version checks the form and returns success. It does not save the submission. A later backend owns D1/KV. See `worker/storage.ts`.
+Validated signups are stored in the D1 database `drop-texas-signups`. See `worker/storage.ts`. The Worker does not send broker opt-out requests yet.
 
 ## Run locally
 
@@ -27,7 +27,7 @@ npm run build
 npx wrangler dev
 ```
 
-`npm run worker:dev` is the same Wrangler command. There is no persistence yet, and this repo has no secrets to configure.
+`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. This repo has no secrets to configure.
 
 ## Deploy
 
@@ -85,9 +85,9 @@ npm test
 
 ## What the form does
 
-The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Nothing is stored in this version.
+The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Accepted submissions are written to D1. The Worker does not log field values.
 
-`STORAGE_LIVE` in `worker/storage.ts` is false. The page says the preview does not store submissions. Set that constant to true only when D1 is actually saving records. The replacement sentence is `STORAGE_LIVE_NOTE`.
+`STORAGE_LIVE` in `worker/storage.ts` is true while `saveSignup()` writes those rows. The page then uses `STORAGE_LIVE_NOTE`. Set the constant to false only if writes are turned off.
 
 The browser and the Worker both use `shared/signup.ts`. Bad input returns per-field errors. The Worker does not log field values.
 

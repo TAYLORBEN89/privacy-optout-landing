@@ -118,7 +118,7 @@ export function HowItWorksPage() {
           <h2>Enter the details the request uses</h2>
           <p>
             The form asks for your name (including an optional middle name), date of birth, mailing
-            address, email, Texas residency, and, if you choose, your phone number. Most broker
+            address, email, Texas residency, and (if you choose to provide it) your phone number. Most broker
             opt-out forms require a physical address. The form does not ask for a device ID, a
             password, or a government ID number. The{" "}
             <AppLink href="/personal-information">personal information</AppLink> page explains why

@@ -66,7 +66,9 @@ describe("signup form copy", () => {
     expect(document.body.textContent).not.toContain("A checked box means the Texas Data Privacy and Security Act");
     expect(document.body.textContent).not.toContain("Leave it unchecked if you live somewhere else.");
     expect(document.body.textContent).not.toContain("You can still submit.");
-    expect(document.body.textContent).toContain("This is a preview. Nothing you enter is saved yet.");
+    expect(document.body.textContent).toContain(
+      "Your information is stored securely and auto-deleted per our retention policy",
+    );
     const state = screen.getByLabelText(/State/) as HTMLSelectElement;
     expect(state.value).toBe("TX");
     expect(state.querySelectorAll("option")).toHaveLength(51);
@@ -147,7 +149,7 @@ describe("signup form phone", () => {
     fillRequest("(512) 555-0100");
     await user.click(screen.getByRole("button", { name: "Submit opt-out request" }));
 
-    expect(await screen.findByText(/Confirmation received/)).toBeTruthy();
+    expect(await screen.findByText(/Opt-out request submitted/)).toBeTruthy();
     expect(JSON.parse(bodies[0] ?? "{}").phone).toBe("+15125550100");
     expect(events).toContainEqual({ event: "submitted" });
     const tracked = JSON.stringify(events);

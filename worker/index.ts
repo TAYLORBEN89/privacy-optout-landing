@@ -1,4 +1,5 @@
 import { handleRequest } from "./handle";
+import { D1SignupStore } from "./storage";
 
 /**
  * Optional backend service. Not declared in wrangler.jsonc until
@@ -16,7 +17,8 @@ function optionalApi(env: Env): ApiService | undefined {
 
 /**
  * Worker entry. Static assets are served by the ASSETS binding.
- * POST /api/signup stays local. Other /api paths forward to env.API when present.
+ * POST /api/signup stays local and writes to D1. Other /api paths forward to
+ * env.API when present.
  */
 export default {
   async fetch(request, env): Promise<Response> {
@@ -32,6 +34,7 @@ export default {
         {
           fetchAsset: () => env.ASSETS.fetch(request),
           forwardApi: api ? () => api.fetch(request) : undefined,
+          signupStore: new D1SignupStore(env.DB),
         },
       );
     } catch (error) {

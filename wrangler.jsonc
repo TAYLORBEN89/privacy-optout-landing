@@ -7,8 +7,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "upload_source_maps": true,
   // Static assets are the Vite build. /api/* is handled by the Worker first.
-  // No D1/KV binding yet — persistence is owned by a separate backend.
-  // Intended public hostnames: droptexas.com and www.droptexas.com.
+  // Signups persist in D1. Intended public hostnames: droptexas.com and www.droptexas.com.
   // custom_domain creates proxied DNS in the Cloudflare zone on deploy.
   // Do not deploy until the zone is on this account and the operator asks for it.
   "routes": [
@@ -21,6 +20,14 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "drop-texas-signups",
+      "database_id": "cc89355c-7f71-4622-a1fc-1dc915909b4a",
+      "migrations_dir": "migrations"
+    }
+  ],
   // privacy-dashboard-api is not deployed. Leaving this binding active would
   // fail deploys, so it stays commented until that Worker exists.
   // "services": [
