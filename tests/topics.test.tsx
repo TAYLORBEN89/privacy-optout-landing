@@ -82,6 +82,27 @@ describe("explore pages", () => {
     expect(document.body.textContent).not.toMatch(/verified deletion|guaranteed/i);
   });
 
+  it("gives each explore page room to explain the topic", () => {
+    const pages = [
+      OverviewPage,
+      HowItWorksPage,
+      PersonalInformationPage,
+      DataBrokersPage,
+      UniqueIdentifiersPage,
+      TdpsaPage,
+      SharePage,
+    ];
+    for (const Page of pages) {
+      cleanup();
+      render(<Page />);
+      expect(screen.getAllByRole("heading", { level: 2 }).length).toBeGreaterThanOrEqual(3);
+    }
+    cleanup();
+    render(<HelpPage />);
+    expect(screen.getByRole("heading", { level: 2, name: "Questions" })).toBeTruthy();
+    expect(document.querySelectorAll("details").length).toBeGreaterThanOrEqual(10);
+  });
+
   it("links data brokers to the broker list and personal information to privacy", () => {
     render(<DataBrokersPage />);
     expect(screen.getByRole("link", { name: "brokers page" }).getAttribute("href")).toBe("/brokers");

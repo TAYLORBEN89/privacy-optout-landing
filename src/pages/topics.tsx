@@ -52,17 +52,42 @@ export function OverviewPage() {
       title="Overview"
       heading="Overview"
       tone="overview"
-      description="What DROP Texas does, and what an opt-out request is."
+      description="What DROP Texas does, who it is for, and what an opt-out request is."
     >
       <p>
-        You sign up, confirm your details, and DROP Texas sends opt-out requests for you. An opt-out
-        request asks a data broker not to sell your personal information. DROP Texas does not check
-        that a broker deleted a record.
+        DROP Texas is a free service that sends opt-out requests asking data brokers not to sell your
+        personal information. You fill out one form. DROP Texas sends the requests. Brokers decide
+        whether they have a record and how they respond.
       </p>
+      <h2>Who it is for</h2>
       <p>
-        If a status is shown later, it is one of Submitted, Confirmed, Pending, Not completed, or No
-        record found.
+        Anyone can use the form. A checked Texas box records the Texas Data Privacy and Security Act.
+        An unchecked box still uses that law for now and is marked non-Texas. A parent or guardian can
+        send a request for a child under 13. Teens 13 to 17 can submit for themselves. Read{" "}
+        <AppLink href="/children">protecting children's information</AppLink> for that path.
       </p>
+      <h2>What an opt-out request is</h2>
+      <p>
+        An opt-out of sale asks a company not to sell personal information it holds about you. It is
+        not the same as a deletion request, a credit freeze, or a listing on the National Do Not Call
+        Registry. Those are separate steps. This form sends opt-out requests. It does not freeze credit
+        or enroll you in Do Not Call.
+      </p>
+      <h2>What DROP Texas does</h2>
+      <p>
+        You say whether you live in Texas, enter the details the request uses, and submit. DROP Texas
+        sends the requests to the companies named on the{" "}
+        <AppLink href="/brokers">brokers page</AppLink>. There is no fee. The{" "}
+        <AppLink href="/how-it-works">how it works</AppLink> page walks through the form.
+      </p>
+      <h2>What this does not do</h2>
+      <p>
+        DROP Texas does not check that a broker deleted a record. It does not pull back copies already
+        sold. It does not place a credit freeze. If a status is shown later, it is one of Submitted,
+        Confirmed, Pending, Not completed, or No record found. None of those words means a deletion
+        was verified.
+      </p>
+      <p>{DISCLAIMER}</p>
     </Topic>
   );
 }
@@ -75,25 +100,58 @@ export function HowItWorksPage() {
       tone="how"
       description="Sign up, confirm your details, and DROP Texas sends opt-out requests to data brokers for you."
     >
-      <p>Three steps. You can stop at any time before you submit.</p>
+      <p>
+        Three steps on the form. You can stop at any time before you submit. After you submit, DROP
+        Texas sends the opt-out requests. Brokers answer on their own schedule.
+      </p>
       <ol className="plain-steps">
         <li>
           <h2>Say whether you live in Texas</h2>
-          <p>Checked means TDPSA. Unchecked still uses TDPSA for now and is marked non-Texas.</p>
+          <p>
+            A checked box records the Texas Data Privacy and Security Act, Business and Commerce Code
+            chapter 541. An unchecked box still uses that chapter for now and is marked non-Texas. No
+            government agency reviews this form. The{" "}
+            <AppLink href="/tdpsa">TDPSA page</AppLink> summarizes the rights in that chapter.
+          </p>
         </li>
         <li>
           <h2>Enter the details the request uses</h2>
           <p>
-            The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-            provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. Most broker opt-out forms require a physical address. The form
-            does not ask for a device ID, a password, or a government ID number.
+            The form asks for your name (including an optional middle name), date of birth, mailing
+            address, email, Texas residency, and, if you choose, your phone number. Most broker
+            opt-out forms require a physical address. The form does not ask for a device ID, a
+            password, or a government ID number. The{" "}
+            <AppLink href="/personal-information">personal information</AppLink> page explains why
+            each field is asked, and{" "}
+            <AppLink href="/unique-identifiers">unique identifiers</AppLink> explains what this form
+            does not collect.
+          </p>
+          <p>
+            For a child under 13, a parent or guardian chooses My child and also provides the child's
+            name, date of birth and, if different, address. Teens 13 to 17 can submit for themselves.
           </p>
         </li>
         <li>
           <h2>Submit the form</h2>
           <p>{storageNotice()}</p>
+          <p>
+            After a live submit, DROP Texas sends opt-out requests to the companies on the{" "}
+            <AppLink href="/brokers">brokers page</AppLink>. You do not fill out a separate form at
+            each company.
+          </p>
         </li>
       </ol>
+      <h2>After you submit</h2>
+      <p>
+        Companies decide whether they have a record and how they respond. If a status is shown later,
+        it is one of Submitted, Confirmed, Pending, Not completed, or No record found. None of those
+        words means a deletion was verified. DROP Texas does not check that a broker deleted a record.
+      </p>
+      <h2>If you do not want to continue</h2>
+      <p>
+        Close the form before you submit. Nothing is sent until you submit. The preview storage note
+        on the form tells you whether anything is saved yet.
+      </p>
     </Topic>
   );
 }
@@ -104,13 +162,43 @@ export function PersonalInformationPage() {
       title="Personal information"
       heading="Personal information"
       tone="personal"
-      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address."
+      description="What the DROP Texas form asks for, why each field is used, and what is not collected."
     >
       <p>
-        The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-        provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.
+        The form asks only for what a broker typically needs to find a record and honor an opt-out.
+        DROP Texas does not sell that information. It is not used for marketing, calls, or texts from
+        us.
       </p>
-      <p>DROP Texas does not sell that information.</p>
+      <h2>What the form asks</h2>
+      <ul>
+        <li>Name, including an optional middle name, so the request names the same person the broker may hold.</li>
+        <li>Date of birth, which many brokers use to tell people with the same name apart.</li>
+        <li>Mailing address. Most broker opt-out forms require a physical address.</li>
+        <li>Email, so a broker can match an online record and so we can reach you about the request.</li>
+        <li>Texas residency, which records whether the request is marked Texas or non-Texas.</li>
+        <li>
+          Phone number, if you choose to provide it. If you do, it is used only to find records and to
+          fill in the opt-out sent to brokers.
+        </li>
+      </ul>
+      <h2>Child requests</h2>
+      <p>
+        For a child under 13, a parent or guardian also provides the child's name, date of birth and,
+        if different, address. Companies may ask for proof of guardianship. The{" "}
+        <AppLink href="/children">children's information page</AppLink> has the sourced notes and the
+        child form.
+      </p>
+      <h2>What the form does not ask</h2>
+      <p>
+        The form does not ask for a Social Security number, a driver license number, a device ID, an
+        account password, or a payment card. Extra identifiers some brokers hold are described on{" "}
+        <AppLink href="/unique-identifiers">unique identifiers</AppLink>.
+      </p>
+      <h2>How it is handled</h2>
+      <p>
+        Pages and API calls are served over HTTPS. DROP Texas does not sell the information you enter.
+      </p>
+      <p>{storageNotice()}</p>
       <p>
         <AppLink href="/privacy">How we protect it</AppLink>
       </p>
@@ -124,17 +212,40 @@ export function DataBrokersPage() {
       title="Data brokers"
       heading="Data brokers"
       tone="brokers"
-      description="An opt-out request asks a data broker not to sell your personal information. DROP Texas does not check that a record was deleted."
+      description="What a data broker is, which companies DROP Texas names, and what an opt-out of sale does."
     >
       <p>
-        An opt-out request asks a data broker not to sell your personal information. DROP Texas does
-        not check that a broker deleted a record.
+        A data broker collects, processes, or transfers personal data it did not collect from you in
+        person. It can then sell a profile, or access to one, to other businesses. You often have no
+        account there, so you never chose the sale.
       </p>
+      <h2>What an opt-out asks</h2>
+      <p>
+        An opt-out request asks a data broker not to sell your personal information. It is not a
+        promise that the broker deletes every copy, and it does not pull back data already sold. DROP
+        Texas does not check that a broker deleted a record.
+      </p>
+      <h2>Companies this site names</h2>
       <p>
         The home page carousel names {BROKERS.join(", ")}. Each name has a card on the{" "}
         <AppLink href="/brokers">brokers page</AppLink>, with categories taken from that company’s own
-        privacy notice.
+        privacy notice. Names are not added to that list until they are in the broker registry this
+        project uses.
       </p>
+      <p>
+        Some of those companies also act as consumer reporting agencies. An opt-out of sale is not a
+        credit freeze and is not a dispute of a credit file. A freeze is a separate step you take with
+        the bureaus. The FTC explains it at{" "}
+        <a
+          href="https://consumer.ftc.gov/articles/credit-freeze-or-fraud-alert"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          consumer.ftc.gov
+        </a>
+        .
+      </p>
+      <h2>Texas data broker registration</h2>
       <p>
         Texas also has a data broker registration law. It was Chapter 509 of the Business and Commerce
         Code and was redesignated as Chapter 510, effective September 1, 2025. A data broker, in that
@@ -158,19 +269,36 @@ export function UniqueIdentifiersPage() {
       title="Unique identifiers"
       heading="Unique identifiers"
       tone="identifiers"
-      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address."
+      description="How brokers match a person, which details this form uses, and which identifiers it does not collect."
     >
       <p>
-        Some brokers match people with extra identifiers. This form does not ask for device IDs, account
-        passwords, or government ID numbers.
+        Brokers match records with identifiers: a name plus a date of birth, an address, an email, a
+        phone number, and, at some companies, device IDs or government identifiers. The more of those
+        a company holds, the easier it is to attach new data to the same person.
+      </p>
+      <h2>What this form uses to match you</h2>
+      <p>
+        The form asks for your name (including an optional middle name), date of birth, mailing
+        address, email, Texas residency, and, if you choose, your phone number. Those are the details
+        most opt-out forms use. For a child request, a parent or guardian also provides the child's
+        name, date of birth and, if different, address.
+      </p>
+      <h2>What this form does not collect</h2>
+      <p>
+        Some brokers match people with extra identifiers. This form does not ask for device IDs,
+        advertising IDs, account passwords, Social Security numbers, or other government ID numbers.
+        Collecting those would put more of your information in one place without a matching field on
+        every broker form this service uses.
+      </p>
+      <h2>What a broker's own notice may list</h2>
+      <p>
+        The <AppLink href="/brokers">brokers page</AppLink> lists categories each company names in its
+        own privacy notice, such as email, phone, or address, when that notice says so. What any one
+        broker actually holds about you can differ from that list.
       </p>
       <p>
-        The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-        provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.
-      </p>
-      <p>
-        The <AppLink href="/brokers">brokers page</AppLink> lists categories each company names in its own
-        privacy notice, such as email, phone, or address, when that notice says so.
+        The <AppLink href="/personal-information">personal information</AppLink> page covers how DROP
+        Texas handles the fields you do enter.
       </p>
     </Topic>
   );
@@ -182,18 +310,26 @@ export function TdpsaPage() {
       title="TDPSA"
       heading="The Texas Data Privacy and Security Act"
       tone="tdpsa"
-      description="A plain-English summary of consumer rights in Texas Business and Commerce Code chapter 541."
+      description="A plain-English summary of consumer rights in Texas Business and Commerce Code chapter 541, and which right DROP Texas uses."
     >
+      <h2>What DROP Texas uses</h2>
       <p>
-        DROP Texas is a private service. The Texas box records the Texas Data Privacy and Security Act
-        (TDPSA), Texas Business and Commerce Code chapter 541. An unchecked box still uses TDPSA for now
-        and is marked non-Texas. No government agency reviews this form.
+        DROP Texas is a private service. The form sends an opt-out of the sale of personal data under
+        the Texas Data Privacy and Security Act. It does not, through this form, ask a company to
+        confirm, correct, delete, or port your data. Those other rights exist in the chapter. This
+        service is built around the opt-out of sale.
       </p>
+      <p>
+        The Texas box records chapter 541. An unchecked box still uses TDPSA for now and is marked
+        non-Texas. No government agency reviews this form.
+      </p>
+      <h2>Who the chapter covers</h2>
       <p>
         A consumer under Section 541.001(7) is a Texas resident acting in an individual or household
-        context. That term does not include someone acting in a commercial or employment context. Section
-        541.051(b) says a controller shall comply with an authenticated request to:
+        context. That term does not include someone acting in a commercial or employment context.
       </p>
+      <h2>Consumer rights in Section 541.051</h2>
+      <p>Section 541.051(b) says a controller shall comply with an authenticated request to:</p>
       <ul>
         <li>Confirm whether it is processing your personal data and access that data. Section 541.051(b)(1).</li>
         <li>Correct inaccuracies, taking into account the data and why it is used. Section 541.051(b)(2).</li>
@@ -207,11 +343,14 @@ export function TdpsaPage() {
           furthers a decision with a legal or similarly significant effect. Section 541.051(b)(5).
         </li>
       </ul>
+      <h2>Time to respond</h2>
       <p>
         Section 541.052(b) says the controller shall respond not later than the 45th day after it receives
         the request. It may extend that once by another 45 days when reasonably necessary, if it tells you
-        the reason during the first 45 days.
+        the reason during the first 45 days. That deadline is in the statute. It is not a promise that a
+        DROP Texas opt-out finishes in 45 days.
       </p>
+      <h2>Appeals and enforcement</h2>
       <p>
         Section 541.053 says you can appeal a refusal to act on a request. If the appeal is denied, the
         controller must point you to the attorney general complaint mechanism in Section 541.152.
@@ -246,42 +385,90 @@ export function HelpPage() {
       title="Help"
       heading="Help"
       tone="help"
-      description="Answers about signup, request statuses, and the Texas Data Privacy and Security Act."
+      description="Answers about signup, request statuses, children, Texas law, and what DROP Texas does not do."
     >
       {/* TODO: no support email is configured. Do not invent a contact address on this page. */}
+      <p>
+        Short answers to the questions people ask before they submit. The{" "}
+        <AppLink href="/overview">overview</AppLink> and{" "}
+        <AppLink href="/how-it-works">how it works</AppLink> pages cover the same ground in order.
+      </p>
+      <h2>Questions</h2>
       <div className="faq">
         <details>
           <summary>What is DROP Texas?</summary>
-          <p>DROP Texas is a free service for Texans to request data brokers not sell their personal information.</p>
+          <p>
+            DROP Texas is a free service that sends opt-out requests asking data brokers not to sell
+            your personal information. You fill out one form. DROP Texas sends the requests. Brokers
+            decide whether they have a record and how they respond.
+          </p>
         </details>
         <details>
           <summary>What does a request cost?</summary>
-          <p>The service does not charge a fee.</p>
+          <p>
+            The service does not charge a fee. You can also opt out yourself at each broker, for free.
+            There is no subscription for making the request through this site.
+          </p>
         </details>
         <details>
           <summary>What do I enter?</summary>
           <p>
-            The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
-            provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. The page needs JavaScript to show the form.
+            The form asks for your name (including an optional middle name), date of birth, mailing
+            address, email, Texas residency, and, if you choose to provide it, your phone number. For a
+            child request, a parent or guardian also provides the child's name, date of birth and, if
+            different, address. The page needs JavaScript to show the form. It does not ask for a
+            Social Security number, a password, or a device ID.
           </p>
         </details>
         <details>
           <summary>What do the statuses mean?</summary>
           <p>
-            If a status is shown later, it is one of Submitted, Confirmed, Pending, Not completed, or No
-            record found. None of those words means a deletion was verified.
+            If a status is shown later, it is one of Submitted, Confirmed, Pending, Not completed, or
+            No record found. None of those words means a deletion was verified. DROP Texas does not
+            check that a broker deleted a record.
           </p>
         </details>
         <details>
           <summary>Do I have to live in Texas?</summary>
-          <p>No. An unchecked Texas box still uses TDPSA for now and is marked non-Texas.</p>
+          <p>
+            No. A checked Texas box records the Texas Data Privacy and Security Act. An unchecked box
+            still uses that law for now and is marked non-Texas.
+          </p>
         </details>
         <details>
           <summary>How fast must a company answer a TDPSA request?</summary>
           <p>
             Section 541.052(b) gives a controller 45 days to respond to a consumer’s request, with one
             possible 45-day extension. That deadline is in the statute. It is not a promise that a broker
-            will finish a DROP Texas opt-out in that time.
+            will finish a DROP Texas opt-out in that time. The{" "}
+            <AppLink href="/tdpsa">TDPSA page</AppLink> has the rest of that summary.
+          </p>
+        </details>
+        <details>
+          <summary>Can I send a request for a child?</summary>
+          <p>
+            A parent or legal guardian can choose My child on the form for a child under 13. Teens 13
+            to 17 can submit for themselves. Companies may ask for proof of guardianship. The{" "}
+            <AppLink href="/children">children's information page</AppLink> has the sourced notes.
+          </p>
+        </details>
+        <details>
+          <summary>What if a broker does not respond?</summary>
+          <p>
+            DROP Texas sends the request. A company still decides how to answer. If a status stays
+            Pending or Not completed, that is what is known. The statute's appeal and attorney general
+            complaint path is described on the TDPSA page. This site is not a government complaint form.
+          </p>
+        </details>
+        <details>
+          <summary>Does this freeze my credit or stop robocalls?</summary>
+          <p>
+            No. A credit freeze is a separate step with the credit bureaus. The National Do Not Call
+            Registry is a separate step at{" "}
+            <a href="https://www.donotcall.gov" target="_blank" rel="noopener noreferrer">
+              donotcall.gov
+            </a>
+            . DROP Texas does not place a freeze and does not enroll you in that registry.
           </p>
         </details>
         <details>
@@ -315,8 +502,21 @@ export function SharePage() {
       tone="share"
       description="Share https://droptexas.com by copying the link, or with email, X, or Facebook."
     >
+      <h2>Why share</h2>
+      <p>
+        Most people never find every broker's opt-out form. A Texan who wants fewer companies selling
+        their personal information can use this site without paying a fee. Sharing the link is how they
+        hear about it.
+      </p>
+      <h2>What you are sharing</h2>
       <p>You can share this private service at {SITE}.</p>
       <p>{SHARE_TEXT}</p>
+      <p>
+        You are sharing a free private service, not a promise that a broker deleted a record, and not a
+        government program. {DISCLAIMER}
+      </p>
+      <h2>How to share</h2>
+      <p>Copy the link, or open email, X, or Facebook with the text already filled in.</p>
       <div className="share-actions">
         <button type="button" className="share-copy" onClick={copyLink}>
           {copied ? "Link copied" : "Copy link"}
