@@ -2,8 +2,8 @@ import { handleRequest } from "./handle";
 import { D1SignupStore } from "./storage";
 
 /**
- * Optional backend service. Not declared in wrangler.jsonc until
- * privacy-dashboard-api is deployed, so the generated Env type omits it.
+ * Accounts API. The generated Env type is refreshed by `wrangler types`.
+ * The cast stays so this file typechecks before that refresh.
  */
 type ApiService = {
   fetch(request: Request): Promise<Response>;

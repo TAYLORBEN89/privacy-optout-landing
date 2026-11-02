@@ -67,7 +67,7 @@ After deploy, both hostnames should resolve through Cloudflare to this Worker. T
 
 `VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session.
 
-`VITE_ACCOUNTS_LIVE` defaults to off. Until it is `true`, the site does not present accounts as available. The header shows neither Sign in nor the account icon. `/account` and the SPA `/signin` page show the same Coming soon sentence as the privacy page, and Start stays on `/start` even when `VITE_AUTH_GATE` is on. Set `VITE_ACCOUNTS_LIVE=true` to show the header control, the account page, and the gate redirect to the accounts host. A direct request to `/signin` on the Worker still redirects to that host; the pages themselves do not link there while the flag is unset.
+`VITE_ACCOUNTS_LIVE` defaults to off in dev and tests. The production build sets it to `true`, so the live site shows Sign in, the account page, and the gate redirect to the accounts host. A direct request to `/signin` on the Worker redirects to that host.
 
 Sign-in is hosted at `accounts.droptexas.com`, like a separate accounts site. `ACCOUNTS_ORIGIN` defaults to `https://accounts.droptexas.com` and can be overridden with `VITE_ACCOUNTS_ORIGIN`. The header Sign in link, the sign-in gate, and any other sign-in control leave this site with a full page load to `${ACCOUNTS_ORIGIN}/signin?return_to=/start` or `return_to=/account`. `return_to` must be a same-site path that starts with `/` and not `//`. A local visit to `/signin` redirects there and keeps a valid `return_to`.
 
@@ -93,7 +93,7 @@ The browser and the Worker both use `shared/signup.ts`. Bad input returns per-fi
 
 ### Signup payload
 
-`POST /api/signup` accepts and revalidates this JSON shape. Empty optional fields are `null`. `jurisdiction` and `nonTexasFlag` are derived from `texasResident` and are included in the posted body. The Worker validates the body and stores the derived values with the signup. The success response does not mean a broker confirmed a deletion.
+`POST /api/signup` accepts and revalidates this JSON shape. Empty optional fields are `null`. `jurisdiction` and `nonTexasFlag` are derived from `texasResident` and are included in the posted body. The Worker validates the body and stores the derived values with the signup. The success response does not mean a broker confirmed a deletion. The page then lists each named broker as Pending, with the reason and a link to that company's page.
 
 ```json
 {
@@ -145,7 +145,7 @@ These are real pages. The homepage does not use hash links for them.
 
 ## Account API
 
-These routes are on this origin and are forwarded to the `API` service binding when that binding is uncommented in `wrangler.jsonc`. Until then they return JSON 404. The account page calls them only when `VITE_ACCOUNTS_LIVE=true`. Mutations send `X-CSRF-Token` from `GET /api/me`. A `403` body `{ "error": "step_up_required" }` opens step-up. No other 403 does.
+These routes are on this origin and are forwarded to the `API` service binding for `privacy-dashboard-api`. Mutations send `X-CSRF-Token` from `GET /api/me`. A `403` body `{ "error": "step_up_required" }` opens step-up. No other 403 does.
 
 The current signup payload keys, also posted to `POST /api/signup`, are `firstName`, `middleName`, `lastName`, `dob`, `addressLine1`, `addressLine2`, `city`, `state`, `zip`, `email`, `phone`, `texasResident`, `submitter`, `child`, `guardianAttestation`, `jurisdiction`, and `nonTexasFlag`. The shape is in the signup payload section above. `child` is `null` for a self request, or an object with `firstName`, `middleName`, `lastName`, `dob`, `sameAddress`, and, when `sameAddress` is false, `addressLine1`, `addressLine2`, `city`, `state`, and `zip`.
 
