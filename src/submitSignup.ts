@@ -16,6 +16,7 @@ const UNAVAILABLE = {
 export async function submitSignup(
   input: unknown,
   fetchImpl: typeof fetch = fetch,
+  csrfToken?: string | null,
 ): Promise<SignupResult> {
   const clientResult = validateSignup(input);
   if (!clientResult.ok) {
@@ -26,12 +27,15 @@ export async function submitSignup(
 
   let response: Response;
   try {
+    const headers: Record<string, string> = {
+      accept: "application/json",
+      "content-type": "application/json",
+    };
+    if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
     response = await fetchImpl("/api/signup", {
       method: "POST",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-      },
+      credentials: "same-origin",
+      headers,
       body: JSON.stringify(body),
     });
   } catch {

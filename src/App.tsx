@@ -95,7 +95,9 @@ export function App() {
   else if (path === "/share") page = <SharePage />;
   else if (path === "/about") page = <AboutPage />;
   else if (path === "/signin") page = <SignInPage />;
-  else if (path === "/start") page = <StartPage action={pageAction} />;
+  else if (path === "/start") {
+    page = <StartPage action={pageAction} csrfToken={session.status === "in" ? session.me.csrf_token : null} />;
+  }
   else if (path === "/account" && !accountsLive()) {
     page = (
       <article className="panel">

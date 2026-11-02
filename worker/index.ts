@@ -35,6 +35,7 @@ export default {
         {
           fetchAsset: () => env.ASSETS.fetch(request),
           forwardApi: api ? () => api.fetch(request) : undefined,
+          callApi: api,
           signupStore: new D1SignupStore(env.DB),
         },
       );

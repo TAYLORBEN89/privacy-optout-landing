@@ -50,10 +50,11 @@ describe("D1SignupStore", () => {
     expect(sql).not.toContain(String(id));
     expect(sql).not.toContain("Ada");
     expect(sql).not.toContain("ada@example.com");
-    expect(sql.match(/\?/g)?.length).toBe(19);
+    expect(sql.match(/\?/g)?.length).toBe(20);
     expect(binds[2]).toBe("Ada");
     expect(binds[12]).toBe("+15125550100");
     expect(binds[18]).toBeNull();
+    expect(binds[19]).toBeNull();
   });
 
   it("stores a child request as JSON in the last bound value", async () => {

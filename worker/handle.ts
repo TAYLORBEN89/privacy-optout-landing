@@ -1,5 +1,6 @@
 import { accountsSignInUrl } from "../shared/accounts";
-import { validateSignup, type FieldIssue, type SignupIssues } from "../shared/signup";
+import { validateSignup, type FieldIssue, type SignupInput, type SignupIssues } from "../shared/signup";
+import { linkSignupToAccount, sessionUserId, type AccountApi } from "./accountLink";
 import { dispatchOptOuts } from "./optouts";
 import { STORAGE_LIVE, saveSignup, type SignupStore } from "./storage";
 
@@ -24,6 +25,8 @@ export interface RequestDeps {
    * Absent means the binding is not configured.
    */
   forwardApi?: () => Promise<Response>;
+  /** Calls the accounts API with a request this Worker builds. */
+  callApi?: AccountApi;
   signupStore?: SignupStore;
 }
 
@@ -114,7 +117,40 @@ async function readLimitedText(request: IncomingHttpRequest, maxBytes: number): 
   return text;
 }
 
-async function handleSignup(request: IncomingHttpRequest, store?: SignupStore): Promise<Response> {
+async function attachAccount(
+  request: IncomingHttpRequest,
+  input: SignupInput,
+  api: AccountApi | undefined,
+): Promise<void> {
+  if (!api) return;
+  const cookie = request.headers.get("cookie") ?? "";
+  const csrf = request.headers.get("x-csrf-token") ?? "";
+  const origin = request.headers.get("origin") ?? new URL(request.url).origin;
+  try {
+    const linked = await linkSignupToAccount(request.url, cookie, csrf, origin, input, api);
+    if (linked === "skipped") return;
+    logOutcome({
+      message: linked === "linked" ? "signup_account_linked" : "signup_account_link_failed",
+      method: request.method,
+      path: new URL(request.url).pathname,
+      status: linked === "linked" ? 200 : 502,
+    });
+  } catch (error) {
+    logOutcome({
+      message: "signup_account_link_failed",
+      method: request.method,
+      path: new URL(request.url).pathname,
+      status: 502,
+      codes: [error instanceof Error ? error.name : "Error"],
+    });
+  }
+}
+
+async function handleSignup(
+  request: IncomingHttpRequest,
+  store: SignupStore | undefined,
+  api: AccountApi | undefined,
+): Promise<Response> {
   if (request.method !== "POST") {
     return formError("method_not_allowed", "Use the form on this page to submit.", 405, request);
   }
@@ -182,8 +218,15 @@ async function handleSignup(request: IncomingHttpRequest, store?: SignupStore): 
       );
     }
     let signupId: string;
+    const userId = api
+      ? await sessionUserId(request.url, request.headers.get("cookie") ?? "", api).catch(() => null)
+      : null;
     try {
-      signupId = await saveSignup(store, { ...result.value, receivedAt: new Date().toISOString() });
+      signupId = await saveSignup(store, {
+        ...result.value,
+        receivedAt: new Date().toISOString(),
+        userId,
+      });
     } catch (error) {
       logOutcome({
         message: "signup_store_failed",
@@ -209,6 +252,7 @@ async function handleSignup(request: IncomingHttpRequest, store?: SignupStore): 
         codes: [error instanceof Error ? error.name : "Error"],
       });
     }
+    await attachAccount(request, result.value, api);
   }
 
   logOutcome({
@@ -240,7 +284,7 @@ export async function handleRequest(
   const redirected = wwwRedirect(url, request.method);
   if (redirected) return redirected;
   if (url.pathname === "/api/signup") {
-    return handleSignup(request, deps.signupStore);
+    return handleSignup(request, deps.signupStore, deps.callApi);
   }
   if (url.pathname === "/api/auth/apple" || url.pathname.startsWith("/api/auth/apple/")) {
     return json(

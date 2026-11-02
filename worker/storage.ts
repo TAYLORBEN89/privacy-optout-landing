@@ -28,6 +28,8 @@ export function submissionConfirmation(): string {
  */
 export interface SignupRecord extends SignupInput {
   receivedAt: string;
+  /** Accounts user id when the request had a session. Null when signed out. */
+  userId?: string | null;
 }
 
 /**
@@ -116,8 +118,8 @@ const INSERT_SIGNUP = `INSERT INTO signups (
   id, received_at, first_name, middle_name, last_name, dob,
   address_line1, address_line2, city, state, zip, email, phone,
   texas_resident, jurisdiction, non_texas_flag, submitter,
-  guardian_attestation, child_json
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  guardian_attestation, child_json, user_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 /** D1 store. Never log `record` or any of its fields. */
 export class D1SignupStore implements SignupStore {
@@ -147,6 +149,7 @@ export class D1SignupStore implements SignupStore {
         record.submitter,
         record.guardianAttestation ? 1 : 0,
         record.child ? JSON.stringify(record.child) : null,
+        record.userId ?? null,
       )
       .run();
     if (!result.success) {

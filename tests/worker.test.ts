@@ -558,4 +558,62 @@ describe("POST /api/signup", () => {
     expect(forwarded).toBe(false);
     expect(response.status).toBe(200);
   });
+
+  it("stores the session user and posts the signup to the account when a csrf token is present", async () => {
+    const calls: Request[] = [];
+    const { deps, saved } = saving();
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    const response = await handleRequest(
+      post(valid, { cookie: "__Host-sid=abc", "x-csrf-token": "csrf-1" }),
+      {
+        ...deps,
+        callApi: {
+          fetch: async (accountRequest) => {
+            calls.push(accountRequest);
+            const path = new URL(accountRequest.url).pathname;
+            if (path === "/api/me") {
+              return new Response(JSON.stringify({ user: { id: "user-1", display_name: "Ada Lovelace" }, csrf_token: "csrf-1" }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              });
+            }
+            return new Response(JSON.stringify({ ok: true, id: "acct-1" }), { status: 201 });
+          },
+        },
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(saved[0]?.userId).toBe("user-1");
+    const posted = calls.find((accountRequest) => new URL(accountRequest.url).pathname === "/api/optouts/signup");
+    expect(posted?.method).toBe("POST");
+    expect(posted?.headers.get("x-csrf-token")).toBe("csrf-1");
+    expect(posted?.headers.get("origin")).toBe("https://optout.example");
+    const sent = JSON.parse(await posted!.text()) as { fullName: string; mailingAddress: string };
+    expect(sent.fullName).toBe("Ada Lovelace");
+    expect(sent.mailingAddress).toContain("123 Main St");
+    expect(sent.mailingAddress).toContain("Austin, TX 78701");
+    const dumped = lines.join("\n");
+    expect(dumped).toContain("signup_account_linked");
+    expect(dumped).not.toContain("Ada");
+    expect(dumped).not.toContain("ada@example.com");
+  });
+
+  it("keeps the local signup when the account link is refused", async () => {
+    const { deps, saved } = saving();
+    const response = await handleRequest(post(valid, { cookie: "__Host-sid=abc", "x-csrf-token": "csrf-1" }), {
+      ...deps,
+      callApi: {
+        fetch: async (accountRequest) => {
+          const path = new URL(accountRequest.url).pathname;
+          if (path === "/api/me") return new Response("{}", { status: 401 });
+          return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+        },
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(saved[0]?.userId).toBeNull();
+  });
 });

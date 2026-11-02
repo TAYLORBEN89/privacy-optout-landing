@@ -9,9 +9,11 @@ function assignLocation(url: string): void {
 
 export function StartPage({
   action,
+  csrfToken = null,
   goTo = assignLocation,
 }: {
   action: StartAction;
+  csrfToken?: string | null;
   goTo?: (url: string) => void;
 }) {
   useEffect(() => {
@@ -20,7 +22,7 @@ export function StartPage({
 
   let body = (
     <section className="form-section" aria-labelledby="form-heading">
-      <SignupForm />
+      <SignupForm csrfToken={csrfToken} />
     </section>
   );
   if (action === "loading") body = <p className="panel">Checking sign-in…</p>;

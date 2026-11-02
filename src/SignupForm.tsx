@@ -44,7 +44,7 @@ function submitterFromLocation(): "self" | "child" {
   return params.get("for") === "child" ? "child" : "self";
 }
 
-export function SignupForm() {
+export function SignupForm({ csrfToken = null }: { csrfToken?: string | null }) {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -136,7 +136,7 @@ export function SignupForm() {
                   }),
             }
           : null,
-    });
+    }, fetch, csrfToken);
 
     setSubmitting(false);
 

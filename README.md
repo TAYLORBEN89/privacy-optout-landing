@@ -85,7 +85,7 @@ npm test
 
 ## What the form does
 
-The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Accepted submissions are written to D1, then one pending broker row is recorded for each name in the broker list. A failure while recording those rows does not undo the saved signup, and the form still returns success. The Worker does not log field values.
+The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Accepted submissions are written to D1, then one pending broker row is recorded for each name in the broker list. When the request has a session cookie and `X-CSRF-Token`, the Worker also posts the signup to `POST /api/optouts/signup` so it belongs to that account, and stores the user id on the signup row. A failure of that account post does not undo the saved signup, and the form still returns success. The Worker does not log field values.
 
 `STORAGE_LIVE` in `worker/storage.ts` is true while `saveSignup()` writes those rows. The page then uses `STORAGE_LIVE_NOTE`. Set the constant to false only if writes are turned off.
 

@@ -35,6 +35,7 @@ function providerLabel(provider: string): string {
 }
 
 function optOutTitle(record: OptOutRecord): string {
+  if (record.service_id === "signup" || record.kind === "tx") return "Your opt-out request";
   return record.broker_id || record.kind || "Opt-out";
 }
 

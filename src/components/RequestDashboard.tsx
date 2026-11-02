@@ -3,8 +3,17 @@ import { optOutLabel, type OptOutRecord } from "../api/account";
 import { REGISTRY_BROKERS, type RegistryBroker } from "../data/registryBrokers";
 import { REGISTRY_GROUPS } from "../data/registryGroups";
 
+function isAccountSignup(record: OptOutRecord): boolean {
+  return record.service_id === "signup" || record.kind === "tx";
+}
+
 function recordFor(broker: RegistryBroker, optouts: readonly OptOutRecord[]): OptOutRecord | undefined {
-  return optouts.find((record) => record.broker_id === broker.id || (broker.siteId != null && record.broker_id === broker.siteId));
+  const direct = optouts.find(
+    (record) => record.broker_id === broker.id || (broker.siteId != null && record.broker_id === broker.siteId),
+  );
+  if (direct) return direct;
+  if (!broker.siteId) return undefined;
+  return optouts.find(isAccountSignup);
 }
 
 export function RequestDashboard({ optouts }: { optouts: readonly OptOutRecord[] }) {
