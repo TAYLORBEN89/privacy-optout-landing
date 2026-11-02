@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { validateSignup } from "../shared/signup";
+import { BROKER_SENDS } from "../worker/brokerSends";
 import { handleRequest, type RequestDeps } from "../worker/handle";
-import type { SignupRecord, SignupStore } from "../worker/storage";
+import type { OptOutInsert, SignupRecord, SignupStore } from "../worker/storage";
 
 const valid = {
   firstName: "Ada",
@@ -24,14 +25,19 @@ function assets() {
   };
 }
 
-function saving(): { deps: RequestDeps; saved: SignupRecord[] } {
+function saving(): { deps: RequestDeps; saved: SignupRecord[]; optouts: OptOutInsert[] } {
   const saved: SignupRecord[] = [];
+  const optouts: OptOutInsert[] = [];
   const signupStore: SignupStore = {
     save: async (record) => {
       saved.push(record);
+      return "signup-1";
+    },
+    saveOptOuts: async (rows) => {
+      optouts.push(...rows);
     },
   };
-  return { deps: { ...assets(), signupStore }, saved };
+  return { deps: { ...assets(), signupStore }, saved, optouts };
 }
 
 function post(body: unknown, headers: HeadersInit = {}): Request {
@@ -199,6 +205,71 @@ describe("POST /api/signup", () => {
     expect(lines.join("\n")).toContain("signup_accepted");
   });
 
+  it("records one pending opt-out per named broker and does not POST personal information", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network"));
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    vi.spyOn(console, "error").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+
+    const { deps, optouts } = saving();
+    const response = await handleRequest(
+      post({ ...valid, email: "ada@example.com", phone: "+15125550100", addressLine1: "500 Secret Hollow" }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(optouts).toHaveLength(BROKER_SENDS.length);
+    expect(optouts.map((row) => row.brokerId)).toEqual(BROKER_SENDS.map((target) => target.id));
+    for (const row of optouts) {
+      expect(row.status).toBe("pending");
+      expect(row.subStatus).toBeNull();
+      expect(row.httpStatus).toBeNull();
+      expect(row.submittedAt).toBeNull();
+      expect(row.signupId).toBe("signup-1");
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const dumped = lines.join("\n");
+    expect(dumped).toContain("optout_recorded");
+    expect(dumped).toContain("profile_url");
+    expect(dumped).toContain("fcra_and_form");
+    expect(dumped).not.toContain("ada@example.com");
+    expect(dumped).not.toContain("+15125550100");
+    expect(dumped).not.toContain("Secret Hollow");
+    expect(dumped).not.toContain("confirmed");
+    expect(dumped).not.toContain("no_record");
+  });
+
+  it("keeps the signup when recording broker rows fails, and does not log the failure text", async () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    vi.spyOn(console, "error").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    const deps: RequestDeps = {
+      ...assets(),
+      signupStore: {
+        save: async () => "signup-1",
+        saveOptOuts: async () => {
+          throw new Error("ada@example.com disk_full");
+        },
+      },
+    };
+    const response = await handleRequest(post({ ...valid, firstName: "Zephyr" }), deps);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    const dumped = lines.join("\n");
+    expect(dumped).toContain("optout_dispatch_failed");
+    expect(dumped).toContain("signup_accepted");
+    expect(dumped).not.toContain("ada@example.com");
+    expect(dumped).not.toContain("disk_full");
+    expect(dumped).not.toContain("Zephyr");
+  });
+
   it("accepts an empty phone and stores a valid one only as E.164", async () => {
     const lines: string[] = [];
     vi.spyOn(console, "log").mockImplementation((message) => {
@@ -261,6 +332,7 @@ describe("POST /api/signup", () => {
         save: async () => {
           throw new Error("disk_full");
         },
+        saveOptOuts: async () => {},
       },
     };
     const response = await handleRequest(post({ ...valid, firstName: "Zephyr" }), deps);

@@ -1,4 +1,5 @@
 import type { SignupInput } from "../shared/signup";
+import { BROKER_SENDS, brokerSendById, type OptOutBlockCode } from "./brokerSends";
 
 /**
  * True only while saveSignup() writes to D1. The page uses the live
@@ -29,8 +30,28 @@ export interface SignupRecord extends SignupInput {
   receivedAt: string;
 }
 
+/**
+ * Pending broker row. status is pending, subStatus is null, and submittedAt
+ * is null. This Worker does not insert in_progress, confirmed, or denied.
+ */
+export interface OptOutInsert {
+  id: string;
+  signupId: string;
+  brokerId: string;
+  status: "pending";
+  subStatus: null;
+  channel: "web_form";
+  optOutUrl: string;
+  httpStatus: null;
+  errorCode: OptOutBlockCode;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: null;
+}
+
 export interface SignupStore {
-  save(record: SignupRecord): Promise<void>;
+  save(record: SignupRecord): Promise<string>;
+  saveOptOuts(rows: readonly OptOutInsert[]): Promise<void>;
 }
 
 /** D1-shaped prepare/bind used so tests can fake the database. */
@@ -42,8 +63,53 @@ export interface SignupDatabase {
   };
 }
 
-export async function saveSignup(store: SignupStore, record: SignupRecord): Promise<void> {
-  await store.save(record);
+export async function saveSignup(store: SignupStore, record: SignupRecord): Promise<string> {
+  return store.save(record);
+}
+
+const OPT_OUT_ROW = "(?, ?, ?, 'pending', ?, ?, ?, ?, ?)";
+
+function assertRecordable(row: OptOutInsert, seen: Set<string>): void {
+  const target = brokerSendById(row.brokerId);
+  if (!target || seen.has(row.brokerId)) throw new Error("optout_status_rejected");
+  seen.add(row.brokerId);
+  if (row.status !== "pending") throw new Error("optout_status_rejected");
+  if (row.subStatus !== null || row.httpStatus !== null || row.submittedAt !== null) {
+    throw new Error("optout_status_rejected");
+  }
+  if (row.errorCode !== target.errorCode) throw new Error("optout_status_rejected");
+  if (row.optOutUrl !== target.url || row.channel !== target.channel) {
+    throw new Error("optout_status_rejected");
+  }
+  if (row.signupId.length === 0 || row.id.length === 0) throw new Error("optout_status_rejected");
+}
+
+/** Inserts the full broker set. The status literal is pending, so this statement cannot record a confirmation. */
+export async function insertOptOuts(
+  db: SignupDatabase,
+  rows: readonly OptOutInsert[],
+): Promise<{ success: boolean }> {
+  if (rows.length !== BROKER_SENDS.length) throw new Error("optout_status_rejected");
+  const seen = new Set<string>();
+  for (const row of rows) assertRecordable(row, seen);
+  if (seen.size !== BROKER_SENDS.length) throw new Error("optout_status_rejected");
+  const sql = `INSERT INTO optout_requests (
+  id, signup_id, broker_id, status, channel, opt_out_url, error_code, created_at, updated_at
+) VALUES ${rows.map(() => OPT_OUT_ROW).join(", ")}`;
+  const values: unknown[] = [];
+  for (const row of rows) {
+    values.push(
+      row.id,
+      row.signupId,
+      row.brokerId,
+      row.channel,
+      row.optOutUrl,
+      row.errorCode,
+      row.createdAt,
+      row.updatedAt,
+    );
+  }
+  return db.prepare(sql).bind(...values).run();
 }
 
 const INSERT_SIGNUP = `INSERT INTO signups (
@@ -57,11 +123,12 @@ const INSERT_SIGNUP = `INSERT INTO signups (
 export class D1SignupStore implements SignupStore {
   constructor(private readonly db: SignupDatabase) {}
 
-  async save(record: SignupRecord): Promise<void> {
+  async save(record: SignupRecord): Promise<string> {
+    const id = crypto.randomUUID();
     const result = await this.db
       .prepare(INSERT_SIGNUP)
       .bind(
-        crypto.randomUUID(),
+        id,
         record.receivedAt,
         record.firstName,
         record.middleName,
@@ -84,6 +151,14 @@ export class D1SignupStore implements SignupStore {
       .run();
     if (!result.success) {
       throw new Error("signup_store_failed");
+    }
+    return id;
+  }
+
+  async saveOptOuts(rows: readonly OptOutInsert[]): Promise<void> {
+    const result = await insertOptOuts(this.db, rows);
+    if (!result.success) {
+      throw new Error("optout_store_failed");
     }
   }
 }

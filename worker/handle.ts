@@ -1,5 +1,6 @@
 import { accountsSignInUrl } from "../shared/accounts";
 import { validateSignup, type FieldIssue, type SignupIssues } from "../shared/signup";
+import { dispatchOptOuts } from "./optouts";
 import { STORAGE_LIVE, saveSignup, type SignupStore } from "./storage";
 
 /**
@@ -180,8 +181,9 @@ async function handleSignup(request: IncomingHttpRequest, store?: SignupStore): 
         503,
       );
     }
+    let signupId: string;
     try {
-      await saveSignup(store, { ...result.value, receivedAt: new Date().toISOString() });
+      signupId = await saveSignup(store, { ...result.value, receivedAt: new Date().toISOString() });
     } catch (error) {
       logOutcome({
         message: "signup_store_failed",
@@ -194,6 +196,18 @@ async function handleSignup(request: IncomingHttpRequest, store?: SignupStore): 
         { ok: false, errors: {}, form: { code: "unavailable", message: "Something went wrong. Try again." } },
         500,
       );
+    }
+    try {
+      await dispatchOptOuts(store, signupId);
+    } catch (error) {
+      // The signup row is already stored. D1 errors can echo bound values, so log the name only.
+      logOutcome({
+        message: "optout_dispatch_failed",
+        method: request.method,
+        path: new URL(request.url).pathname,
+        status: 200,
+        codes: [error instanceof Error ? error.name : "Error"],
+      });
     }
   }
 

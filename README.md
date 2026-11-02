@@ -4,7 +4,7 @@ v1 landing page for DROP Texas, a private, free privacy opt-out service. The pag
 
 DROP Texas is an independent, free service run by a private enterprise. It is not a government website and is not affiliated with the State of Texas or the Texas Attorney General.
 
-Validated signups are stored in the D1 database `drop-texas-signups`. See `worker/storage.ts`. The Worker does not send broker opt-out requests yet.
+Validated signups are stored in the D1 database `drop-texas-signups`. See `worker/storage.ts`. After a signup is saved, the Worker records one pending opt-out row for each named broker. See `worker/optouts.ts`. Those pages need an account, a captcha, a listing URL, or an interactive form, so this Worker does not POST personal information to them. Every row stays `pending`. This Worker never writes `confirmed` or `no_record`.
 
 ## Run locally
 
@@ -85,7 +85,7 @@ npm test
 
 ## What the form does
 
-The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Accepted submissions are written to D1. The Worker does not log field values.
+The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Accepted submissions are written to D1, then one pending broker row is recorded for each name in the broker list. A failure while recording those rows does not undo the saved signup, and the form still returns success. The Worker does not log field values.
 
 `STORAGE_LIVE` in `worker/storage.ts` is true while `saveSignup()` writes those rows. The page then uses `STORAGE_LIVE_NOTE`. Set the constant to false only if writes are turned off.
 
@@ -93,7 +93,7 @@ The browser and the Worker both use `shared/signup.ts`. Bad input returns per-fi
 
 ### Signup payload
 
-`POST /api/signup` accepts and revalidates this JSON shape. Empty optional fields are `null`. `jurisdiction` and `nonTexasFlag` are derived from `texasResident` and are included in the posted body. The Worker still validates and discards the value. Nothing is stored.
+`POST /api/signup` accepts and revalidates this JSON shape. Empty optional fields are `null`. `jurisdiction` and `nonTexasFlag` are derived from `texasResident` and are included in the posted body. The Worker validates the body and stores the derived values with the signup. The success response does not mean a broker confirmed a deletion.
 
 ```json
 {

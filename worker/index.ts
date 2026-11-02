@@ -17,8 +17,9 @@ function optionalApi(env: Env): ApiService | undefined {
 
 /**
  * Worker entry. Static assets are served by the ASSETS binding.
- * POST /api/signup stays local and writes to D1. Other /api paths forward to
- * env.API when present.
+ * POST /api/signup stays local and writes to D1, then records one pending
+ * opt-out row per named broker. It does not POST personal information to
+ * broker sites. Other /api paths forward to env.API when present.
  */
 export default {
   async fetch(request, env): Promise<Response> {
