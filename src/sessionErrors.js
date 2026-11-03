@@ -1,5 +1,6 @@
 // Tells the session-API auth failures apart. The Worker answers 401 {error:'unauthorized'} with no session,
-// 403 {code:'mfa_required'} for a password session that has not finished TOTP, and 403 {code:'step_up_required'}
+// 403 {code:'mfa_required'} for any session that has not passed TOTP while TOTP is enrolled
+// (authApi.call prompts, verifies and retries when the account page has registered a prompt), and 403 {code:'step_up_required'}
 // when the route needs a recent re-authentication. Any other 403 (CSRF/origin) is 'forbidden'. These only happen
 // after the session cookie is checked, so they reveal nothing about other accounts (no enumeration risk); the
 // sign-in paths keep their uniform messages.

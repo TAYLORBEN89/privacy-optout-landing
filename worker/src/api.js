@@ -564,7 +564,7 @@ export async function handleApi(req, env) {
   if (m === 'GET' && path === '/api/me') return me(ctx, cur);
   if (m === 'POST' && path === '/api/auth/logout') return logout(ctx, cur);
   if (m === 'POST' && path === '/api/auth/mfa/verify') return mfaVerify(ctx, cur);
-  if (cur.limited) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403); // password session that hasn't finished TOTP
+  if (cur.limited) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403); // any session that has not passed TOTP while TOTP is enrolled
 
   if (m === 'POST' && path === '/api/auth/stepup/password') return stepUpPassword(ctx, cur);
   pm = path.match(/^\/api\/auth\/(google|microsoft)\/stepup$/);

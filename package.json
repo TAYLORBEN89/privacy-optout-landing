@@ -10,7 +10,8 @@
     "test:storage": "node --test scripts/legacy-storage.test.mjs scripts/profile-storage.test.mjs",
     "preview": "vite preview",
     "check:no-legacy": "bash scripts/check-no-legacy.sh",
-    "test:tx": "node --test scripts/tx-storage.test.mjs"
+    "test:tx": "node --test scripts/tx-storage.test.mjs",
+    "test:mfa": "node --test scripts/mfa-upgrade.test.mjs"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
