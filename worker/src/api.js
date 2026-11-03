@@ -31,7 +31,7 @@ const LEGACY_AUTH_ALIASES = new Set([
   '/api/auth/refresh', '/api/auth/backup-codes/regenerate',
 ]);
 
-const SESSION_ALIASES = /^\/api\/profile$/;
+const SESSION_ALIASES = /^\/api\/(profile|tx-requests(\/[^/]+)?)$/;
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -518,7 +518,8 @@ export async function handleApi(req, env) {
   if (/^\/api\/(auth|account\/identities)\/apple(\/|$)/.test(path)) return json(ctx, { error: 'not found' }, 404);
   if (STATE_CHANGING.has(m) && !(origin && allowedOrigins(env).includes(origin))) return FORBIDDEN(ctx);
 
-  // Same-origin aliases for the session routes the dashboard uses: /api/profile -> /profile (step-up gated there).
+  // Same-origin aliases for the session routes the dashboard uses: /api/profile -> /profile (step-up gated there)
+  // and /api/tx-requests[/:id] -> /tx-requests[/:id].
   if (LEGACY_AUTH_ALIASES.has(path) || SESSION_ALIASES.test(path)) {
     const u = new URL(req.url); u.pathname = path.slice(4);
     return handleApp(new Request(u, req), env);
