@@ -2,7 +2,7 @@
 // Every D1 query uses a literal SQL string with prepare().bind(). No PII or tokens in audit_log targets or logs.
 import {
   json, readJson, audit, createSession, loadSession, revoke, setCookie, clearCookie, allowedOrigins, handleApp,
-  checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS,
+  checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS, rotate, sessionResponse, isBackupShape, useBackupCode,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
 import { reserve, refund, clientIp, retryHeaders, trustSignedIp } from './ratelimit.js';
@@ -37,12 +37,39 @@ const SESSION_ALIASES = /^\/api\/profile$/;
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-// A usable session for the new API: social sessions, or password sessions that completed TOTP.
+// A usable session for the new API: any session that completed TOTP, or a social session on an account without TOTP.
+// Password sessions always need TOTP; a Google/Microsoft session needs it too once the account has TOTP enrolled
+// (POST /api/auth/mfa/verify upgrades it). Until then the session is limited: /api/me, logout and mfa/verify only.
 async function requireSession(ctx) {
   const cur = await loadSession(ctx);
   if (!cur) return null;
-  if (cur.session.auth_method === 'password' && !cur.session.mfa) return { ...cur, limited: true };
+  if (cur.session.mfa) return cur;
+  if ((cur.session.auth_method || 'password') === 'password') return { ...cur, limited: true };
+  const u = await ctx.env.DB.prepare('SELECT totp_enabled FROM users WHERE id = ?1').bind(cur.session.user_id).first();
+  if (u?.totp_enabled) return { ...cur, limited: true, mfaRequired: true };
   return cur;
+}
+
+// POST /api/auth/mfa/verify {code}: a social session on a TOTP account proves TOTP (or a backup code) and is
+// rotated to a new mfa=1 session. Same 'login' limiter and replay protection as the password TOTP step.
+async function mfaVerify(ctx, cur) {
+  if (cur.session.mfa || !cur.mfaRequired) return json(ctx, { error: 'not required' }, 400);
+  const uid = cur.session.user_id;
+  const rlRes = await reserve(ctx.env, 'login', `${clientIp(ctx.req)}|mfa|${uid}`);
+  if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
+  const b = await readJson(ctx.req);
+  const u = await ctx.env.DB.prepare('SELECT totp_secret_enc, totp_last_step FROM users WHERE id = ?1').bind(uid).first();
+  let ok = false; let method = 'totp';
+  if (u?.totp_secret_enc && isBackupShape(b?.code)) { method = 'backup_code'; ok = await useBackupCode(ctx.env, uid, b.code); }
+  else if (u?.totp_secret_enc) {
+    const step = await checkTotp(await decryptStr(ctx.env, u.totp_secret_enc), b?.code, u.totp_last_step);
+    ok = step !== null && (await claimStep(ctx.env, uid, step));
+  }
+  if (!ok) { await audit(ctx, uid, 'totp.fail', 'social'); return json(ctx, { error: 'invalid code' }, 401); }
+  await refund(ctx.env, rlRes);
+  const s = await rotate(ctx, cur, true); // privilege change -> new token
+  await audit(ctx, uid, method === 'backup_code' ? 'login.backup_code' : 'login.mfa', 'social');
+  return sessionResponse(ctx, s, { ok: true });
 }
 
 // ---------- hosts ----------
@@ -292,7 +319,7 @@ async function me(ctx, cur) {
   return json(ctx, {
     user: { id: u.id, display_name: await displayName(ctx.env, u), has_password: hasPassword(u), totp_enabled: !!u.totp_enabled, created_at: u.created_at },
     providers: ids.map(publicIdentity),
-    auth_method: cur.session.auth_method, mfa: !!cur.session.mfa, limited: !!cur.limited,
+    auth_method: cur.session.auth_method, mfa: !!cur.session.mfa, limited: !!cur.limited, mfa_required: !!cur.limited,
     stepped_up_until: isSteppedUp(cur.session) ? cur.session.stepped_up_at + STEP_UP_SECONDS : null,
     csrf_token: cur.session.csrf,
   });
@@ -484,11 +511,31 @@ async function deleteAccount(ctx, cur) {
 }
 
 // ---------- gate: POST /api/optouts/signup ----------
+export const UNDER_13_MESSAGE = "DROP Texas can't accept requests for children under 13 right now.";
+// True when `dob` (YYYY-MM-DD) is a real date and the person has not had their 13th birthday (UTC calendar date).
+// Anything unparseable is left to validateSignup, which reports it as a normal 400.
+export function under13(dob, at = new Date()) {
+  const m = typeof dob === 'string' ? dob.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+  if (!m) return false;
+  const y = +m[1]; const mo = +m[2]; const d = +m[3];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return false;
+  if (dt > at) return false; // future dates: validateSignup's 400
+  const ty = at.getUTCFullYear(); const tm = at.getUTCMonth() + 1; const td = at.getUTCDate();
+  const age = ty - y - ((tm < mo || (tm === mo && td < d)) ? 1 : 0);
+  return age < 13;
+}
 async function signup(ctx, cur) {
   const uid = cur.session.user_id;
   const rlRes = await reserve(ctx.env, 'optout', uid);
   if (rlRes.limited) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(rlRes.limited));
   const body = await readJson(ctx.req);
+  // COPPA: refused before validation or storage when the signer or a child is under 13. Nothing about the child
+  // is stored, logged or audited (the audit target is a fixed code, not a value).
+  if (under13(body?.dob) || (body?.submitter === 'child' && under13(body?.child?.dob))) {
+    await audit(ctx, uid, 'optout.signup_refused', 'under_13');
+    return json(ctx, { ok: false, error: 'under_13', message: UNDER_13_MESSAGE }, 422);
+  }
   const v = validateSignup(body);
   if (!v.ok) return json(ctx, v, 400); // static messages only; submitted values are never echoed
   const id = crypto.randomUUID();
@@ -549,7 +596,8 @@ export async function handleApi(req, env) {
 
   if (m === 'GET' && path === '/api/me') return me(ctx, cur);
   if (m === 'POST' && path === '/api/auth/logout') return logout(ctx, cur);
-  if (cur.limited) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403); // password session that hasn't finished TOTP
+  if (m === 'POST' && path === '/api/auth/mfa/verify') return mfaVerify(ctx, cur);
+  if (cur.limited) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403); // password or social session that hasn't finished TOTP
 
   if (m === 'POST' && path === '/api/auth/stepup/password') return stepUpPassword(ctx, cur);
   pm = path.match(/^\/api\/auth\/(google|microsoft)\/stepup$/);

@@ -10,6 +10,7 @@ import { auditMeta, purge } from '../src/app.js';
 import { signInternal, canonical, loadInternalKeys } from '../src/internalAuth.js';
 import worker from '../src/index.js';
 import { locationAllowed } from '../src/location.js';
+import { under13 } from '../src/api.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -529,23 +530,44 @@ describe('POST /api/optouts/signup (gate)', () => {
     expect((await api('POST', '/api/account/delete', a)).status).toBe(200);
     expect((await env.DB.prepare('SELECT COUNT(*) AS c FROM pii_payloads').first()).c).toBe(0);
   });
-  it('child signup (v2): needs guardian attestation, adult submitter and a child under 13; stored encrypted', async () => {
+  it('COPPA: an under-13 child or signer is refused with 422 and nothing is stored; 13-17 children still fail shared validation', async () => {
     const a = await socialLogin('google');
-    const kid = { firstName: 'Kit', lastName: 'Example', dob: `${new Date().getFullYear() - 5}-01-15`, sameAddress: true };
-    const noAttest = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', child: kid });
-    expect(noAttest.status).toBe(400);
-    expect(Object.keys((await noAttest.json()).errors)).toContain('guardianAttestation');
-    const teen = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: { ...kid, dob: `${new Date().getFullYear() - 15}-01-15` } });
+    const y = new Date().getUTCFullYear();
+    const counts = async () => [
+      (await env.DB.prepare('SELECT COUNT(*) AS c FROM pii_payloads').first()).c,
+      (await env.DB.prepare("SELECT COUNT(*) AS c FROM optout_requests WHERE service_id = 'signup'").first()).c,
+    ];
+    const before = await counts();
+    const kid = { firstName: 'Kit', lastName: 'Example', dob: `${y - 5}-01-15`, sameAddress: true };
+    for (const body of [
+      { ...good, submitter: 'child', guardianAttestation: true, child: kid },
+      { ...good, submitter: 'child', child: kid }, // refused before any other validation
+      { ...good, dob: `${y - 10}-01-15` }, // under-13 signer
+    ]) {
+      const r = await api('POST', '/api/optouts/signup', a, body);
+      expect(r.status).toBe(422);
+      const j = await r.json();
+      expect(j).toEqual({ ok: false, error: 'under_13', message: "DROP Texas can't accept requests for children under 13 right now." });
+      expect(JSON.stringify(j)).not.toContain('Kit');
+    }
+    expect(await counts()).toEqual(before);
+    const audits = await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'optout.signup_refused'").all();
+    expect(audits.results.every((r) => r.target === 'under_13')).toBe(true);
+    // 13-17 children: shared signup.ts (byte-identical to #12) still requires a child under 13, so this is its 400.
+    const teen = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: { ...kid, dob: `${y - 15}-01-15` } });
+    expect(teen.status).toBe(400);
     expect(Object.keys((await teen.json()).errors)).toContain('childDob');
-    const selfWithChild = await api('POST', '/api/optouts/signup', a, { ...good, child: kid });
-    expect(Object.keys((await selfWithChild.json()).errors)).toContain('submitter');
-    const ok = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: kid });
-    expect(ok.status).toBe(200);
-    const { id } = await ok.json();
-    const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
-    expect(String(p.payload_enc)).not.toContain('Kit');
-    const exp = await (await api('POST', '/api/account/export', a)).json();
-    expect(exp.optouts.find((o) => o.id === id).pii).toMatchObject({ v: 2, submitter: 'child', guardianAttestation: true, child: { firstName: 'Kit', sameAddress: true } });
+    expect(await counts()).toEqual(before);
+    // A 14-year-old self signup is accepted (13+ self signups remain possible).
+    expect((await api('POST', '/api/optouts/signup', a, { ...good, dob: `${y - 14}-01-01` })).status).toBe(200);
+  });
+  it('under13 boundary: the 13th birthday is the first allowed day; future and malformed dates are left to validation', () => {
+    const at = new Date(Date.UTC(2026, 10, 2));
+    expect(under13('2013-11-02', at)).toBe(false);
+    expect(under13('2013-11-03', at)).toBe(true);
+    expect(under13('2020-02-30', at)).toBe(false);
+    expect(under13('2030-01-01', at)).toBe(false);
+    expect(under13(undefined, at)).toBe(false);
   });
   it('v1 records (fullName/mailingAddress, no v key) still read through export', async () => {
     const a = await socialLogin('google');
@@ -647,6 +669,45 @@ describe('password + TOTP fallback', () => {
     const r = await api('POST', '/api/auth/login', {}, { email: u.email, password: '!' });
     expect(r.status).toBe(401);
   });
+});
+
+describe('social sign-in + TOTP', () => {
+  for (const p of ['google', 'microsoft']) {
+    it(`${p}: account without TOTP keeps full access; mfa/verify is not required`, async () => {
+      const a = await socialLogin(p);
+      expect((await api('GET', '/api/account/profile', a)).status).toBe(200);
+      expect((await (await api('GET', '/api/me', a)).json()).mfa_required).toBe(false);
+      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(400);
+    });
+    it(`${p}: account with TOTP must pass TOTP before protected routes (same gate as password)`, async () => {
+      const a = await socialLogin(p);
+      const secret = authenticator.generateSecret(20);
+      const { id } = await env.DB.prepare('SELECT user_id AS id FROM user_identities WHERE provider = ?1').bind(p).first();
+      await env.DB.prepare('UPDATE users SET totp_secret_enc = ?1, totp_enabled = 1 WHERE id = ?2').bind(await encryptStr(env, secret), id).run();
+      const me = await (await api('GET', '/api/me', a)).json();
+      expect(me).toMatchObject({ mfa: false, limited: true, mfa_required: true });
+      for (const [m, path, body] of [['GET', '/api/account/profile'], ['GET', '/api/account/optouts'], ['GET', '/api/account/sessions'],
+        ['POST', '/api/account/export'], ['POST', '/api/optouts/signup', {}], ['POST', '/api/account/delete'], [`POST`, `/api/auth/${p}/stepup`]]) {
+        const r = await api(m, path, a, body);
+        expect(r.status, `${m} ${path}`).toBe(403);
+        expect(await r.json()).toEqual({ error: 'mfa required', code: 'mfa_required' });
+      }
+      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(401);
+      const ok = await api('POST', '/api/auth/mfa/verify', a, { code: authenticator.generate(secret) });
+      expect(ok.status).toBe(200);
+      const b = { sid: cookieVal(ok, '__Host-sid'), csrf: (await ok.json()).csrf_token };
+      expect(b.sid).not.toBe(a.sid);
+      expect((await api('GET', '/api/account/profile', b)).status).toBe(200);
+      expect((await (await api('GET', '/api/me', b)).json())).toMatchObject({ mfa: true, limited: false, auth_method: p });
+      // The same TOTP step cannot be replayed on a new limited session.
+      const c = await socialLogin(p, { sub: undefined });
+      expect((await api('GET', '/api/account/profile', c)).status).toBe(403);
+      expect((await api('POST', '/api/auth/mfa/verify', c, { code: authenticator.generate(secret) })).status).toBe(401);
+      // The pre-TOTP token was rotated out; replaying it is reuse detection (all sessions revoked).
+      expect((await api('GET', '/api/account/profile', a)).status).toBe(401);
+      expect((await api('GET', '/api/account/profile', b)).status).toBe(401);
+    });
+  }
 });
 
 describe('audit IP / user-agent', () => {
