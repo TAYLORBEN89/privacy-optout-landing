@@ -1,5 +1,5 @@
 import type { SignupInput } from "../shared/signup";
-import { encryptField, importPiiKey } from "./piiCrypto";
+import { emailIndex, encryptField, importPiiKeys } from "./piiCrypto";
 import { BROKER_SENDS, brokerSendById, type OptOutBlockCode } from "./brokerSends";
 
 /**
@@ -119,8 +119,26 @@ const INSERT_SIGNUP = `INSERT INTO signups (
   id, received_at, first_name, middle_name, last_name, dob,
   address_line1, address_line2, city, state, zip, email, phone,
   texas_resident, jurisdiction, non_texas_flag, submitter,
-  guardian_attestation, child_json, user_id, dob_enc, child_enc
+  guardian_attestation, child_json, user_id, pii_enc, email_hmac
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+/** Fields that only ever reach D1 inside pii_enc. */
+function sensitiveFields(record: SignupRecord) {
+  return {
+    v: 1,
+    firstName: record.firstName,
+    middleName: record.middleName,
+    lastName: record.lastName,
+    dob: record.dob,
+    addressLine1: record.addressLine1,
+    addressLine2: record.addressLine2,
+    city: record.city,
+    zip: record.zip,
+    email: record.email,
+    phone: record.phone,
+    child: record.child ?? null,
+  };
+}
 
 /** D1 store. Never log `record` or any of its fields. */
 export class D1SignupStore implements SignupStore {
@@ -132,25 +150,26 @@ export class D1SignupStore implements SignupStore {
 
   async save(record: SignupRecord): Promise<string> {
     const id = crypto.randomUUID();
-    const key = await importPiiKey(this.piiKey);
-    const dobEnc = await encryptField(key, record.dob, `signups:${id}:dob`);
-    const childEnc = record.child ? await encryptField(key, JSON.stringify(record.child), `signups:${id}:child`) : null;
+    const keys = await importPiiKeys(this.piiKey);
+    const piiEnc = await encryptField(keys.enc, JSON.stringify(sensitiveFields(record)), `signups:${id}:pii`);
+    const emailHmac = await emailIndex(keys, record.email);
     const result = await this.db
       .prepare(INSERT_SIGNUP)
       .bind(
         id,
         record.receivedAt,
-        record.firstName,
-        record.middleName,
-        record.lastName,
+        // Legacy plaintext columns: '' for NOT NULL, NULL otherwise. The values are in pii_enc.
         "",
-        record.addressLine1,
-        record.addressLine2,
-        record.city,
+        null,
+        "",
+        "",
+        "",
+        null,
+        "",
         record.state,
-        record.zip,
-        record.email,
-        record.phone,
+        "",
+        "",
+        null,
         record.texasResident ? 1 : 0,
         record.jurisdiction,
         record.nonTexasFlag ? 1 : 0,
@@ -158,8 +177,8 @@ export class D1SignupStore implements SignupStore {
         record.guardianAttestation ? 1 : 0,
         null,
         record.userId ?? null,
-        dobEnc,
-        childEnc,
+        piiEnc,
+        emailHmac,
       )
       .run();
     if (!result.success) {

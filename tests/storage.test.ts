@@ -56,12 +56,19 @@ describe("D1SignupStore", () => {
     expect(sql.match(/\?/g)?.length).toBe(22);
     expect(binds[5]).toBe("");
     expect(String(binds[20])).toMatch(/^v1\./);
-    expect(String(binds[20])).not.toContain("1990");
-    expect(binds[2]).toBe("Ada");
-    expect(binds[12]).toBe("+15125550100");
+    expect(String(binds[21])).toMatch(/^[0-9a-f]{64}$/);
+    const { decryptField, importPiiKeys, emailIndex } = await import("../worker/piiCrypto");
+    const keys = await importPiiKeys(TEST_KEY);
+    const pii = JSON.parse(await decryptField(keys.enc, String(binds[20]), `signups:${String(binds[0])}:pii`));
+    expect(pii.firstName).toBe("Ada");
+    expect(pii.phone).toBe("+15125550100");
+    expect(binds[21]).toBe(await emailIndex(keys, " ADA@example.com "));
+    for (const i of [2, 4, 5, 6, 8, 10, 11]) expect(binds[i]).toBe("");
+    expect(binds[3]).toBeNull();
+    expect(binds[12]).toBeNull();
+    expect(JSON.stringify(binds)).not.toMatch(/Ada|ada@example\.com|5125550100|1990/);
     expect(binds[18]).toBeNull();
     expect(binds[19]).toBeNull();
-    expect(binds[21]).toBeNull();
   });
 
   it("refuses to save without the SIGNUP_PII_KEY secret", async () => {
@@ -98,9 +105,9 @@ describe("D1SignupStore", () => {
       },
     });
     expect(binds[18]).toBeNull();
-    const { decryptField, importPiiKey } = await import("../worker/piiCrypto");
-    const key = await importPiiKey(TEST_KEY);
-    expect(JSON.parse(await decryptField(key, String(binds[21]), `signups:${String(binds[0])}:child`))).toEqual({
+    const { decryptField, importPiiKeys } = await import("../worker/piiCrypto");
+    const keys = await importPiiKeys(TEST_KEY);
+    expect(JSON.parse(await decryptField(keys.enc, String(binds[20]), `signups:${String(binds[0])}:pii`)).child).toEqual({
       firstName: "Grace",
       middleName: null,
       lastName: "Hopper",

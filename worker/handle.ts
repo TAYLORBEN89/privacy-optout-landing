@@ -1,5 +1,6 @@
 import { accountsSignInUrl } from "../shared/accounts";
 import { validateSignup, type FieldIssue, type SignupInput, type SignupIssues } from "../shared/signup";
+import { proxyAllowed, upstreamRequest } from "./apiProxy";
 import { linkSignupToAccount, sessionUserId, type AccountApi } from "./accountLink";
 import { dispatchOptOuts } from "./optouts";
 import { STORAGE_LIVE, saveSignup, type SignupStore } from "./storage";
@@ -24,7 +25,7 @@ export interface RequestDeps {
    * Forwards a non-signup /api request to the backend service binding.
    * Absent means the binding is not configured.
    */
-  forwardApi?: () => Promise<Response>;
+  forwardApi?: (request: Request) => Promise<Response>;
   /** Calls the accounts API with a request this Worker builds. */
   callApi?: AccountApi;
   signupStore?: SignupStore;
@@ -303,7 +304,9 @@ export async function handleRequest(
     });
   }
   if (url.pathname.startsWith("/api/")) {
-    if (deps.forwardApi) return deps.forwardApi();
+    if (deps.forwardApi && proxyAllowed(request.method, url.pathname)) {
+      return deps.forwardApi(upstreamRequest(request));
+    }
     return json(
       { ok: false, errors: {}, form: { code: "not_found", message: "Not found." } },
       404,
