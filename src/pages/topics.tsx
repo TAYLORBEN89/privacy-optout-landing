@@ -55,7 +55,7 @@ export function OverviewPage() {
       description="What DROP Texas does, and what an opt-out request is."
     >
       <p>
-        You sign up, confirm your details, and DROP Texas sends opt-out requests for you. An opt-out
+        DROP Texas gives you free tools to send opt-out and deletion requests to data brokers and track every reply. You send each request yourself. An opt-out
         request asks a data broker not to sell your personal information. DROP Texas does not check
         that a broker deleted a record.
       </p>
@@ -73,7 +73,7 @@ export function HowItWorksPage() {
       title="How it works"
       heading="How DROP works"
       tone="how"
-      description="Sign up, confirm your details, and DROP Texas sends opt-out requests to data brokers for you."
+      description="Free tools to send opt-out and deletion requests to data brokers and track every reply."
     >
       <p>Three steps. You can stop at any time before you submit.</p>
       <ol className="plain-steps">

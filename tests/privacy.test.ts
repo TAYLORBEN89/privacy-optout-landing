@@ -20,12 +20,21 @@ describe("privacy page", () => {
     expect(html).toContain(
       "If you provide a phone number, it is used only to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
     );
+    expect(html).toContain("DROP Texas does not send requests for you today.");
     expect(html).not.toContain("match and locate");
     expect(html).toContain(
       "We keep what you give us only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
     );
+    expect(html).toContain("Planned, not yet automated");
+    const plannedAt = html.indexOf("Planned, not yet automated");
+    const phoneKeptAt = html.indexOf("An account phone number is kept while your account is active");
+    expect(phoneKeptAt).toBeGreaterThan(plannedAt);
+    expect(html.indexOf("An account phone number is kept while your account is active", phoneKeptAt + 1)).toBe(-1);
     expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
-    expect(html).toContain("Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256).");
+    expect(html).toContain(
+      "Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers.",
+    );
+    expect(html).not.toContain("Saved information is stored in Cloudflare D1 and Workers KV");
     expect(html).toContain("Coming soon");
     expect(html).toContain(
       "Sign in with Google or Microsoft, secure session cookies, and self-service export and delete. Until then, email help@droptexas.com to see or delete your data.",
@@ -37,7 +46,6 @@ describe("privacy page", () => {
     expect(html).toContain("For a child request, a parent or guardian also provides the child");
     expect(html).toContain("if different, address.");
     expect(html).toContain("the server checks them again");
-    expect(html).not.toMatch(/\d+\s+days/);
     expect(html).toContain("privacy-page");
     const css = readFileSync("src/styles.css", "utf8");
     const rule = css.slice(css.indexOf(".privacy-page {"), css.indexOf(".privacy-list"));
@@ -51,7 +59,7 @@ describe("privacy page", () => {
   it("keeps the review note in the source and out of the page", () => {
     const source = readFileSync("src/pages/PrivacyPage.tsx", "utf8");
     expect(source).toContain("Cybersecurity and Compliance Agents must review this copy");
-    expect(source).toContain("TODO(retention): no concrete retention period");
+    expect(source).not.toContain("TODO(retention)");
     const html = renderToStaticMarkup(createElement(PrivacyPage));
     expect(html).not.toContain("Cybersecurity and Compliance Agents");
   });

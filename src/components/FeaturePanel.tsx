@@ -14,7 +14,7 @@ const CARDS = [
     id: "how-drop-works",
     tag: "How it works",
     headline: "Save hours of paperwork",
-    description: "We handle the broker forms so you don't have to.",
+    description: "Free tools to send opt-out and deletion requests to data brokers and track every reply.",
     button: "See how it works",
     href: "/how-it-works",
   },

@@ -9,7 +9,7 @@ import { NAV_ITEMS } from "../src/navItems";
 
 const BLURBS = [
   "No catch, no fees.",
-  "One form, then we take it from there.",
+  "The steps from signup to opt-out requests.",
   "Only what's needed. Never sold.",
   "Major brokers, one request.",
   "Matched to your record.",

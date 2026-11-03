@@ -3,7 +3,7 @@ import { AppLink } from "../router";
 
 const BLURBS: Record<string, string> = {
   overview: "No catch, no fees.",
-  "how-drop-works": "One form, then we take it from there.",
+  "how-drop-works": "The steps from signup to opt-out requests.",
   "personal-information": "Only what's needed. Never sold.",
   "data-brokers": "Major brokers, one request.",
   "unique-identifiers": "Matched to your record.",

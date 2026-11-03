@@ -4,8 +4,6 @@ import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE, DISCLAIMER } from "..
  * REVIEW: Cybersecurity and Compliance Agents must review this copy before launch.
  * Only claims that are true of this stack belong here. HSTS is not set in this
  * Worker, so it is omitted. Do not write "certified".
- * TODO(retention): no concrete retention period is stated for form fields.
- * Phone follows that same sentence. Do not invent a number of days.
  */
 
 const COLLECTED =
@@ -19,7 +17,15 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
       `The form asks for ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
       "For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.",
       "If you provide a phone number, it is used only to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
+      "DROP Texas does not send requests for you today.",
       "We keep what you give us only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
+      "Planned, not yet automated. This is the approved schedule; the daily job that enforces it is approved but not live yet.",
+      "An account phone number is kept while your account is active and deleted with the account, either when you ask or after 24 months without a sign-in (with a warning email 30 days before). A phone number copied into a specific broker request is deleted 30 days after the broker confirms, and never kept more than 90 days.",
+      "Other identifiers copied into a request (name, addresses, emails) are deleted 30 days after the broker confirms, and never kept more than 90 days.",
+      "Finished opt-out records are kept 24 months. Texas request records are kept 3 years.",
+      "Inactive accounts are deleted after 24 months without a sign-in, with a warning email 30 days before.",
+      "The security audit log is kept 12 months and is append-only.",
+      "Worker logs are kept for Cloudflare's default retention period and never include request bodies or personal information.",
     ],
   },
   {
@@ -30,7 +36,7 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
     id: "rest",
     title: "Encryption at rest",
-    paragraphs: ["Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256)."],
+    paragraphs: ["Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers."],
   },
   {
     id: "coming-soon",

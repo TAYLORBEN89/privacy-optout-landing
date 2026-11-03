@@ -21,7 +21,7 @@ describe("feature panel", () => {
     expect(screen.getByRole("heading", { name: "Know your rights work for you" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Protect your children's information" })).toBeTruthy();
     expect(screen.getByText("Ask brokers to stop selling your information at no cost.")).toBeTruthy();
-    expect(screen.getByText("We handle the broker forms so you don't have to.")).toBeTruthy();
+    expect(screen.getByText("Free tools to send opt-out and deletion requests to data brokers and track every reply.")).toBeTruthy();
     expect(screen.getByText("We collect the minimum and never sell it.")).toBeTruthy();
     expect(screen.getByText("Reach the companies that trade your address and phone.")).toBeTruthy();
     expect(screen.getByText("The right details help brokers find the right record.")).toBeTruthy();
