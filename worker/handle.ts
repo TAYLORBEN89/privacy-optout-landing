@@ -399,7 +399,25 @@ export async function handleRequest(
   if (!privateShell(url.pathname)) return asset;
   const headers = new Headers(asset.headers);
   headers.set("x-robots-tag", "noindex");
-  return new Response(asset.body, { status: asset.status, headers });
+  const type = asset.headers.get("content-type") ?? "";
+  if (!type.includes("text/html")) {
+    return new Response(asset.body, { status: asset.status, headers });
+  }
+  const html = noindexRobotsMeta(await asset.text());
+  return new Response(html, { status: asset.status, headers });
+}
+
+const NOINDEX_META = '<meta name="robots" content="noindex, nofollow" />';
+
+/** Match the X-Robots-Tag on shells served for /account/* and /signin/*. */
+function noindexRobotsMeta(html: string): string {
+  if (/<meta\s+[^>]*name=["']robots["'][^>]*>/i.test(html)) {
+    return html.replace(/<meta\s+[^>]*name=["']robots["'][^>]*>/i, NOINDEX_META);
+  }
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, (open) => `${open}${NOINDEX_META}`);
+  }
+  return `${NOINDEX_META}${html}`;
 }
 
 /** Account and sign-in paths, including SPA fallbacks such as /account/history. */

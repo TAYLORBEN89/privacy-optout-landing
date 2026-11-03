@@ -459,7 +459,17 @@ describe("POST /api/signup", () => {
       expect(response.status, path).toBe(200);
       expect(response.headers.get("content-type"), path).toContain("text/html");
       expect(response.headers.get("x-robots-tag"), path).toBe("noindex");
+      expect(await response.text(), path).toContain('name="robots" content="noindex, nofollow"');
     }
+    const indexed = await handleRequest(new Request("https://droptexas.com/account/history"), {
+      fetchAsset: async () =>
+        new Response('<head><meta name="robots" content="index, follow" /></head>', {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+    });
+    const shell = await indexed.text();
+    expect(shell).toContain('name="robots" content="noindex, nofollow"');
+    expect(shell).not.toContain("index, follow");
     const account = await handleRequest(new Request("https://droptexas.com/account"), assets());
     expect(account.headers.get("x-robots-tag")).toBe("noindex");
     const signIn = await handleRequest(new Request("https://droptexas.com/signin"), assets());
