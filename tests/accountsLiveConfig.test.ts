@@ -1,15 +1,20 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import type { ConfigEnv, UserConfig, UserConfigExport } from "vite";
 import config from "../vite.config";
 
+function resolveUserConfig(exported: UserConfigExport, env: ConfigEnv): UserConfig | Promise<UserConfig> {
+  if (typeof exported === "function") return exported(env);
+  return exported;
+}
+
 describe("accounts live flag", () => {
-  it("does not force VITE_ACCOUNTS_LIVE in a production build", () => {
+  it("does not force VITE_ACCOUNTS_LIVE in a production build", async () => {
     const source = readFileSync("vite.config.ts", "utf8");
     expect(source).not.toContain("VITE_ACCOUNTS_LIVE");
-    const resolved = typeof config === "function" ? config({ mode: "production", command: "build" }) : config;
-    const define = (resolved as { define?: Record<string, string> }).define ?? {};
-    expect(define["import.meta.env.VITE_ACCOUNTS_LIVE"]).toBeUndefined();
+    const resolved = await resolveUserConfig(config, { mode: "production", command: "build" });
+    expect(resolved.define?.["import.meta.env.VITE_ACCOUNTS_LIVE"]).toBeUndefined();
   });
 
   it("builds /account as Coming soon when the flag is unset", () => {

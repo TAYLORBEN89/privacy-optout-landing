@@ -2615,10 +2615,10 @@ textarea {
   align-items: center;
   min-height: 32px;
   padding: 4px 12px;
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--blue);
   border-radius: 999px;
   background: #fff;
-  color: var(--ink);
+  color: var(--blue);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
@@ -2626,12 +2626,18 @@ textarea {
 }
 
 .broker-optout:hover {
-  background: var(--bg);
+  background: #f4f8ff;
 }
 
 .broker-optout:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: 2px;
+}
+
+@media (min-width: 900px) {
+  .broker-group ul {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .broker-mail {

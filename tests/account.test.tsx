@@ -584,7 +584,8 @@ describe("accounts coming soon", () => {
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Coming soon" })).toBeTruthy();
     expect(screen.getByRole("main", { name: "Coming soon" })).toBeTruthy();
-    expect(screen.getByText(/Sign in with Google or Microsoft, secure session cookies/)).toBeTruthy();
+    expect(screen.getByText("Until then, email help@droptexas.com to see or delete your data.")).toBeTruthy();
+    expect(screen.queryByText(/secure session cookies/)).toBeNull();
     expect(screen.getByRole("link", { name: "Start my opt-out" }).getAttribute("href")).toBe("/start");
     expect(screen.queryByRole("heading", { name: "Your account" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Registered brokers" })).toBeNull();
