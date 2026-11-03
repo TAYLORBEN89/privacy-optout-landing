@@ -98,7 +98,7 @@ describe('Texas requests as per-user D1 rows', () => {
 
   it('Texas edits use their own limit (LIMITS.tx), not the 30/hour opt-out bucket', async () => {
     const { LIMITS } = await import('../src/ratelimit.js');
-    expect(LIMITS.tx.max).toBeGreaterThanOrEqual(445 * 2);
+    expect(LIMITS.tx).toEqual({ max: 60, windowSec: 3600 });
     const ha = await login(await makeUser('many@example.test'));
     for (let i = 0; i < LIMITS.optout.max + 5; i++) {
       expect((await req('PUT', `/tx-requests/tx-b${i}`, { status: 'sent' }, ha)).status).toBe(200);
