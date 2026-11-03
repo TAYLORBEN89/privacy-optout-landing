@@ -69,6 +69,7 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 | `PII_ENC_KEY` | encrypts signup/PII payloads (name, address, email, phone) | `openssl rand -base64 32` (separate from TOTP_ENC_KEY) |
 | `API_TOKEN` | shared bearer key for the legacy KV `/records`, `/txrequests`, `/settings` API | `openssl rand -base64 32` |
 | `ADMIN_BOOTSTRAP_TOKEN` | optional, **off by default**: enables `POST /admin/bootstrap` while it is set | `openssl rand -base64 48` (>=32 chars); delete after use |
+| `INTERNAL_PROXY_KEY` | HMAC key shared with the landing Worker for `X-Internal-Auth` (see Landing proxy contract) | `openssl rand -base64 32`; set the same value on both Workers |
 | `PII_ENC_KEY_PREV` | optional, only during PII key rotation (old key, readable with `PII_PREV_KEY_VERSION`) | the previous `PII_ENC_KEY` |
 
 ### 4. Vars (`[vars]` in `wrangler.toml`)
@@ -123,10 +124,45 @@ App origin (`/api`, JSON, cookie session `__Host-sid`; state-changing requests n
 - `POST /api/auth/logout`, `GET /api/me`.
 - `POST /api/account/identities/{p}/link`, `DELETE /api/account/identities/{p}`.
 - `GET|PATCH /api/account/profile`, `GET /api/account/optouts`, `GET /api/account/sessions`, `POST /api/account/sessions/{id}/revoke`, `POST /api/account/export`, `POST /api/account/delete`.
-- `POST /api/optouts/signup` – `{fullName, mailingAddress, email, texasResident, phone?}`. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted with the rest of the signup PII.
+- `POST /api/optouts/signup` – v2 payload (landing PR #12 `shared/signup.ts`, copied byte-identical to `worker/src/shared/signup.ts`): `{firstName, middleName?, lastName, dob, addressLine1, addressLine2?, city, state, zip, email, phone?, texasResident, submitter?, child?, guardianAttestation?}`. `submitter` is `self` (default) or `child`; a child signup needs `child` and `guardianAttestation: true`. `jurisdiction` and `nonTexasFlag` are derived server-side, never client-set. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted (`pii_payloads`, key `v: 2`). The old v1 body (`{fullName, mailingAddress, ...}`) is now a **400**, so this change must ship together with landing PR #12 (which sends v2); stored v1 records are still readable.
 
 Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/admin/bootstrap`.
 Legacy KV API (`Authorization: Bearer <API_TOKEN>`): `GET|POST /records`, `GET|PUT|DELETE /records/:id`, `/txrequests`, `/settings/profile`.
+
+### Landing proxy contract (droptexas.com Worker -> this API over the `API` service binding)
+Only these routes are forwarded; anything else is a 404 at the landing Worker and never reaches the API.
+
+| Method | Path | Signed (`X-Internal-Auth`) |
+|---|---|---|
+| GET | `/api/me` | no |
+| GET | `/api/auth/{google\|microsoft}/start` | no (browser redirect; pass `Location` + `Set-Cookie` back) |
+| GET | `/api/auth/complete` | no (pass `Set-Cookie` back) |
+| POST | `/api/auth/logout` | yes |
+| POST | `/api/auth/stepup/password` | yes |
+| POST | `/api/auth/{google\|microsoft}/stepup` | yes |
+| GET | `/api/account/profile` | no |
+| PATCH | `/api/account/profile` | yes |
+| GET | `/api/account/optouts` | no |
+| GET | `/api/account/sessions` | no |
+| POST | `/api/account/sessions/{16 hex}/revoke` | yes |
+| POST | `/api/account/export` | yes |
+| POST | `/api/account/delete` | yes |
+| POST | `/api/account/identities/{google\|microsoft}/link` | yes |
+| DELETE | `/api/account/identities/{google\|microsoft}` | yes |
+| POST | `/api/optouts/signup` | yes |
+
+Request headers the landing Worker sends upstream (build a fresh `Headers`; never copy the client's):
+- `Content-Type`, `Accept` (client values, <= 256 chars).
+- `Cookie: __Host-sid=<value>` only (no other cookies). The session is still required: the internal header does not authenticate a user.
+- `Origin: https://droptexas.com` (the landing Worker's own origin; must be in this API's `ALLOWED_ORIGIN`).
+- `CF-Connecting-IP`: the landing Worker's incoming client IP (per-IP rate limits key on it).
+- `X-Internal-Auth: v1.<ts>.<sig>` on the "yes" routes only, **instead of** `X-CSRF-Token` (do not forward the client's CSRF token or any client `X-Internal-Auth`).
+  - `ts`: Unix seconds, decimal. Accepted within +/-60 s.
+  - `sig`: base64url without padding of HMAC-SHA256(`INTERNAL_PROXY_KEY`, `"v1\n" + METHOD + "\n" + pathname+search + "\n" + ts + "\n" + hex(SHA-256(body bytes))`). Empty body = SHA-256 of "".
+  - Missing header on a write route = normal CSRF check. Present but bad (format, skew, wrong route, wrong method/path/body/key, header on a GET) = `403 {"error":"forbidden"}`, the same as a CSRF failure. Compared in constant time.
+- Because the signature replaces CSRF, the landing Worker owns CSRF for these calls: it must sign only requests whose browser `Origin` (or `Sec-Fetch-Site: same-origin`) is its own origin.
+- Browser calls straight to `accounts.droptexas.com` never use this header and keep the normal Origin + `X-CSRF-Token` checks.
+- Response: pass status, body, `Content-Type`, `Set-Cookie`, `Location`, `Retry-After`, `Content-Disposition` through; `redirect: "manual"`.
 
 ### Tests and checks
 ```bash

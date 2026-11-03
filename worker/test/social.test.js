@@ -7,6 +7,7 @@ import { authenticator } from 'otplib';
 import { hashPassword, encryptStr, encryptPii } from '../src/crypto.js';
 import { clearOauthCookie } from '../src/oauth.js';
 import { auditMeta, purge } from '../src/app.js';
+import { signInternal } from '../src/internalAuth.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -313,6 +314,66 @@ describe('CSRF / Origin', () => {
     const r = await SELF.fetch(`${BASE}/api/optouts/signup`, { method: 'POST', headers: { Cookie: a.sid, 'X-CSRF-Token': a.csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     expect(r.status).toBe(403);
     expect((await api('POST', '/api/auth/logout', { sid: a.sid })).status).toBe(403);
+  });
+});
+
+describe('X-Internal-Auth (landing Worker over the service binding)', () => {
+  const KEY = 'test-internal-proxy-key-placeholder';
+  const good = { firstName: 'Pat', lastName: 'Example', dob: '1990-04-02', addressLine1: '1 Main St', city: 'Somewhere', state: 'TX', zip: '75001', email: 'p@example.test', texasResident: true };
+  const send = (method, path, sid, raw, auth, extra = {}) => SELF.fetch(BASE + path, { method, redirect: 'manual',
+    headers: H({ 'Content-Type': 'application/json', Cookie: sid, ...(auth ? { 'X-Internal-Auth': auth } : {}), ...extra }), body: raw });
+  const signed = async (method, path, raw, ts = t0(), key = KEY) => signInternal(key, method, path, String(ts), raw || '');
+  it('valid header replaces the CSRF token on /api/optouts/signup', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    const r = await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw));
+    expect(r.status).toBe(200);
+    expect((await r.json()).ok).toBe(true);
+  });
+  it('expired or future timestamp (beyond +/-60 s) is 403 forbidden', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    for (const ts of [t0() - 61, t0() + 61]) {
+      const r = await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw, ts));
+      expect(r.status).toBe(403); expect(await r.json()).toEqual({ error: 'forbidden' });
+    }
+  });
+  it('tampered body, path, method, signature or key is 403 forbidden', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    const h = await signed('POST', '/api/optouts/signup', raw);
+    const bad = [
+      [raw.replace('Pat', 'Sam'), h],
+      [raw, h.slice(0, -2) + (h.endsWith('AA') ? 'BB' : 'AA')],
+      [raw, await signed('POST', '/api/account/delete', raw)],
+      [raw, await signed('PATCH', '/api/optouts/signup', raw)],
+      [raw, await signed('POST', '/api/optouts/signup', raw, t0(), 'wrong-key')],
+      [raw, 'v2' + h.slice(2)], [raw, 'garbage'],
+    ];
+    for (const [b, auth] of bad) {
+      const r = await send('POST', '/api/optouts/signup', a.sid, b, auth);
+      expect(r.status).toBe(403); expect(await r.json()).toEqual({ error: 'forbidden' });
+    }
+    const n = await env.DB.prepare("SELECT COUNT(*) AS c FROM optout_requests WHERE service_id = 'signup'").first();
+    expect(n.c).toBe(0);
+  });
+  it('wrong route: a correctly signed header is refused off the allowlist (and on GETs)', async () => {
+    const a = await socialLogin('google');
+    const r = await send('POST', '/api/auth/google/start', a.sid, '', await signed('POST', '/api/auth/google/start', ''));
+    expect([403, 404]).toContain(r.status);
+    const g = await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', ''));
+    expect(g.status).toBe(403);
+    // /api/auth/complete is not state-changing and not on the list; any write route not listed is refused.
+    const p = await send('POST', '/api/account/sessions/zz/revoke', a.sid, '', await signed('POST', '/api/account/sessions/zz/revoke', ''));
+    expect(p.status).toBe(403);
+  });
+  it('missing header: normal CSRF still applies (no token = 403, token = 200)', async () => {
+    const a = await socialLogin('google');
+    expect((await api('POST', '/api/optouts/signup', { sid: a.sid }, good)).status).toBe(403);
+    expect((await api('POST', '/api/optouts/signup', a, good)).status).toBe(200);
+  });
+  it('still needs the session cookie and an allowed Origin', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    const auth = await signed('POST', '/api/optouts/signup', raw);
+    expect((await SELF.fetch(BASE + '/api/optouts/signup', { method: 'POST', headers: H({ 'Content-Type': 'application/json', 'X-Internal-Auth': auth }), body: raw })).status).toBe(401);
+    expect((await send('POST', '/api/optouts/signup', a.sid, raw, auth, { Origin: 'https://evil.example' })).status).toBe(403);
   });
 });
 

@@ -1,5 +1,5 @@
 // COPIED FROM: github.com/TAYLORBEN89/privacy-optout-landing, branch cursor/privacy-optout-landing-6b72,
-// file shared/signup.ts (PR 12 head ad82bb0fb2401e2037d2b043f5c09b8b7adb75a2; byte-identical copy).
+// file shared/signup.ts (commit a4231243148a2353ca78acde521beeeab62cd6a6).
 // Optional phone is a US number normalized to E.164. PHONE_FIELD_LABEL is the only phone copy exported for the form.
 // KEEP IN SYNC: the landing page and this Worker must apply the same signup validation rules. If you change
 // one copy, change the other in the same release.

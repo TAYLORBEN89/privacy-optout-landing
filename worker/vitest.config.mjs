@@ -28,6 +28,7 @@ export default defineWorkersConfig(async () => {
               OAUTH_COOKIE_KEY: 'AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=',
               OAUTH_REDIRECT_URIS: 'https://accounts.test/oauth/google/callback,https://accounts.test/oauth/microsoft/callback',
               ACCOUNTS_HOST: 'accounts.test', APP_ORIGIN: 'https://api.test',
+              INTERNAL_PROXY_KEY: 'test-internal-proxy-key-placeholder',
             },
             kvNamespaces: ['RECORDS'],
             d1Databases: ['DB'],

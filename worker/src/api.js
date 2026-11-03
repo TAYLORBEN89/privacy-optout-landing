@@ -13,6 +13,7 @@ import {
 } from './oauth.js';
 import { validateSignup } from './shared/signup.ts';
 import { toStoredSignup, readSignupPayload } from './signupPayload.js';
+import { INTERNAL_HEADER, verifyInternal } from './internalAuth.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const NO_PASSWORD = '!';            // sentinel pw_hash for social-only users; verifyPassword() never accepts it
@@ -532,7 +533,13 @@ export async function handleApi(req, env) {
 
   const cur = await requireSession(ctx);
   if (!cur) return UNAUTH(ctx);
-  if (STATE_CHANGING.has(m) && !timingSafeEqual(req.headers.get('X-CSRF-Token') || '', cur.session.csrf || '')) return FORBIDDEN(ctx);
+  // Landing Worker calls over the service binding carry a signed X-Internal-Auth header instead of the CSRF token.
+  // If the header is present it must verify (route allowlist, +/-60 s, HMAC); there is no fallback to CSRF.
+  if (STATE_CHANGING.has(m)) {
+    const ok = req.headers.has(INTERNAL_HEADER) ? await verifyInternal(req, env, path)
+      : timingSafeEqual(req.headers.get('X-CSRF-Token') || '', cur.session.csrf || '');
+    if (!ok) return FORBIDDEN(ctx);
+  } else if (req.headers.has(INTERNAL_HEADER)) return FORBIDDEN(ctx); // internal auth is only for the write routes
 
   if (m === 'GET' && path === '/api/me') return me(ctx, cur);
   if (m === 'POST' && path === '/api/auth/logout') return logout(ctx, cur);
