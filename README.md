@@ -63,6 +63,64 @@ Signup PII is encrypted in the Worker with AES-256-GCM before it is written to D
 5. A later migration can drop the legacy plaintext columns.
 6. **Required:** apply migration `0005_rate_limits.sql`, which creates `rate_limits`. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`. Without it, every signup returns 503.
 
+## Landing /api proxy contract
+
+The Worker forwards only allowlisted `/api` routes to the API Worker (`env.API` service binding). **The binding stays off in `wrangler.jsonc`** until the API Worker ships with the same contract; with it off every proxied route returns 404.
+
+**Allowlist** (anything else is 404, never forwarded):
+
+| Method | Path |
+| --- | --- |
+| GET | `/api/me` |
+| GET | `/api/auth/{google\|microsoft}/start` |
+| GET | `/api/auth/complete` |
+| POST | `/api/auth/logout` |
+| POST | `/api/auth/stepup/password` |
+| POST | `/api/auth/{google\|microsoft}/stepup` |
+| GET, PATCH | `/api/account/profile` |
+| GET | `/api/account/optouts` |
+| GET | `/api/account/sessions` |
+| POST | `/api/account/sessions/{16 lowercase hex}/revoke` |
+| POST | `/api/account/export` |
+| POST | `/api/account/delete` |
+| POST, DELETE | `/api/account/identities/{google\|microsoft}` |
+| POST, DELETE | `/api/account/identities/{google\|microsoft}/link` |
+| POST | `/api/optouts/signup` |
+
+**Landing CSRF (unsafe methods):** `Origin` must exactly equal the Worker's own origin; if `Origin` is absent, `Sec-Fetch-Site: same-origin` is required. Otherwise a uniform 403. Request bodies are capped at 64 KB (413).
+
+**Upstream request headers are built fresh:** `Content-Type` and `Accept` (max 256 chars each, else 400), `Cookie` containing only a validated `__Host-sid`, `Origin: https://droptexas.com`, `CF-Connecting-IP` copied from the incoming request, and `X-Internal-Auth`. The client's `X-CSRF-Token`, `X-Internal-Auth`, `Authorization`, `Cookie` and `Origin` are never forwarded.
+
+**X-Internal-Auth** (every proxied request, GETs included):
+
+```
+X-Internal-Auth: v1.<kid>.<ts>.<sig>
+kid = [a-z0-9]{1,16}; ts = unix seconds
+canonical = "v1\n" + kid + "\n" + METHOD + "\n" + pathname+search + "\n" + ts + "\n" + ip + "\n" + hex(sha256(body))
+ip  = exact CF-Connecting-IP forwarded, or "" if absent
+sig = base64url (no padding) of HMAC-SHA256(key[kid], canonical)
+```
+
+Test vector (in `tests/apiProxy.test.ts`; the key is a test-only constant, bytes 0x00..0x1f): kid `k1`, ts `1800000000`, ip `203.0.113.9`, `POST /api/account/export?x=1`, body `{"a":1}` → `v1.k1.1800000000.-uCux05nB_YSHLfLwqUuzii9ePuZ2QyIxdgq1kQRCZQ`.
+
+**Responses:** fetched with `redirect: 'manual'`; only status, body, `Content-Type`, `Set-Cookie`, `Location`, `Retry-After` and `Content-Disposition` pass through. `Set-Cookie` is limited to the names in `ALLOWED_RESPONSE_COOKIES` (`__Host-sid` today). An absolute `Location` is dropped unless it is same-origin or starts with `https://accounts.google.com/` or `https://login.microsoftonline.com/`.
+
+### INTERNAL_PROXY_KEYS
+
+- **Secret** `INTERNAL_PROXY_KEYS`: JSON object `{"<kid>": "<standard base64 key>"}`; kid matches `[a-z0-9]{1,16}`, each key decodes to at least 32 bytes.
+- **Plain var** `INTERNAL_PROXY_ACTIVE_KID`: the kid used to sign.
+- Bad JSON, a missing active kid, a bad kid, a short key, or a key equal to `SIGNUP_PII_KEY` fails closed: proxied routes return a generic 503 and only the error code is logged (never key material).
+- The API Worker must hold the **same** map. The key must differ from `SIGNUP_PII_KEY`.
+
+Generate and store (never commit or paste a value):
+
+```sh
+openssl rand -base64 32        # one key; put it in the JSON under a new kid
+npx wrangler secret put INTERNAL_PROXY_KEYS   # paste {"<kid>":"<key>"} at the prompt
+```
+
+Rotation: (1) add the new kid to the map in both Workers, (2) switch `INTERNAL_PROXY_ACTIVE_KID` to the new kid, (3) once traffic is on it, remove the old kid from both maps.
+
 ## Deploy
 
 Do not deploy until you mean to publish. `npx wrangler deploy` attaches the Worker to the hostnames in `wrangler.jsonc` and creates DNS for them.
