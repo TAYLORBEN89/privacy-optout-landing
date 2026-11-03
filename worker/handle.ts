@@ -2,6 +2,7 @@ import { accountsSignInUrl } from "../shared/accounts";
 import { validateSignup, type FieldIssue, type SignupInput, type SignupIssues } from "../shared/signup";
 import { linkSignupToAccount, sessionUserId, type AccountApi } from "./accountLink";
 import { dispatchOptOuts } from "./optouts";
+import { clientIp, type SignupLimiter } from "./rateLimit";
 import { STORAGE_LIVE, saveSignup, type SignupStore } from "./storage";
 
 /**
@@ -28,6 +29,8 @@ export interface RequestDeps {
   /** Calls the accounts API with a request this Worker builds. */
   callApi?: AccountApi;
   signupStore?: SignupStore;
+  /** D1 limiter for POST /api/signup. The Worker entry always provides it. */
+  signupLimiter?: SignupLimiter;
 }
 
 interface ErrorBody {
@@ -146,10 +149,26 @@ async function attachAccount(
   }
 }
 
+function rateLimited(retryAfter: number, request: IncomingHttpRequest): Response {
+  logOutcome({ message: "signup_rate_limited", method: request.method, path: new URL(request.url).pathname, status: 429 });
+  return new Response(
+    JSON.stringify({ ok: false, errors: {}, form: { code: "rate_limited", message: "Too many requests. Try again later." } }),
+    {
+      status: 429,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+        "retry-after": String(retryAfter),
+      },
+    },
+  );
+}
+
 async function handleSignup(
   request: IncomingHttpRequest,
   store: SignupStore | undefined,
   api: AccountApi | undefined,
+  limiter: SignupLimiter | undefined,
 ): Promise<Response> {
   if (request.method !== "POST") {
     return formError("method_not_allowed", "Use the form on this page to submit.", 405, request);
@@ -202,6 +221,28 @@ async function handleSignup(
         : { ok: false, errors: result.errors },
       400,
     );
+  }
+
+  if (limiter) {
+    // Counted only after validation, so fixing form errors does not use up attempts.
+    // Fail closed: if the limiter's D1 write fails, the signup write would fail too.
+    let retryAfter: number;
+    try {
+      retryAfter = await limiter.reserve(clientIp(request.headers));
+    } catch (error) {
+      logOutcome({
+        message: "signup_rate_limit_unavailable",
+        method: request.method,
+        path: new URL(request.url).pathname,
+        status: 503,
+        codes: [error instanceof Error ? error.name : "Error"],
+      });
+      return json(
+        { ok: false, errors: {}, form: { code: "unavailable", message: "Something went wrong. Try again." } },
+        503,
+      );
+    }
+    if (retryAfter > 0) return rateLimited(retryAfter, request);
   }
 
   if (STORAGE_LIVE) {
@@ -284,7 +325,7 @@ export async function handleRequest(
   const redirected = wwwRedirect(url, request.method);
   if (redirected) return redirected;
   if (url.pathname === "/api/signup") {
-    return handleSignup(request, deps.signupStore, deps.callApi);
+    return handleSignup(request, deps.signupStore, deps.callApi, deps.signupLimiter);
   }
   if (url.pathname === "/api/auth/apple" || url.pathname.startsWith("/api/auth/apple/")) {
     return json(
