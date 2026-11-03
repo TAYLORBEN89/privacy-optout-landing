@@ -1,6 +1,6 @@
 // Structured logging for Workers Logs. Only allowlisted fields are ever emitted; request bodies, headers,
 // cookies, tokens, query strings and PII never reach the log. Free-text is scrubbed defensively as well.
-const ALLOWED = new Set(['method', 'route', 'status', 'ms', 'error', 'counts', 'deleted', 'warned', 'job', 'surface']);
+const ALLOWED = new Set(['method', 'route', 'status', 'ms', 'error', 'counts', 'deleted', 'warned', 'job', 'surface', 'kind']);
 const EMAIL = /[^\s@"'<>]+@[^\s@"'<>]+\.[^\s@"'<>]+/g;
 const LONG_TOKEN = /[A-Za-z0-9_\-+/=]{20,}/g;
 const PHONE = /\+?\d[\d\s().-]{7,}\d/g;
@@ -28,6 +28,8 @@ function clean(fields) {
 }
 
 export function log(event, fields) { console.log(JSON.stringify({ event: scrub(event), ...clean(fields) })); }
+// Error-level event with no exception object (e.g. a security guard that fired).
+export function logAlert(event, fields) { console.error(JSON.stringify({ event: scrub(event), ...clean(fields) })); }
 export function logError(event, err, fields) {
   console.error(JSON.stringify({ event: scrub(event), ...clean(fields), error: scrub(err?.name || 'Error') }));
 }

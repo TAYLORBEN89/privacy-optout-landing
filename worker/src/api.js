@@ -348,7 +348,7 @@ async function stepUpPassword(ctx, cur) {
     }
   } else { await dummyVerify(password); }
   if (!ok) {
-    await audit(ctx, cur.session.user_id, 'auth.fail', 'password:step_up');
+    await audit(ctx, cur.session.user_id, 'auth.fail', 'stepup_pw_fail');
     return json(ctx, { error: 'invalid credentials' }, 401);
   }
   await refund(ctx.env, rlRes);
@@ -511,11 +511,31 @@ async function deleteAccount(ctx, cur) {
 }
 
 // ---------- gate: POST /api/optouts/signup ----------
+export const UNDER_13_MESSAGE = "DROP Texas can't accept requests for children under 13 right now.";
+// True when `dob` (YYYY-MM-DD) is a real date and the person has not had their 13th birthday (UTC calendar date).
+// Anything unparseable is left to validateSignup, which reports it as a normal 400.
+export function under13(dob, at = new Date()) {
+  const m = typeof dob === 'string' ? dob.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+  if (!m) return false;
+  const y = +m[1]; const mo = +m[2]; const d = +m[3];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return false;
+  if (dt > at) return false; // future dates: validateSignup's 400
+  const ty = at.getUTCFullYear(); const tm = at.getUTCMonth() + 1; const td = at.getUTCDate();
+  const age = ty - y - ((tm < mo || (tm === mo && td < d)) ? 1 : 0);
+  return age < 13;
+}
 async function signup(ctx, cur) {
   const uid = cur.session.user_id;
   const rlRes = await reserve(ctx.env, 'optout', uid);
   if (rlRes.limited) return json(ctx, { error: 'too many requests' }, 429, retryHeaders(rlRes.limited));
   const body = await readJson(ctx.req);
+  // COPPA: refused before validation or storage when the signer or a child is under 13. Nothing about the child
+  // is stored, logged or audited (the audit target is a fixed code, not a value).
+  if (under13(body?.dob) || (body?.submitter === 'child' && under13(body?.child?.dob))) {
+    await audit(ctx, uid, 'optout.signup_refused', 'under_13');
+    return json(ctx, { ok: false, error: 'under_13', message: UNDER_13_MESSAGE }, 422);
+  }
   const v = validateSignup(body);
   if (!v.ok) return json(ctx, v, 400); // static messages only; submitted values are never echoed
   const id = crypto.randomUUID();
