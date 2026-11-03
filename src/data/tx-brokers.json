@@ -1,0 +1,4456 @@
+{
+"source": "https://texas-sos.appianportalsgov.com/data-broker-registry",
+"exportedOn": "2026-10-21",
+"brokers": [
+{
+"reg": "20250024",
+"name": "01Advertising Inc.",
+"email": "privacy@01advertising.com",
+"website": "https://www.01advertising.com",
+"rightsLink": "https://www.01advertising.com/legal/",
+"phone": "9496099797",
+"address": "3857 BIRCH ST, PMB 5032, NEWPORT BEACH, CA, 92660-2616, United States",
+"submitted": "2025-12-26"
+},
+{
+"reg": "20250169",
+"name": "33Across, Inc.",
+"email": "privacy@33across.com",
+"website": "www.33across.com",
+"rightsLink": "https://udp.33across.com/udp_opt_out",
+"phone": "18882974094",
+"address": "228 Park Avenue South PMB 74008, New York, New York, 10003, United States",
+"submitted": "2026-06-08"
+},
+{
+"reg": "20250129",
+"name": "360 Media Direct",
+"email": "privacy@360mediadirect.com",
+"website": "360mediadirect.com",
+"rightsLink": "https://360mediadirect.com/privacy-policy/",
+"phone": "8002583350",
+"address": "653 W FALLBROOK AVE STE 101, FRESNO, CA, 93711-5503, United States",
+"submitted": "2026-03-23"
+},
+{
+"reg": "20260085",
+"name": "365DataSolutions, LLC",
+"email": "srusso@365datasolutions.com",
+"website": "www.365datasolutions.com",
+"rightsLink": "https://365datasolutions.com/privacy",
+"phone": "8476130486",
+"address": "3250 BONITA BEACH RD # 205-213, BONITA SPRINGS, FL, 34134-4190, United States",
+"submitted": "2026-04-15"
+},
+{
+"reg": "20260185",
+"name": "5x5 US, LLC",
+"email": "robyn.tas@intentsify.io",
+"website": "https://5x5data.com/",
+"rightsLink": "https://5x5data.com/privacy-policy/",
+"phone": "5085457902",
+"address": "1800 W 4TH ST., AUSTIN, TX, 78702, United States",
+"submitted": "2026-10-09"
+},
+{
+"reg": "20240047",
+"name": "6Sense Insights, Inc.",
+"email": "privacy@6sense.com",
+"website": "https://6sense.com",
+"rightsLink": "https://6sense.com/privacy-center/",
+"phone": "4152129225",
+"address": "450 Mission Street, Suite 201, San Francisco, California, 94105, United States",
+"submitted": "2026-01-09"
+},
+{
+"reg": "20240133",
+"name": "AccuData Integrated Marketing, Inc.",
+"email": "privacy.compliance@accudata.com",
+"website": "www.accudata.com",
+"rightsLink": "https://deepsync.com/privacy-policy/",
+"phone": "8003717080",
+"address": "12901 McGregor Blvd., Suite 1A, Fort Myers, Florida, 33919, United States",
+"submitted": "2025-12-01"
+},
+{
+"reg": "20260047",
+"name": "Accurate Append, Inc.",
+"email": "shawn@accurateappend.com",
+"website": "www.accurateappend.com",
+"rightsLink": "https://accurateappend.com/privacy-policy/",
+"phone": "8336634646",
+"address": "1100 BELLEVUE WAY NE, BELLEVUE, WA, 98004-4280, United States",
+"submitted": "2026-01-26"
+},
+{
+"reg": "20250074",
+"name": "Acronymix LLC",
+"email": "privacy@acronymix.com",
+"website": "http://acronymix.com/",
+"rightsLink": "https://acronymix.com/privacy-policy/",
+"phone": "18009749474",
+"address": "1333 S. Ocean Blvd #321, Boca Raton, FL, 33433, United States",
+"submitted": "2026-01-08"
+},
+{
+"reg": "20240250",
+"name": "ActivImpact, LLC",
+"email": "privacy@activimpact.ai",
+"website": "www.activimpact.ai",
+"rightsLink": "https://activimpact.ai/dsar",
+"phone": "18889149661",
+"address": "1000 S MCCASLIN BLVD, SUPERIOR, CO, 80027-9441, United States",
+"submitted": "2026-08-31"
+},
+{
+"reg": "20240078",
+"name": "Acxiom LLC",
+"email": "Jordan.Abbott@acxiom.com",
+"website": "https://www.acxiom.com/privacy/",
+"rightsLink": "https://www.acxiom.com/privacy/us/consumer-instructions/",
+"phone": "5013420356",
+"address": "301 East Dave Ward Drive, Conway, Arkansas, 72032, United States",
+"submitted": "2026-10-20"
+},
+{
+"reg": "20240079",
+"name": "Address Clearing House, LLC",
+"email": "privacy@achcoop.com",
+"website": "https://www.achcoop.com/",
+"rightsLink": "https://www.achcoop.com/privacy-policy",
+"phone": "3024800432",
+"address": "16192 Coastal Highway, Lewes, DE 19958 United States, Lewes, Delaware, 19958, United States",
+"submitted": "2025-11-21"
+},
+{
+"reg": "20250111",
+"name": "Adept ID, Inc.",
+"email": "privacy@adept-id.com",
+"website": "www.adept-id.com",
+"rightsLink": "https://www.adept-id.com/opt-out-preferences/",
+"phone": "7819154660",
+"address": "184 HIGH ST, BOSTON, MA, 02110-3001, United States",
+"submitted": "2026-04-13"
+},
+{
+"reg": "20260149",
+"name": "Adprime Media LLC",
+"email": "rafal@adprime.com",
+"website": "https://adprime.com",
+"rightsLink": "https://www.adprime.com/privacy-policy",
+"phone": "18885468697",
+"address": "285 Fulton Street, 72 floor, New York, NY, 10007, United States",
+"submitted": "2026-08-06"
+},
+{
+"reg": "20250017",
+"name": "adsquare gmbH",
+"email": "legal@adsquare.com",
+"website": "www.adsquare.com",
+"rightsLink": "https://adsquare.com/privacy/us-privacy-supplement",
+"phone": "4930208498140",
+"address": "Saarbr\u00fccker Str. 36\n10405 Berlin\nGermany",
+"submitted": "2026-10-19"
+},
+{
+"reg": "20260055",
+"name": "Adstra LLC",
+"email": "privacy.officer@adstradata.com",
+"website": "https://www.adstradata.com/",
+"rightsLink": "https://www.adstradata.com/privacy-policy/",
+"phone": "6095802800",
+"address": "7 WITHERSPOON ST, PRINCETON, NJ, 08542-3201, United States",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20260158",
+"name": "Affinity Answers Corporation",
+"email": "lisha@affinityanswers.com",
+"website": "www.affinityanswers.com",
+"rightsLink": "https://www.affinityanswers.com/privacy-policy/",
+"phone": "5122228582",
+"address": "12708 Riata Vista Circle, Suite A113, Austin, TX, 78727, United States",
+"submitted": "2026-08-26"
+},
+{
+"reg": "20240269",
+"name": "Affinity Solutions Inc.",
+"email": "privacy@affinitysolutions.com",
+"website": "https://www.affinity.solutions/",
+"rightsLink": "https://www.affinity.solutions/",
+"phone": "2128229600",
+"address": "112 W 34TH ST, NEW YORK, NY, 10120-0101, United States",
+"submitted": "2026-08-11"
+},
+{
+"reg": "20260013",
+"name": "AggKnowledge Inc.",
+"email": "privacy@aggknowledge.ai",
+"website": "aggknowledge.ai",
+"rightsLink": "https://www.aggknowledge.ai/privacypolicy",
+"phone": "9172832477",
+"address": "271A 22ND ST, BROOKLYN, NY, 11215-6589, United States",
+"submitted": "2026-01-08"
+},
+{
+"reg": "20260113",
+"name": "AGR Marketing Solutions LLC",
+"email": "stephen@agrmarketingsolutions.com",
+"website": "www.agrmarketingsolutions.com",
+"rightsLink": "https://agrmarketingsolutions.com/privacy-policy",
+"phone": "2398342371",
+"address": "224 Freeport Ct, Punta Gorda, FL, 33950-5869, United States",
+"submitted": "2026-06-18"
+},
+{
+"reg": "20250013",
+"name": "Aidentified, Inc.",
+"email": "jspofford@aidentified.com",
+"website": "www.aidentified.com",
+"rightsLink": "https://www.aidentified.com/privacy--policy",
+"phone": "5083666969",
+"address": "33 BRADFORD ST, CONCORD, MA, 01742-2986, United States",
+"submitted": "2025-11-18"
+},
+{
+"reg": "20260098",
+"name": "AlikeAudience, INC.",
+"email": "privacy@alikeaudience.com",
+"website": "https://www.alikeaudience.com/",
+"rightsLink": "https://www.alikeaudience.com/privacy-policy/",
+"phone": "14083208866",
+"address": "440 N WOLFE ROAD, SUNNYVALE, CA, 94085, United States",
+"submitted": "2026-05-08"
+},
+{
+"reg": "20240055",
+"name": "All Web Leads, Inc.",
+"email": "legal@allwebleads.com",
+"website": "www.awl.com",
+"rightsLink": "https://awl.com/privacy/",
+"phone": "8885227355",
+"address": "9004 Anderson Mill Road, Unit A, Austin, Texas, 78729, United States",
+"submitted": "2026-04-10"
+},
+{
+"reg": "20250206",
+"name": "Allant Group, LLC",
+"email": "drosenstein@allantgroup.com",
+"website": "https://allantgroup.com",
+"rightsLink": "https://allantgroup.com/privacy-policy",
+"phone": "6305792989",
+"address": "2655 WARRENVILLE RD, DOWNERS GROVE, IL, 60515-5647, United States",
+"submitted": "2025-12-11"
+},
+{
+"reg": "20240134",
+"name": "Alliant Cooperative Data Solutions, LLC",
+"email": "compliance@alliantdata.com",
+"website": "https://alliantinsight.com/",
+"rightsLink": "https://alliantinsight.com/alliant-privacy-policy/",
+"phone": "8886124309",
+"address": "6 CONCOURSE PKWY, SANDY SPRINGS, GA, 30328-6117, United States",
+"submitted": "2026-10-02"
+},
+{
+"reg": "20250079",
+"name": "Altair Data Resources, Inc.",
+"email": "privacy@altairci.com",
+"website": "www.altairdata.com",
+"rightsLink": "https://altairdata.com/privacy-policy/",
+"phone": "6154686885",
+"address": "1749 MALLORY LN STE 201, BRENTWOOD, TN, 37027-2931, United States",
+"submitted": "2026-02-17"
+},
+{
+"reg": "20250077",
+"name": "Altrata, Inc.",
+"email": "legal@altrata.com",
+"website": "www.altrata.com",
+"rightsLink": "https://altrata.com/",
+"phone": "7042495414",
+"address": "1270 AVENUE OF THE AMERICAS STE 1100, NEW YORK, NY, 10020-0075, United States",
+"submitted": "2026-02-13"
+},
+{
+"reg": "20260086",
+"name": "Aluum LLC d/b/a Gateway Data",
+"email": "systems@gatewaydata.io",
+"website": "gatewaydata.io",
+"rightsLink": "https://www.gatewaydata.io/privacy/privacy-policy",
+"phone": "4804427603",
+"address": "2150 N 1ST ST STE 400 PMB 3050, SAN JOSE, CA, 95131-2043, United States",
+"submitted": "2026-04-16"
+},
+{
+"reg": "20260070",
+"name": "American Treasury Tax Solutions Inc",
+"email": "americantresurytaxsolutions@gmail.com",
+"website": "https://www.americantreasurytaxsolutions.com/",
+"rightsLink": "https://www.americantreasurytaxsolutions.com/",
+"phone": "4697929494",
+"address": "10155 Plano Rd, Suite 107, DALLAS, TX, 75238, United States",
+"submitted": "2026-01-23"
+},
+{
+"reg": "20240025",
+"name": "Amerilist Inc",
+"email": "info@amerilist.com",
+"website": "www.amerilist.com",
+"rightsLink": "",
+"phone": "8453626737",
+"address": "40 Ramland Rd So Ste 203B, Orangeburg, New York, 10962, United States",
+"submitted": "2025-02-01"
+},
+{
+"reg": "20240166",
+"name": "AnalyticsIQ Inc",
+"email": "privacy@analyticsiq.com",
+"website": "analyticsiq.com",
+"rightsLink": "https://analytics-iq.com/privacy-policy/",
+"phone": "8886124309",
+"address": "6 Concourse Parkway, Atlanta, Georgia, 30328, United States",
+"submitted": "2026-10-02"
+},
+{
+"reg": "20260004",
+"name": "Analyze Corporation",
+"email": "ed@analyzecorp.com",
+"website": "analyzecorp.com",
+"rightsLink": "https://www.analyzecorp.com/privacy-policy/",
+"phone": "7037853737",
+"address": "3554 CHAIN BRIDGE RD, Sterling, VA, 20164, United States",
+"submitted": "2026-01-05"
+},
+{
+"reg": "20250003",
+"name": "Anchor Computer Inc.",
+"email": "privacyteam@anchorcomputer.com",
+"website": "https://anchorcomputer.com/",
+"rightsLink": "https://www.anchorcomputer.com/privacy-policy/",
+"phone": "6313069336",
+"address": "1300 WALT WHITMAN RD, MELVILLE, NY, 11747-3001, United States",
+"submitted": "2025-12-08"
+},
+{
+"reg": "20250212",
+"name": "Anteriad, LLC",
+"email": "jhiggleton@anteriad.com",
+"website": "www.anteriad.com",
+"rightsLink": "https://forms.anteriad.com/privacy-portal?utm_source=website&utm_medium=lp&utm_campaign=2025",
+"phone": "07799078847",
+"address": "441 LEXINGTON AVE, NEW YORK, NY, 10017, United States",
+"submitted": "2026-08-05"
+},
+{
+"reg": "20260165",
+"name": "AppLovin Corporation",
+"email": "dataprotection@applovin.com",
+"website": "www.applovin.com",
+"rightsLink": "https://legal.applovin.com/multistate-privacy-notice/",
+"phone": "8008399646",
+"address": "1100 PAGE MILL RD, PALO ALTO, CA, 94304-1047, United States",
+"submitted": "2026-09-04"
+},
+{
+"reg": "20260014",
+"name": "Aristotle International, Inc.",
+"email": "david.mason@aristotle.com",
+"website": "www.aristotle.com",
+"rightsLink": "https://www.aristotle.com/privacy/",
+"phone": "2025537303",
+"address": "205 PENNSYLVANIA AVE SE, WASHINGTON, DC, 20003-1164, United States",
+"submitted": "2026-01-09"
+},
+{
+"reg": "20240136",
+"name": "ASL Marketing, a Deep Sync Property",
+"email": "privacy.compliance@deepsync.com",
+"website": "https://deepsync.com/student-marketing-data/",
+"rightsLink": "https://deepsync.com/privacy-policy/",
+"phone": "8003717080",
+"address": "PO Box 61557, FORT MYERS, FL, 33906-1557, United States",
+"submitted": "2026-01-12"
+},
+{
+"reg": "20260119",
+"name": "Astoria Company Marketing LLC",
+"email": "bizdev@astoriacompany.com",
+"website": "https://AstoriaCompany.com",
+"rightsLink": "https://astoriacompany.com/privacy-policy/",
+"phone": "5104102003",
+"address": "6387 Camp Bowie Blvd, # B 171, FORT WORTH, TX, 76116-5486, United States",
+"submitted": "2026-06-26"
+},
+{
+"reg": "20250198",
+"name": "AtData, LLC",
+"email": "privacysupport@atdata.com",
+"website": "https://www.atdata.com",
+"rightsLink": "https://atdata.com/privacy-policy/#section-11",
+"phone": "3322404684",
+"address": "770 LEGACY PL, DEDHAM, MA, 02026-6837, United States",
+"submitted": "2025-10-24"
+},
+{
+"reg": "20260181",
+"name": "ATMOSPHERIK INC.",
+"email": "privacy@atmospherik.ai",
+"website": "atmospherik.ai",
+"rightsLink": "atmospherik.ai/privacy-choices",
+"phone": "2032128704",
+"address": "5 GREENWICH OFFICE PARK, STE 100, GREENWICH, CT, 06831-5128, United States",
+"submitted": "2026-10-02"
+},
+{
+"reg": "20240147",
+"name": "ATTOM Data Solutions LLC",
+"email": "jo.bergstrom@attomdata.com",
+"website": "attomdata.com",
+"rightsLink": "https://www.attomdata.com/privacy/",
+"phone": "9495028300",
+"address": "530 Technology, Suite 100, Irvine, California, 92618, United States",
+"submitted": "2026-09-16"
+},
+{
+"reg": "20250156",
+"name": "Audience Acuity LLC",
+"email": "chris.alewine@audienceacuity.com",
+"website": "https://audienceacuity.com/",
+"rightsLink": "https://audienceacuity.com/privacy/",
+"phone": "4102801431",
+"address": "10845 Griffith Peak Dr., Suite 200, Las Vegas, Nevada, 89135, United States",
+"submitted": "2026-05-04"
+},
+{
+"reg": "20250161",
+"name": "Audience Mix LLC",
+"email": "privacy@audiencemix.net",
+"website": "audiencemix.net",
+"rightsLink": "https://www.audiencemix.net/general-clean",
+"phone": "9175107742",
+"address": "2232 DELL RANGE BLVD STE 245, CHEYENNE, WY, 82009-4979, United States",
+"submitted": "2026-06-30"
+},
+{
+"reg": "20240090",
+"name": "Austin Consolidated Holdings, Inc.",
+"email": "usprivacy@equifax.com",
+"website": "www.equifax.com",
+"rightsLink": "https://www.equifax.com/personal/my-privacy/",
+"phone": "18662956801",
+"address": "1550 Peachtree Street, NW, Atlanta, Georgia, 30309, United States",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20250183",
+"name": "AutoWeb, Inc.",
+"email": "autolegal@autoweb.com",
+"website": "www.autoweb.com",
+"rightsLink": "https://www.autoweb.com/privacy",
+"phone": "9258623036",
+"address": "1820 BONANZA ST, WALNUT CREEK, CA, 94596-8490, United States",
+"submitted": "2026-08-25"
+},
+{
+"reg": "20260044",
+"name": "AWL Holdings, LLC",
+"email": "onlineops@awl.com",
+"website": "https://awl.com",
+"rightsLink": "https://www.insurancequotes.com/privacy-policy",
+"phone": "8885227355",
+"address": "9004 ANDERSON MILL RD, AUSTIN, TX, 78729-4501, United States",
+"submitted": "2026-01-27"
+},
+{
+"reg": "20240101",
+"name": "Azerion US Inc.",
+"email": "dpo_hybridtheory@azerion.com",
+"website": "azerion.com",
+"rightsLink": "",
+"phone": "31207602040",
+"address": "One World Trade Center, 285 Fulton St, 46th FLR \u2013 Suite J, New York, NY 10007, New York City, New York, 10007, United States",
+"submitted": "2025-04-03"
+},
+{
+"reg": "20250084",
+"name": "Azira LLC",
+"email": "legal@azira.com",
+"website": "https://azira.com/",
+"rightsLink": "https://submit-irm.trustarc.com/services/validation/0a80503b-1d56-4d50-a898-4377a0227dab",
+"phone": "6268897680",
+"address": "80 S LAKE AVE STE 719, PASADENA, CA, 91101-2638, United States",
+"submitted": "2026-05-07"
+},
+{
+"reg": "20260027",
+"name": "Babel Street, Inc.",
+"email": "privacy@babelstreet.com",
+"website": "babelstreet.com",
+"rightsLink": "https://www.babelstreet.com/privacy",
+"phone": "7039563572",
+"address": "1900 RESTON METRO PLZ, RESTON, VA, 20190-5952, United States",
+"submitted": "2026-01-27"
+},
+{
+"reg": "20250148",
+"name": "Bachmanity Inc.",
+"email": "privacy@aviato.co",
+"website": "https://aviato.co/",
+"rightsLink": "https://www.aviato.co/legal/privacy",
+"phone": "3178695671",
+"address": "12165 WOODS BAY PL, CARMEL, IN, 46033-9527, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20250060",
+"name": "BDEX LLC",
+"email": "privacy@bdex.com",
+"website": "www.bdex.com",
+"rightsLink": "https://www.bdex.com/privacy-policy/",
+"phone": "9174106616",
+"address": "18117 BISCAYNE BLVD PMB 2575, AVENTURA, FL, 33160-2535, United States",
+"submitted": "2026-01-20"
+},
+{
+"reg": "20250135",
+"name": "BDO GCI, LLC",
+"email": "privacy@bdo-gci.com",
+"website": "https://www.bdo.com/do-not-sell-my-personal-information",
+"rightsLink": "https://www.bdo.com/do-not-sell-my-personal-information",
+"phone": "6165758785",
+"address": "225 W. Randolph Street, Suite 2200, Chicago, IL, 60606, United States",
+"submitted": "2026-03-25"
+},
+{
+"reg": "20260106",
+"name": "Beacon Territory Group LLC",
+"email": "david@beaconterritory.com",
+"website": "https://www.beaconterritory.com/",
+"rightsLink": "https://www.beaconterritory.com/texas-privacy-rights/",
+"phone": "2058090527",
+"address": "1224 GRAYLYNN DR, VESTAVIA HILLS, AL, 35216-2636, United States",
+"submitted": "2026-06-02"
+},
+{
+"reg": "20260056",
+"name": "Becausal, Inc",
+"email": "ilan.ganem@becausal.com",
+"website": "https://www.becausal.com/",
+"rightsLink": "https://www.becausal.com/personal-information",
+"phone": "2122780178",
+"address": "10 E 39TH ST, NEW YORK, NY, 10016-0111, United States",
+"submitted": "2026-02-26"
+},
+{
+"reg": "20240172",
+"name": "BeenVerified, LLC",
+"email": "legal@ltvco.com",
+"website": "beenverified.com, peoplesmart.com, peoplelooker.com, numberguru.com, reversephone.com, neighborwho.com, ownerly.com, bumper.com, moneybot5000.com, famfinder.com",
+"rightsLink": "https://www.beenverified.com/svc/optout/search/comprehensive_optouts",
+"phone": "3479312725",
+"address": "48 West 38th Street, 8th Floor, New York, New York, 10018, United States",
+"submitted": "2026-02-26"
+},
+{
+"reg": "20250005",
+"name": "Belardi Wong, ALC, LLC",
+"email": "privacy.officer@belardiwong.com",
+"website": "https://belardiwong.com/",
+"rightsLink": "https://belardiwong.com/privacy-policy/",
+"phone": "2129241300",
+"address": "7 WITHERSPOON ST, PRINCETON, NJ, 08542-3201, United States",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20250107",
+"name": "BH MARKETING GROUP, LLC",
+"email": "PRIVACY@usmarketinggrp.com",
+"website": "https://usmarketinggrp.com/",
+"rightsLink": "https://usmarketinggrp.com/privacy-policy/",
+"phone": "8185747772",
+"address": "3639 Harbor Blvd suite 212, VENTURA, CA, 93001-4200, United States",
+"submitted": "2026-09-04"
+},
+{
+"reg": "20250192",
+"name": "Black Pearl Group Limited",
+"email": "legal@blackpearl.com",
+"website": "https://blackpearl.com",
+"rightsLink": "https://www.blackpearl.com/your-privacy-choices",
+"phone": "6421585892",
+"address": "Level 5\n50 Customhouse Quay\nWellington 6011",
+"submitted": "2026-09-17"
+},
+{
+"reg": "20240142",
+"name": "Blackbaud, Inc.",
+"email": "privacy@blackbaud.com",
+"website": "https://www.blackbaud.com/",
+"rightsLink": "https://www.blackbaud.com/company/data-subject-rights-request",
+"phone": "8436543256",
+"address": "65 Fairchild St., Charleston, South Carolina, 29492, United States",
+"submitted": "2026-08-24"
+},
+{
+"reg": "20240255",
+"name": "Blis Global Ltd",
+"email": "privacy@blis.com",
+"website": "blis.com",
+"rightsLink": "https://blis.com/privacy-centre/",
+"phone": "442034754660",
+"address": "32 London Bridge Street, 15th Floor, The Shard\nLondon\nSE1 9SG",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20260184",
+"name": "BLUE DATA, LLC",
+"email": "abcms21@aol.com",
+"website": "www.bluedatalead.com",
+"rightsLink": "https://bluedatalead.com/privacy-policy",
+"phone": "3862955156",
+"address": "6097 SABAL BROOK WAY, port orange, FL, 32128-7065, United States",
+"submitted": "2026-10-06"
+},
+{
+"reg": "20240037",
+"name": "Blue Hill Marketing Solutions, Inc. d/b/a LiftEngine",
+"email": "khuntoon@liftengine.com",
+"website": "www.liftengine.com",
+"rightsLink": "",
+"phone": "2124020171",
+"address": "1 Blue Hill Plaza, Ste 1509, Lobby Level, Pearl River, New York, 10965, United States",
+"submitted": "2025-02-18"
+},
+{
+"reg": "20260123",
+"name": "Blueprint Audiences LLC",
+"email": "jeremy@blueprintaudiences.com",
+"website": "https://blueprintaudiences.com/",
+"rightsLink": "https://blueprintaudiences.com/privacy-choices",
+"phone": "2013209684",
+"address": "237 SLEEPY HOLLOW RD, BRIARCLIFF MANOR, NY, 10510-2138, United States",
+"submitted": "2026-06-29"
+},
+{
+"reg": "20240053",
+"name": "Bridg, a division of Cardlytics, Inc.",
+"email": "legalnotices@cardlytics.com",
+"website": "www.bridg.com",
+"rightsLink": "https://www.bridg.com/privacy-policy",
+"phone": "8887925802",
+"address": "1849 Sawtelle Blvd, Suite 700, Los Angeles, California, 90025, United States",
+"submitted": "2026-01-07"
+},
+{
+"reg": "20250105",
+"name": "BRIGHT POLICY, LLC",
+"email": "privacy@quotefinders.com",
+"website": "www.quotefinders.com",
+"rightsLink": "https://www.quotefinders.com/privacy",
+"phone": "8552167674",
+"address": "222 MERCHANDISE MART PLZ, STE 910, CHICAGO, IL, 60654-1103, United States",
+"submitted": "2026-04-07"
+},
+{
+"reg": "20250149",
+"name": "Brooks Integrated Marketing, LLC",
+"email": "privacy@brooksim.com",
+"website": "https://www.brooksim.com/",
+"rightsLink": "https://www.brooksim.com/privacy-form",
+"phone": "8005312601",
+"address": "3333 RENAISSANCE BLVD STE 224, BONITA SPRINGS, FL, 34134-7008, United States",
+"submitted": "2026-04-09"
+},
+{
+"reg": "20260166",
+"name": "BUSINESSENTITYSEARCH.COM, LLC",
+"email": "support@businessregistry.com",
+"website": "https://businessregistry.com",
+"rightsLink": "https://businessregistry.com/privacy-policy/",
+"phone": "8133888547",
+"address": "1905 N MARKET ST, TAMPA, FL, 33602-2057, United States",
+"submitted": "2026-09-09"
+},
+{
+"reg": "20250153",
+"name": "Buxton Company, LLC",
+"email": "cholbert@buxtonco.com",
+"website": "buxtonco.com",
+"rightsLink": "https://www.buxtonco.com/privacy",
+"phone": "8173323681",
+"address": "2651 S POLARIS DR, FORT WORTH, TX, 76137-4804, United States",
+"submitted": "2026-04-16"
+},
+{
+"reg": "20250168",
+"name": "Buyerlink Inc.",
+"email": "legal@buyerlink.com",
+"website": "www.buyerlink.co",
+"rightsLink": "https://www.buyerlink.co/privacy",
+"phone": "9498623036",
+"address": "1820 BONANZA ST, WALNUT CREEK, CA, 94596-8490, United States",
+"submitted": "2026-08-25"
+},
+{
+"reg": "20260141",
+"name": "Cadent, LLC",
+"email": "cmarcos@cadent.tv",
+"website": "www.cadent.com",
+"rightsLink": "https://www.cadent.com/your-privacy-choices",
+"phone": "2127961960",
+"address": "2 PARK AVE, NEW YORK, NY, 10016-5675, United States",
+"submitted": "2026-07-29"
+},
+{
+"reg": "20240104",
+"name": "CareerBuilder, LLC",
+"email": "risk-and-compliance@careerbuilder.com",
+"website": "www.careerbuilder.com",
+"rightsLink": "",
+"phone": "8008918800",
+"address": "200 N. LaSalle Street, #900#900, Chicago, Illinois, 60601, United States",
+"submitted": "2025-03-22"
+},
+{
+"reg": "20250140",
+"name": "Carry Technologies, Inc",
+"email": "legal@hightouch.com",
+"website": "hightouch.com",
+"rightsLink": "hightouch.com/privacy-policy",
+"phone": "3392261809",
+"address": "2261 Market St #5225, SF, California, 94114, United States",
+"submitted": "2026-02-16"
+},
+{
+"reg": "20250133",
+"name": "Catalina Marketing Corporation",
+"email": "privacyteam@catalina.com",
+"website": "www.catalina.com",
+"rightsLink": "https://privacyportal.onetrust.com/webform/7665c53e-aae8-4a03-9dd3-66fb6bce8f55/1bb0c042-b42f-49cc-8779-0bdf8f2ac522",
+"phone": "7275795000",
+"address": "200 Carillion Parkway, Saint Petersburg, Florida, 33716, United States",
+"submitted": "2026-06-09"
+},
+{
+"reg": "20240087",
+"name": "Catalist LLC",
+"email": "privacy@catalist.us",
+"website": "www.catalist.us",
+"rightsLink": "https://catalist.us/privacy-policy/",
+"phone": "2029627250",
+"address": "1310 L ST NW, WASHINGTON, DC, 20005-4689, United States",
+"submitted": "2025-12-09"
+},
+{
+"reg": "20260178",
+"name": "Catchlight Insights LLC",
+"email": "hello@catchlight.ai",
+"website": "https://catchlight.ai",
+"rightsLink": "https://catchlight.ai/privacy",
+"phone": "18009716150",
+"address": "245 Summer Street, Boston, MA, 02210, United States",
+"submitted": "2026-09-28"
+},
+{
+"reg": "20260137",
+"name": "Checkpeople LLC",
+"email": "TXcompliance@checkpeople.com",
+"website": "checkpeople.com",
+"rightsLink": "https://checkpeople.com/company/privacy-policy",
+"phone": "3213766933",
+"address": "111 N ORANGE AVE, ORLANDO, FL, 32801-2381, United States",
+"submitted": "2026-07-15"
+},
+{
+"reg": "20240218",
+"name": "Choreograph LLC",
+"email": "privacy@choreograph.com",
+"website": "https://www.choreograph.com/",
+"rightsLink": "https://www.choreograph.com/global-privacy-policy/global-privacy-policy-english",
+"phone": "00447770965335",
+"address": "175 Greenwich Street, New York, New York, 10007, United States",
+"submitted": "2026-01-13"
+},
+{
+"reg": "20260022",
+"name": "Circana, LLC",
+"email": "privacy@circana.com",
+"website": "www.circana.com",
+"rightsLink": "https://privacyportal.onetrust.com/webform/95580356-b46a-4234-8f47-d824de4dbbc6/2de05774-2e3d-45b0-a7c2-45bb6ba50ab1",
+"phone": "3127261221",
+"address": "203 N LA SALLE ST, CHICAGO, IL, 60601-1228, United States",
+"submitted": "2026-01-29"
+},
+{
+"reg": "20260060",
+"name": "Cision US Inc",
+"email": "DPO@cision.com",
+"website": "www.cision.com",
+"rightsLink": "https://portals.dporganizer.com/fa778b0e-817f-4c96-b13d-e2b614470033",
+"phone": "8666395087",
+"address": "300 S Riverside Plaza, chicago, TX, 60601, United States",
+"submitted": "2026-02-23"
+},
+{
+"reg": "20250187",
+"name": "Civic Element LLC",
+"email": "ops@civicelement.com",
+"website": "https://www.civicelement.com",
+"rightsLink": "https://www.civicelement.com/privacy-policy",
+"phone": "8884176553",
+"address": "2153 Wealthy St. SE Ste 125, Grand Rapids, MI, 49506, United States",
+"submitted": "2026-09-23"
+},
+{
+"reg": "20250196",
+"name": "Civis Analytics, Inc.",
+"email": "dataprotection@civisanalytics.com",
+"website": "www.civisanalytics.com",
+"rightsLink": "www.civisanalytics.com/legal-pages/supplemental-privacy-notice",
+"phone": "3129850173",
+"address": "200 W MONROE ST STE 2200, CHICAGO, IL, 60606-5070, United States",
+"submitted": "2026-07-10"
+},
+{
+"reg": "20250096",
+"name": "Claritas LLC",
+"email": "privacyinfo@claritas.com",
+"website": "www.Claritas.com",
+"rightsLink": "https://claritas.com/privacy-legal/",
+"phone": "4753237739",
+"address": "8044 Montgomery Road, Suite 455, Cincinnati, Ohio, 45236, United States",
+"submitted": "2026-06-11"
+},
+{
+"reg": "20250134",
+"name": "Clay Labs, LLC",
+"email": "privacy@clay.com",
+"website": "clay.com",
+"rightsLink": "https://privacy.clay.com/policies?name=privacy-policy",
+"phone": "3477629282",
+"address": "111 W 19TH ST FL 5, NEW YORK, NY, 10011-4166, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20250011",
+"name": "Clearview AI, Inc.",
+"email": "legal-requests@clearview.ai",
+"website": "https://www.clearview.ai/",
+"rightsLink": "https://www.clearview.ai/privacy-policy",
+"phone": "18666370257",
+"address": "1321 UPLAND DR, HOUSTON, TX, 77043-4718, United States",
+"submitted": "2025-11-26"
+},
+{
+"reg": "20240185",
+"name": "Clickagy LLC",
+"email": "privacycompliance@zoominfo.com",
+"website": "www.clickagy.com",
+"rightsLink": "https://www.clickagy.com/privacy-statement",
+"phone": "2407445042",
+"address": "330 W Columbia Way, Floor 8, Vancouver, Georgia, 98660, United States",
+"submitted": "2025-12-03"
+},
+{
+"reg": "20250131",
+"name": "Cognism Inc.",
+"email": "legal@cognism.com",
+"website": "cognism.com",
+"rightsLink": "https://cognism.privacy.saymine.io/cognism",
+"phone": "442038580822",
+"address": "33 Arch Street, Boston, Massachusetts, 02110, United States",
+"submitted": "2026-05-06"
+},
+{
+"reg": "20240241",
+"name": "Cognism, Inc.",
+"email": "legal@cognism.com",
+"website": "www.cognism.com",
+"rightsLink": "",
+"phone": "16503725001",
+"address": "33 Arch Street, Boston, Massachusetts, 02110, United States",
+"submitted": "2024-09-27"
+},
+{
+"reg": "20250208",
+"name": "Collective Data Solutions, LLC",
+"email": "legal@collective.io",
+"website": "https://www.collective data.io/",
+"rightsLink": "https://www.collectivedata.io/website-visitor-privacy-policy/",
+"phone": "3608707333",
+"address": "301 CEDAR ST, SANDPOINT, ID, 83864-1425, United States",
+"submitted": "2025-12-11"
+},
+{
+"reg": "20250214",
+"name": "Collectors Datastore LLC",
+"email": "hdenniston@ludex.ai",
+"website": "thecollectorsdatastore.com",
+"rightsLink": "www.fanalyticsiq.com/privacy-policy",
+"phone": "6303090204",
+"address": "343 W ERIE ST, CHICAGO, IL, 60654-5735, United States",
+"submitted": "2026-08-31"
+},
+{
+"reg": "20250147",
+"name": "Command Precision, Inc.",
+"email": "privacy@persistent.id",
+"website": "https://persistent.id",
+"rightsLink": "https://www.trustsuperset.com/dsrs?orgId=7b774bc1-608f-8c4c-bb90-453b1540f48b",
+"phone": "6465350201",
+"address": "240 DEVONSHIRE ST, BOSTON, MA, 02110-2155, United States",
+"submitted": "2026-04-08"
+},
+{
+"reg": "20260063",
+"name": "Commerce Signals, Inc.",
+"email": "privacy@commercesignals.com",
+"website": "https://www.commercesignals.com/",
+"rightsLink": "https://www.commercesignals.com/privacy-notice/",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20250053",
+"name": "Commercial Real Estate Exchange, Inc.",
+"email": "pkim@crexi.com",
+"website": "crexi.com",
+"rightsLink": "https://www.crexi.com/privacy",
+"phone": "8882730423",
+"address": "5510 LINCOLN BLVD, LOS ANGELES, CA, 90094-1900, United States",
+"submitted": "2025-10-31"
+},
+{
+"reg": "20260174",
+"name": "Common Room, Inc.",
+"email": "compliance@commonroom.io",
+"website": "https://www.commonroom.io/",
+"rightsLink": "https://app.commonroom.io/remove-my-info",
+"phone": "2083699939",
+"address": "92 LENORA ST, SEATTLE, WA, 98121-2108, United States",
+"submitted": "2026-09-17"
+},
+{
+"reg": "20240137",
+"name": "Compact Information Systems, LLC d/b/a Deep Sync",
+"email": "privacy.compliance@deepsync.com",
+"website": "https://deepsync.com/",
+"rightsLink": "https://deepsync.com/privacy-policy/",
+"phone": "8003717080",
+"address": "12901 MCGREGOR BLVD, FORT MYERS, FL, 33919-4587, United States",
+"submitted": "2025-12-01"
+},
+{
+"reg": "20240138",
+"name": "Compact Information Systems, LLC dba HomeData",
+"email": "privacy.compliance@deepsync.com",
+"website": "https://deepsync.com/homedata/",
+"rightsLink": "https://deepsync.com/privacy-policy/",
+"phone": "8003717080",
+"address": "12901 MCGREGOR BLVD, FORT MYERS, FL, 33919-4587, United States",
+"submitted": "2025-12-01"
+},
+{
+"reg": "20240209",
+"name": "Complete Mailing Lists LLC",
+"email": "ewoolf@CompleteMailingLists.com",
+"website": "www.completemailinglists.com",
+"rightsLink": "https://completemailinglists.com/do-not-sell-my-information",
+"phone": "9147713120",
+"address": "190 East Post Rd - 2nd Floor, WHITE PLAINS, New York, 10601, United States",
+"submitted": "2026-06-01"
+},
+{
+"reg": "20240207",
+"name": "Complete Medical Lists Inc",
+"email": "tburnell@completemedicallists.com",
+"website": "www.completemedicallists.com",
+"rightsLink": "https://www.completemedicallists.com/ccpa.php",
+"phone": "6038238042",
+"address": "758 Main St, Franconia, New Hampshire, 03580, United States",
+"submitted": "2026-05-27"
+},
+{
+"reg": "20260038",
+"name": "Connatix Native Exchange Inc.",
+"email": "privacy@connatix.com",
+"website": "www.jwx.com",
+"rightsLink": "https://connatix.com/optout",
+"phone": "2122440140",
+"address": "530 7th Ave., Ste. 1906, New York, NY, 10018, United States",
+"submitted": "2026-02-11"
+},
+{
+"reg": "20250048",
+"name": "Consumer Canvas, LLC",
+"email": "privacy@consumercanvas.net",
+"website": "www.consumercanvas.net",
+"rightsLink": "https://www.consumercanvas.net/privacy/",
+"phone": "2122405403",
+"address": "200 W. Jackson Blvd., Suite 26, Chicago, IL, 60606, United States",
+"submitted": "2026-02-03"
+},
+{
+"reg": "20260042",
+"name": "Convex Labs LLC",
+"email": "support@convexlabs.io",
+"website": "www.convex.com",
+"rightsLink": "https://www.convex.com/privacy-policy",
+"phone": "8558990970",
+"address": "800 N BRAND BLVD, GLENDALE, CA, 91203-4211, United States",
+"submitted": "2026-02-10"
+},
+{
+"reg": "20260143",
+"name": "CoreLogic Solutions, LLC",
+"email": "licensing.erm@corelogic.com",
+"website": "https://www.cotality.com",
+"rightsLink": "https://www.cotality.com/legal/privacy-policy",
+"phone": "8662219291",
+"address": "40 PACIFICA SUITE 900, IRVINE, CA, 92618-7487, United States",
+"submitted": "2026-07-31"
+},
+{
+"reg": "20260133",
+"name": "Cox Automotive, Inc.",
+"email": "consumer-privacy-ops@coxautoinc.com",
+"website": "www.coxautoinc.com/; www.kbb.com/; www.autotrader.com/; www.fordblueadvantage.com/",
+"rightsLink": "https://www.coxautoinc.com/consumerprivacyrights/",
+"phone": "8662886872",
+"address": "6205-A Peachtree Dunwoody Rd., Atlanta, GA, 30328, United States",
+"submitted": "2026-07-20"
+},
+{
+"reg": "20260061",
+"name": "Crimson Hexagon, Inc",
+"email": "Robert.Beaugie@cision.com",
+"website": "www.brandwatch.com",
+"rightsLink": "https://portals.dporganizer.com/fa778b0e-817f-4c96-b13d-e2b614470033",
+"phone": "18005550199",
+"address": "200 VESEY ST, NEW YORK, NY, 10281-5525, United States",
+"submitted": "2026-02-26"
+},
+{
+"reg": "20260187",
+"name": "Criteo Corp.",
+"email": "privacyteam@criteo.com",
+"website": "https://www.criteo.com/",
+"rightsLink": "https://www.criteo.com/privacy/",
+"phone": "16464100400",
+"address": "387 PARK AVE S, NEW YORK, NY, 10016-8810, United States",
+"submitted": "2026-10-19"
+},
+{
+"reg": "20260006",
+"name": "CTAM LeadShare Corp",
+"email": "compliance@ctam.com",
+"website": "www.smartmove.us",
+"rightsLink": "www.smartmove.us",
+"phone": "3014858933",
+"address": "2000 DUKE ST, ALEXANDRIA, VA, 22314-6116, United States",
+"submitted": "2026-10-08"
+},
+{
+"reg": "20240160",
+"name": "Cuebiq Group, LLC",
+"email": "privacy@cuebiq.com",
+"website": "www.cuebiq.com",
+"rightsLink": "https://cuebiq.com/privacy-request/",
+"phone": "6469146384",
+"address": "1460 Broadway, New York, New York, 10036, United States",
+"submitted": "2025-12-30"
+},
+{
+"reg": "20250177",
+"name": "Cybba Inc",
+"email": "privacy@cybba.com",
+"website": "https://cybba.com",
+"rightsLink": "https://cybba-requests.my.onetrust.com/webform/a4a1351e-d293-4305-bde4-b9cf8f5c0989/f89c576a-b5c6-498e-bad5-698f084ffd30",
+"phone": "8572847000",
+"address": "374 CONGRESS ST, BOSTON, MA, 02210-1807, United States",
+"submitted": "2026-08-11"
+},
+{
+"reg": "20250203",
+"name": "Dallas Computer Services, Inc",
+"email": "kgraves@dcsinfosys.com",
+"website": "www.dcsinfosys.com",
+"rightsLink": "www.dcsinfosys.com",
+"phone": "9724223600",
+"address": "8751 COLLIN MCKINNEY PKWY, MCKINNEY, TX, 75070-1851, United States",
+"submitted": "2026-09-25"
+},
+{
+"reg": "20240192",
+"name": "Data Axle Inc.",
+"email": "PRIVACYTEAM@DATA-AXLE.COM",
+"website": "https://www.data-axle.com/",
+"rightsLink": "https://www.data-axle.com/do-not-sell-my-data/",
+"phone": "4028363377",
+"address": "2451 W Grapevine Mills Circle, #538, Grapevine, Texas, 76051, United States",
+"submitted": "2025-12-09"
+},
+{
+"reg": "20250029",
+"name": "Data Decisions Group, LLC",
+"email": "privacy@datadecisionsgroup.com",
+"website": "www.datadecisionsgroup.com",
+"rightsLink": "https://datadecisionsgroup.com/preferences",
+"phone": "8885308596",
+"address": "123 W FRANKLIN ST, CHAPEL HILL, NC, 27516-2684, United States",
+"submitted": "2026-08-12"
+},
+{
+"reg": "20260157",
+"name": "Data to Win LLC",
+"email": "julie@datatowin.com",
+"website": "datatowin.com",
+"rightsLink": "https://www.datatowin.com/privacy-requests",
+"phone": "4155839554",
+"address": "21515 Vanowen St Ste 1216, Canoga Park, CA, 91303, United States",
+"submitted": "2026-08-26"
+},
+{
+"reg": "20250052",
+"name": "DataDelivers LLC",
+"email": "privacy@datadelivers.com",
+"website": "https://datadelivers.com/",
+"rightsLink": "https://datadelivers.com/privacy-policy/",
+"phone": "6306352400",
+"address": "100 West Hillcrest Blvd., Ste. 406, Schaumburg, IL, 60195, United States",
+"submitted": "2026-01-08"
+},
+{
+"reg": "20240157",
+"name": "DataDojo CDP Inc.",
+"email": "contact@datadojo.ai",
+"website": "https://datadojo.ai",
+"rightsLink": "",
+"phone": "8336323656",
+"address": "6929 N. Hayden Rd., Scottsdale, Arizona, 85250, United States",
+"submitted": "2025-02-03"
+},
+{
+"reg": "20240088",
+"name": "Dataline, Inc.",
+"email": "psobel@datalinedata.com",
+"website": "www.datalilnedata.com",
+"rightsLink": "https://datalinedata.com/privacy-policy/",
+"phone": "6094526014",
+"address": "506 Carnegie Center Drive, Suite 105, Princeton, New Jersey, 08540, United States",
+"submitted": "2026-08-10"
+},
+{
+"reg": "20260068",
+"name": "Datalink Services, Inc.",
+"email": "Privacy@transunion.com",
+"website": "www.imvrs.transunion.com",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20260087",
+"name": "Dataman Group, Inc",
+"email": "dale@datamangroup.com",
+"website": "www.datamangroup.com",
+"rightsLink": "https://www.datamangroup.com/privacy/",
+"phone": "5614519302",
+"address": "22594 Lemon Tree Lane, Boca Raton, FL, 33428-5512, United States",
+"submitted": "2026-04-15"
+},
+{
+"reg": "20240165",
+"name": "Datamentors, LLC",
+"email": "lchiodo@porchgroupmedia.com",
+"website": "www.porchgroupmedia.com",
+"rightsLink": "https://datarightsrequest.porchgroupmedia.com/",
+"phone": "6304135323",
+"address": "2319 OAK MYRTLE LN, WESLEY CHAPEL, FL, 33544-6329, United States",
+"submitted": "2026-01-16"
+},
+{
+"reg": "20240186",
+"name": "Datanyze, LLC",
+"email": "privacycompliance@zoominfo.com",
+"website": "www.datanyze.com",
+"rightsLink": "https://www.datanyze.com/privacy-center",
+"phone": "2407445042",
+"address": "330 W Columbia Way, Floor 8, Vancouver, Washington, 98660, United States",
+"submitted": "2025-12-03"
+},
+{
+"reg": "20260150",
+"name": "DATARATE LLC",
+"email": "privacy@datarate.ai",
+"website": "https://datarate.ai",
+"rightsLink": "https://datarate.ai/my-privacy-choicesDE",
+"phone": "3022133192",
+"address": "2810 N CHURCH ST #97104, WILMINGTON, DE, 19802, United States",
+"submitted": "2026-08-12"
+},
+{
+"reg": "20240247",
+"name": "Datasys Group, Inc.",
+"email": "seth.lubin@datasys.com",
+"website": "datasys.com",
+"rightsLink": "https://datasys.com/privacy-policy",
+"phone": "9549499500",
+"address": "750 Park of Commerce Drive, Suite 150, Boca Raton, Florida, 33487, United States",
+"submitted": "2026-07-09"
+},
+{
+"reg": "20250158",
+"name": "Datonics LLC",
+"email": "apinhasi@datonics.com",
+"website": "https://www.datonics.com/",
+"rightsLink": "https://www.datonics.com/privacy/privacy-choices",
+"phone": "972546310060",
+"address": "250 Broadway 24th Floor, new york, New York, 10007, United States",
+"submitted": "2026-06-28"
+},
+{
+"reg": "20260021",
+"name": "DB SUB, LLC",
+"email": "josh.torres@partech.com",
+"website": "https://partech.com/dbsubllc",
+"rightsLink": "https://partech.com/dbsubllc",
+"phone": "3157438273",
+"address": "1209 N ORANGE ST, WILMINGTON, DE, 19801-1120, United States",
+"submitted": "2026-01-14"
+},
+{
+"reg": "20250122",
+"name": "DealerDirect LLC",
+"email": "fdcomply@forddirect.com",
+"website": "www.forddirect.com",
+"rightsLink": "https://forddirect.privacy.saymine.io/forddirect",
+"phone": "8448897397",
+"address": "4 PARKLANE BLVD STE 140, DEARBORN, MI, 48126-4252, United States",
+"submitted": "2026-05-11"
+},
+{
+"reg": "20260120",
+"name": "DealerX Partners LLC",
+"email": "privacy@dealerx.com",
+"website": "https://www.dealerx.com",
+"rightsLink": "https://dealerx.com/privacy-options/",
+"phone": "8444664440",
+"address": "7901 4TH ST N STE 300, ST PETERSBURG, FL, 33702-4399, United States",
+"submitted": "2026-06-29"
+},
+{
+"reg": "20260095",
+"name": "Dealfront Finland Oy",
+"email": "privacy-team@leadfeeder.com",
+"website": "https://www.leadfeeder.com/",
+"rightsLink": "https://www.leadfeeder.com/privacy/us-privacy-disclosure/",
+"phone": "35810279294",
+"address": "Kalevankatu 6\nHelsinki, Helsinki, 00100\nFINLAND",
+"submitted": "2026-03-31"
+},
+{
+"reg": "20260094",
+"name": "Dealfront Group GmbH",
+"email": "privacy-team@leadfeeder.com",
+"website": "https://www.leadfeeder.com/",
+"rightsLink": "https://www.leadfeeder.com/privacy/us-privacy-disclosure/",
+"phone": "4972198191256",
+"address": "Durlacher Allee 73\n76131 Karlsruhe, Germany",
+"submitted": "2026-03-31"
+},
+{
+"reg": "20260134",
+"name": "DealMachine Operations Inc.",
+"email": "david@dealmachine.com",
+"website": "dealmachine.com",
+"rightsLink": "https://privacyrequest.dealmachine.com/remove",
+"phone": "3144016767",
+"address": "801 SHELBY ST, INDIANAPOLIS, IN, 46203-1163, United States",
+"submitted": "2026-07-22"
+},
+{
+"reg": "20240024",
+"name": "Decide Technologies Inc.",
+"email": "privacy@decide.co",
+"website": "decide.co",
+"rightsLink": "https://decide.co/privacy",
+"phone": "8009835280",
+"address": "1314 Washington Ave, St. Louis, Missouri, 63103, United States",
+"submitted": "2026-01-26"
+},
+{
+"reg": "20250209",
+"name": "DecisionLinks LLC",
+"email": "support@decisionlinks.com",
+"website": "https://www.decisionlinks.com/",
+"rightsLink": "https://www.decisionlinks.com/legal-pages/privacy-policy",
+"phone": "80034329552",
+"address": "3215 GONZALES ST, AUSTIN, TX, 78702-4011, United States",
+"submitted": "2025-12-01"
+},
+{
+"reg": "20260109",
+"name": "Deep Root Analytics, LLC",
+"email": "info@deeprootanalytics.com",
+"website": "deeprootanalytics.com",
+"rightsLink": "https://privacy.deeprootanalytics.com/",
+"phone": "2028188727",
+"address": "2451 CRYSTAL DR, ARLINGTON, VA, 22202-4804, United States",
+"submitted": "2026-06-11"
+},
+{
+"reg": "20260126",
+"name": "Deimos Signals Pte. Ltd.",
+"email": "legal@deimos-signals.com",
+"website": "https://www.deimos-signals.com/",
+"rightsLink": "https://www.deimos-signals.com/privacy-center",
+"phone": "006592715936",
+"address": "#19-03 High Street Centre\n1 North Bridge Road\nSingapore 179094",
+"submitted": "2026-07-01"
+},
+{
+"reg": "20240007",
+"name": "Deloitte Consulting LLP",
+"email": "usprivacyquestions@deloitte.com",
+"website": "deloitte.com",
+"rightsLink": "datasubject.deloitte.com",
+"phone": "8449190711",
+"address": "200 Berkeley Street, Boston, Massachusetts, 02116, United States",
+"submitted": "2026-01-05"
+},
+{
+"reg": "20240002",
+"name": "Deloitte Financial Advisory Services LLP",
+"email": "usprivacyquestions@deloitte.com",
+"website": "deloitte.com",
+"rightsLink": "datasubject.deloitte.com",
+"phone": "8449190711",
+"address": "30 Rockefeller Plaza, New York, New York, 10112, United States",
+"submitted": "2026-01-21"
+},
+{
+"reg": "20250188",
+"name": "Demandbase, Inc.",
+"email": "privacy@demandbase.com",
+"website": "www.demandbase.com",
+"rightsLink": "https://www.demandbase.com/privacy/",
+"phone": "4156832660",
+"address": "222 2ND ST FL 24, SAN FRANCISCO, CA, 94105-3106, United States",
+"submitted": "2026-07-14"
+},
+{
+"reg": "20260136",
+"name": "Dice Career Solutions, Inc.",
+"email": "dpo@dice.com",
+"website": "www.dice.com",
+"rightsLink": "https://www.dice.com/about/ccpa",
+"phone": "8883213423",
+"address": "5745 RACCOON RIVER DR, WEST DES MOINES, IA, 50266-5366, United States",
+"submitted": "2026-07-23"
+},
+{
+"reg": "20250100",
+"name": "Digital Segment, LLC",
+"email": "bschorer@digitalsegment.com",
+"website": "www.digitalsegment.com",
+"rightsLink": "https://www.digitalsegment.com/about/opt-out/",
+"phone": "9494007828",
+"address": "1305 SUNNYSLOPE CT, AUBURN, AL, 36832-6832, United States",
+"submitted": "2026-03-16"
+},
+{
+"reg": "20240081",
+"name": "Digital Viking Media",
+"email": "privacy@digitalvikingmedia.com",
+"website": "www.digitalvikingmedia.com",
+"rightsLink": "https://www.digitalvikingmedia.com/privacy-policy",
+"phone": "5032030001",
+"address": "13681 Newport Ave, Suite 8-226, Tustin, California, 92780, United States",
+"submitted": "2025-09-25"
+},
+{
+"reg": "20260009",
+"name": "Digital Viking Media, Inc",
+"email": "privacy@digitalvikingmedia.com",
+"website": "www.digitalvikingmedia.com",
+"rightsLink": "https://www.digitalvikingmedia.com/privacy-policy",
+"phone": "5032030001",
+"address": "13681 NEWPORT AVE, TUSTIN, CA, 92780-4689, United States",
+"submitted": "2026-10-14"
+},
+{
+"reg": "20250154",
+"name": "Disco Technology Inc",
+"email": "people@disconetwork.com",
+"website": "https://www.disconetwork.com/",
+"rightsLink": "https://disconetwork.com/privacy-policy",
+"phone": "6149051661",
+"address": "2261 MARKET ST, STE 4742, SAN FRANCISCO, CA, 94114-1612, United States",
+"submitted": "2026-05-19"
+},
+{
+"reg": "20260107",
+"name": "DisplayLogix LLC",
+"email": "brandon@display-logix.com",
+"website": "www.display-logix.com",
+"rightsLink": "https://app.termly.io/policy-viewer/policy.html?policyUUID=e1b589c9-c7f6-47c3-a7b4-e57e3c79f883",
+"phone": "8432904821",
+"address": "368 Old Palmetto Bluff Road, 368 Old Palmetto Bluff Road, Bluffton, SC, 29910, United States",
+"submitted": "2026-06-02"
+},
+{
+"reg": "20240106",
+"name": "Disqus, Inc.",
+"email": "bhayes@zetaglobal.com",
+"website": "www.disqus.com",
+"rightsLink": "https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/9a049fa1-37af-4598-a87a-d0df2e2d904b.html",
+"phone": "2023687202",
+"address": "3 Park Ave., 33rd Floor, New York, NY, New York, 10016, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20260176",
+"name": "DMS Purchaser, LLC",
+"email": "legal@dmsgroup.com",
+"website": "digitalmediasolutions.com",
+"rightsLink": "dmsunsub.io",
+"phone": "8772368632",
+"address": "3665 E BAY DR, LARGO, FL, 33771-1990, United States",
+"submitted": "2026-09-22"
+},
+{
+"reg": "20260066",
+"name": "Drivers History Information Sales, LLC",
+"email": "privacy@transunion.com",
+"website": "www.drivershistory.com",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20260182",
+"name": "DT Client Services LLC",
+"email": "info@thedatatrust.com",
+"website": "thedatatrust.com",
+"rightsLink": "https://thedatatrust.com/privacy-policy/",
+"phone": "2027335235",
+"address": "1310 N COURTHOUSE RD, ARLINGTON, VA, 22201-2518, United States",
+"submitted": "2026-10-05"
+},
+{
+"reg": "20250004",
+"name": "Dun & Bradstreet, Inc.",
+"email": "privacyofficer@dnb.com",
+"website": "www.dnb.com",
+"rightsLink": "https://submit-irm.trustarc.eu/services/validation/ba81b98f-997d-4216-b4cc-d64cf261b082",
+"phone": "9046486350",
+"address": "5535 Gate Parkway, Jacksonville, FL, 32256, United States",
+"submitted": "2026-01-31"
+},
+{
+"reg": "20240156",
+"name": "EAB Global, Inc",
+"email": "legal@eab.com",
+"website": "www.eab.com",
+"rightsLink": "https://eab.com/privacy-policy/",
+"phone": "2027471000",
+"address": "2445 M ST NW, WASHINGTON, DC, 20037-1435, United States",
+"submitted": "2026-02-12"
+},
+{
+"reg": "20250128",
+"name": "eContext.ai Limited",
+"email": "akatavic@complementics.com",
+"website": "complementics.com",
+"rightsLink": "https://www.complementics.com/opt-out",
+"phone": "8722152068",
+"address": "116 W HUBBARD ST, CHICAGO, IL, 60654-8542, United States",
+"submitted": "2026-01-23"
+},
+{
+"reg": "20240252",
+"name": "El Toro.com, LLC",
+"email": "legal@eltoro.com",
+"website": "www.eltoro.com",
+"rightsLink": "https://eltoro.com/your-privacy-choices/",
+"phone": "5023530390",
+"address": "552 E MARKET ST, LOUISVILLE, KY, 40202-7105, United States",
+"submitted": "2026-10-12"
+},
+{
+"reg": "20250065",
+"name": "Electronic Voice Services, Inc.",
+"email": "richard@evs7.com",
+"website": "www.evs7.com",
+"rightsLink": "https://www.evs7.com/privacy-policy",
+"phone": "9727136622",
+"address": "13601 Preston Ro, Dallas, TX, 75240, United States",
+"submitted": "2026-01-27"
+},
+{
+"reg": "20250114",
+"name": "Elevar, LLC",
+"email": "privacy@getelevar.com",
+"website": "getelevar.com",
+"rightsLink": "https://getelevar.com/consumer-personal-information-requests/",
+"phone": "8173323681",
+"address": "2651 S Polaris Drive, Fort Worth, TX, 76, United States",
+"submitted": "2026-04-16"
+},
+{
+"reg": "20240180",
+"name": "Enformion, LLC",
+"email": "databroker@enformion.com",
+"website": "enformion.com",
+"rightsLink": "https://www.enformion.com/privacy-policy/",
+"phone": "8552813915",
+"address": "1915 21st St, Sacramento, California, 95811, United States",
+"submitted": "2025-11-21"
+},
+{
+"reg": "20240042",
+"name": "EproDirect LLC",
+"email": "tracy.fairman@eprodirect.com",
+"website": "https://eprodirect.com",
+"rightsLink": "",
+"phone": "5614175513",
+"address": "1651 NW 1st Court, Boca Raton, Florida, 33432, United States",
+"submitted": "2025-02-03"
+},
+{
+"reg": "20240161",
+"name": "Epsilon Data Management, LLC",
+"email": "privacy@epsilon.com",
+"website": "www.epsilon.com",
+"rightsLink": "https://legal.epsilon.com/dsr/",
+"phone": "8662673861",
+"address": "6021 CONNECTION DR, IRVING, TX, 75039-2607, United States",
+"submitted": "2026-10-09"
+},
+{
+"reg": "20250120",
+"name": "Equation Consulting, LLC",
+"email": "equation@finthrive.com",
+"website": "www.finthrive.com",
+"rightsLink": "https://finthrive.com/texas-data-broker-disclosure-equation-consulting?hs_preview=jhDXCUDm-205479481866",
+"phone": "8558283147",
+"address": "7950 LEGACY DR, PLANO, TX, 75024-0235, United States",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20240028",
+"name": "Equifax Information Services LLC",
+"email": "usprivacy@equifax.com",
+"website": "www.equifax.com",
+"rightsLink": "https://www.equifax.com/personal/my-privacy/",
+"phone": "18662956801",
+"address": "1550 Peachtree Street, NW, Atlanta, Georgia, 30309, United States",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20260030",
+"name": "EverView Holdco, Inc",
+"email": "etprivacydb@evertrue.com",
+"website": "www.evertrue.com",
+"rightsLink": "https://www.evertrue.com/privacy-policy/",
+"phone": "8553878783",
+"address": "510 E 96TH ST, INDIANAPOLIS, IN, 46240-4046, United States",
+"submitted": "2026-02-05"
+},
+{
+"reg": "20260072",
+"name": "Exact Opco LLC",
+"email": "mkeilson@wtlaw.com",
+"website": "www.exactcustomer.com",
+"rightsLink": "https://exactcustomer.com/privacy-policy/",
+"phone": "3054983216",
+"address": "552 7TH AVE, Suite 401, NEW YORK, NY, 10018-3202, United States",
+"submitted": "2026-03-18"
+},
+{
+"reg": "20250039",
+"name": "eXelate, Inc.",
+"email": "privacy.department@nielsen.com",
+"website": "https://www.nielsen.com/",
+"rightsLink": "https://privacyportal-de.onetrust.com/webform/70b0083d-d519-4ad2-84ca-96b7c5f8e1a9/85c00ce0-85a5-4c1c-bb29-2967224c1b83",
+"phone": "4107177134",
+"address": "675 Avenue of the Americas, New York, NY, 10010, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20240175",
+"name": "Experian Health, Inc.",
+"email": "privacy@experian.com",
+"website": "https://www.experian.com/healthcare/",
+"rightsLink": "https://www.experian.com/privacy/us-consumer-data-privacy-policy",
+"phone": "18332104615",
+"address": "720 Cool Springs Blvd, Suite 200, Franklin, Tennessee, 37067-2626, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20240012",
+"name": "Experian Information Solutions, Inc.",
+"email": "privacy@experian.com",
+"website": "https://www.experian.com",
+"rightsLink": "https://www.experian.com/privacy/us-consumer-data-privacy-policy",
+"phone": "18332104615",
+"address": "475 Anton Blvd, Costa Mesa, California, 92626-7037, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20240011",
+"name": "Experian Marketing Solutions, LLC",
+"email": "privacy@experian.com",
+"website": "www.experian.com",
+"rightsLink": "https://www.experian.com/privacy/us-consumer-data-privacy-policy",
+"phone": "18332104615",
+"address": "1515 E. Woodfield Rd. Suite 500, Schaumburg, Illinois, 60173-6046, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20250167",
+"name": "Explorium Inc.",
+"email": "oshrat@explorium.ai",
+"website": "www.explorium.ai",
+"rightsLink": "https://www.explorium.ai/do-not-sell-my-personal-info/",
+"phone": "4454563349",
+"address": "850 Main St., Redwood city, California, 94063, United States",
+"submitted": "2026-08-25"
+},
+{
+"reg": "20260111",
+"name": "Facteus, Inc.",
+"email": "john.dettra@facteus.com",
+"website": "www.facteus.com",
+"rightsLink": "www.facteus.com",
+"phone": "5038038318",
+"address": "6650 SW REDWOOD LN, PORTLAND, OR, 97224-7421, United States",
+"submitted": "2026-06-12"
+},
+{
+"reg": "20260083",
+"name": "Factori Technologies Pte Ltd.",
+"email": "privacy@factori.ai",
+"website": "https://factori.ai/",
+"rightsLink": "https://factori.ai/privacy-policy/",
+"phone": "6597270234",
+"address": "80 Raffles Place, #54-01/02 UOB Plaza, Singapore-048624",
+"submitted": "2026-04-02"
+},
+{
+"reg": "20250046",
+"name": "Family Tree Now, LLC",
+"email": "privacy@familytreenow.zendesk.com",
+"website": "familytreenow.com",
+"rightsLink": "https://www.familytreenow.com/privacy",
+"phone": "8778384889",
+"address": "1915 21ST ST, SACRAMENTO, CA, 95811-6813, United States",
+"submitted": "2025-11-21"
+},
+{
+"reg": "20250099",
+"name": "Faraday, Inc.",
+"email": "privacy@faraday.ai",
+"website": "https://faraday.ai/",
+"rightsLink": "https://faraday.ai/privacy-options",
+"phone": "8024580441",
+"address": "PO Box 17, Waterbury Ctr., Vermont, 05677, United States",
+"submitted": "2026-04-13"
+},
+{
+"reg": "20260135",
+"name": "FI Navigator Corporation",
+"email": "privacy@fi-navigator.com",
+"website": "fi-navigator.com",
+"rightsLink": "https://www.fi-navigator.com/privacy-policy/",
+"phone": "4046922829",
+"address": "50 GLENLAKE PKWY, SANDY SPRINGS, GA, 30328-7303, United States",
+"submitted": "2026-07-23"
+},
+{
+"reg": "20240076",
+"name": "Fideo Intelligence, Inc.",
+"email": "legal@fideo.ai",
+"website": "www.fideo.ai",
+"rightsLink": "https://app.fideo.ai/your-privacy-choices",
+"phone": "18883306943",
+"address": "1580 N LOGAN ST, DENVER, CO, 80203-1939, United States",
+"submitted": "2026-08-25"
+},
+{
+"reg": "20260140",
+"name": "Firmable Inc.",
+"email": "privacy@firmable.com",
+"website": "https://firmable.com",
+"rightsLink": "https://firmable.ai/privacy-policy",
+"phone": "6282099273",
+"address": "535 MISSION ST, SAN FRANCISCO, CA, 94105-2997, United States",
+"submitted": "2026-07-24"
+},
+{
+"reg": "20240038",
+"name": "First Direct, Inc",
+"email": "privacy@firstdirectmarketing.com",
+"website": "https://firstdirectmarketing.com",
+"rightsLink": "https://compliance.firstdirectmarketing.com/",
+"phone": "4024030000",
+"address": "1508 J F Kennedy Dr, Suite 102, Bellevue, Nebraska, 68005, United States",
+"submitted": "2026-10-10"
+},
+{
+"reg": "20240126",
+"name": "FIRST ORION CORP.",
+"email": "cdenton@firstorion.com",
+"website": "www.firstorion.com",
+"rightsLink": "https://firstorion.com/legal/",
+"phone": "5013589391",
+"address": "520 Main St, Ste 400, North Little Rock, Arkansas, 72114, United States",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20240115",
+"name": "Focus USA. Inc",
+"email": "johnf@focus-usa.com",
+"website": "htttps://www.focus-usa.com",
+"rightsLink": "https://www.focus-usa.com/consumer-rights-privacy-notice/",
+"phone": "2014892525",
+"address": "PO Box 1782, Paramus, New Jersey, 07653, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20250021",
+"name": "Forager.ai, LLC",
+"email": "legal@forager.ai",
+"website": "forager.ai",
+"rightsLink": "https://app.forager.ai/privacy",
+"phone": "8182826243",
+"address": "4001 N OCEAN BLVD, GULF STREAM, FL, 33483-7525, United States",
+"submitted": "2026-01-07"
+},
+{
+"reg": "20240074",
+"name": "FOREWARN, LLC",
+"email": "Statebasedprivacy@FOREWARN.com",
+"website": "https://www.forewarn.com/",
+"rightsLink": "",
+"phone": "8555180897",
+"address": "2650 N Military Trail, Boca Raton, Florida, 33431, United States",
+"submitted": "2025-01-17"
+},
+{
+"reg": "20260177",
+"name": "Forian Holdings, LLC",
+"email": "dan.pagliarello@forian.com",
+"website": "forian.com",
+"rightsLink": "https://forian.com/privacy-notice/",
+"phone": "8605738753",
+"address": "41 UNIVERSITY DR, NEWTOWN, PA, 18940-1873, United States",
+"submitted": "2026-09-23"
+},
+{
+"reg": "20240270",
+"name": "FourLeaf LLC",
+"email": "privacy@fourleafdata.com",
+"website": "www.fourleafdata.com",
+"rightsLink": "https://www.fourleafdata.com/privacy-policy/",
+"phone": "8003606213",
+"address": "30 N GOULD ST, SHERIDAN, WY, 82801-6317, United States",
+"submitted": "2026-10-15"
+},
+{
+"reg": "20240253",
+"name": "Foursquare Labs, Inc.",
+"email": "privacy@foursquare.com",
+"website": "https://foursquare.com/",
+"rightsLink": "https://foursquare.com/legal/privacy-center/us-state-consumer-privacy-notice/",
+"phone": "(800) 673-0117",
+"address": "50 W 23rd Street, 8th Floor, New York, New York, 10010, United States",
+"submitted": "2025-12-02"
+},
+{
+"reg": "20250056",
+"name": "Free Data Services, LLC",
+"email": "privacy@truepeoplesearch.com",
+"website": "truepeoplesearch.com",
+"rightsLink": "https://www.truepeoplesearch.com/privacy",
+"phone": "8888384803",
+"address": "1915 21ST ST, SACRAMENTO, CA, 95811-6813, United States",
+"submitted": "2025-11-21"
+},
+{
+"reg": "20250190",
+"name": "Freewheel Media, Inc.",
+"email": "legalnotices@freewheel.tv",
+"website": "www.freewheel.com",
+"rightsLink": "https://www.freewheel.com/privacy-policy#tab1_section1_4",
+"phone": "8889306228",
+"address": "1407 BROADWAY, 12TH FLOOR, NEW YORK, NY, 10018-5100, United States",
+"submitted": "2026-08-05"
+},
+{
+"reg": "20260147",
+"name": "FullEnrich Corp",
+"email": "legal@fullenrich.com",
+"website": "https://fullenrich.com/",
+"rightsLink": "https://fullenrich.com/optout",
+"phone": "3478187850",
+"address": "1550 Bryant Street, Suite 400, San Francisco, CA, 94103, United States",
+"submitted": "2026-08-11"
+},
+{
+"reg": "20260091",
+"name": "Gather Analytics, LLC",
+"email": "privacy@gatheranalytics.co",
+"website": "https://www.gatheranalytics.co/",
+"rightsLink": "https://www.gatheranalytics.co/privacy",
+"phone": "18002906826",
+"address": "200 BROADWAY, NEW YORK, NY, 10038-2595, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20250164",
+"name": "GETEMAILS LLC",
+"email": "compliance@retention.com",
+"website": "www.retention.com",
+"rightsLink": "https://www.retention.com/article-update-privacy-policy",
+"phone": "5128256028",
+"address": "1401 Lavaca St, Unit 298, AUSTIN, Texas, 78701, United States",
+"submitted": "2026-05-07"
+},
+{
+"reg": "20250139",
+"name": "Giant Partners, Inc.",
+"email": "nikki@giantpartners.com",
+"website": "www.giantpartners.com",
+"rightsLink": "https://giantpartners.com/do-not-sell-my-personal-info-all-other-states/",
+"phone": "8052671575",
+"address": "112 Lakeview Canyon Road, Westlake Village, California, 91362, United States",
+"submitted": "2026-06-16"
+},
+{
+"reg": "20260016",
+"name": "Gigabite Inc",
+"email": "privacy@boam.com",
+"website": "https://boam.ai/",
+"rightsLink": "https://boam.ai/privacy-policy",
+"phone": "4086135720",
+"address": "252 NW 29TH ST, MIAMI, FL, 33127-3902, United States",
+"submitted": "2026-01-22"
+},
+{
+"reg": "20260018",
+"name": "Global Source Data Solutions Inc",
+"email": "privacy@gsdsi.com",
+"website": "gsdsi.com",
+"rightsLink": "https://gsdsi.com/privacy",
+"phone": "9542707722",
+"address": "3410 GALT OCEAN DR 2103N, FORT LAUDERDALE, FL, 33308-7280, United States",
+"submitted": "2026-01-20"
+},
+{
+"reg": "20260151",
+"name": "Graph8 Inc.",
+"email": "compliance@graph8.com",
+"website": "www.graph8.com",
+"rightsLink": "https://graph8.com/terms/#privacy-policy",
+"phone": "7543006576",
+"address": "360 NW 27th St, Miami, FL, 33127, United States",
+"submitted": "2026-08-16"
+},
+{
+"reg": "20260159",
+"name": "Grassroots Analytics, Inc.",
+"email": "compliance@grassrootsanalytics.com",
+"website": "https://www.grassrootsanalytics.com/",
+"rightsLink": "https://www.grassrootsanalytics.com/website-privacypolicy",
+"phone": "2022402456",
+"address": "806 7th Street NW, Washington, DC, 20001, United States",
+"submitted": "2026-08-25"
+},
+{
+"reg": "20250170",
+"name": "GrayHair Software LLC",
+"email": "privacy@grayhairsoftware.com",
+"website": "https://grayhairsoftware.com/",
+"rightsLink": "https://grayhairsoftware.com/privacy-policy/",
+"phone": "8567279372",
+"address": "1 SE OCEAN BLVD, STUART, FL, 34994-2214, United States",
+"submitted": "2026-06-23"
+},
+{
+"reg": "20260168",
+"name": "Greenstein Property Tax LLC",
+"email": "alex@atxteaparty.com",
+"website": "atxteaparty.com",
+"rightsLink": "www.atxteaparty.com/privacy",
+"phone": "4074561200",
+"address": "5900 BALCONES DR, AUSTIN, TX, 78731-4298, United States",
+"submitted": "2026-09-10"
+},
+{
+"reg": "20250085",
+"name": "Growing Libraries, LLC",
+"email": "ian@growinglibraries.com",
+"website": "www.growinglibraries.com",
+"rightsLink": "https://growinglibraries.com/privacy-policy",
+"phone": "3025549967",
+"address": "8 THE GRN # 15998, DOVER, DE, 19901-3618, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20260124",
+"name": "GROWTHCODE LLC",
+"email": "jonathon@growthcode.io",
+"website": "https://growthcode.io",
+"rightsLink": "https://www.growthcode.io/do-not-sell",
+"phone": "6469262150",
+"address": "47 E 88TH ST, NEW YORK, NY, 10128-1152, United States",
+"submitted": "2026-06-29"
+},
+{
+"reg": "20250166",
+"name": "Guidestar Direct, Corp",
+"email": "privacy@carneydirect.com",
+"website": "www.carneydirect.com",
+"rightsLink": "https://www.carneydirect.com/privacy-policy/",
+"phone": "9495815100",
+"address": "10 Hughes Suite A201, Irvine, California, 92618, United States",
+"submitted": "2026-06-25"
+},
+{
+"reg": "20240001",
+"name": "HealthWise Data LLC",
+"email": "tgibson@HealthWisedata.com",
+"website": "www.healthwisedata.com",
+"rightsLink": "https://healthwisedata.com/compliance-optout/",
+"phone": "9088886061",
+"address": "300 Colonial Center Pkwy, Roswell, Georgia, 30076, United States",
+"submitted": "2026-08-21"
+},
+{
+"reg": "20240019",
+"name": "Heartbeat.ai Inc",
+"email": "ben@swordfishapp.com",
+"website": "https://www.heartbeat.ai/",
+"rightsLink": "https://heartbeat.ai/texas-privacy-rights",
+"phone": "13323334114",
+"address": "8 THE GREEN, DOVER, Delaware, 19901, United States",
+"submitted": "2025-12-22"
+},
+{
+"reg": "20250087",
+"name": "Helix Campaigns LLC",
+"email": "info@helixcampaigns.com",
+"website": "helixcampaigns.com",
+"rightsLink": "helixcampaigns.com/privacy",
+"phone": "4435846567",
+"address": "1 LOGAN CIR NW #7, WASHINGTON, DC, 20005-3757, United States",
+"submitted": "2026-05-06"
+},
+{
+"reg": "20260093",
+"name": "HGOnline, LLC",
+"email": "Shane@tripwiredata.com",
+"website": "tripwiredata.com",
+"rightsLink": "https://www.tripwiredata.com/texas-data-broker-notice",
+"phone": "9728325836",
+"address": "14716 LITTLE ANNE DR, LITTLE ELM, TX, 75068-2770, United States",
+"submitted": "2026-04-20"
+},
+{
+"reg": "20240016",
+"name": "HireTeamMate, Inc. dba hireEZ",
+"email": "privacy@hireez.com",
+"website": "www.hireez.com",
+"rightsLink": "https://app.hireez.com/policies/databrokerregistration",
+"phone": "18887979291",
+"address": "2513 E. Charleston Rd. Suite 200, Mountain View, California, 94043, United States",
+"submitted": "2026-03-25"
+},
+{
+"reg": "20240013",
+"name": "I360, LLC",
+"email": "privacy@i-360.com",
+"website": "https://www.i-360.com",
+"rightsLink": "https://www.i-360.com/disclosures/",
+"phone": "8446112737",
+"address": "2300 Clarendon Blvd, Suite 800, Arlington, Virginia, 22201, United States",
+"submitted": "2025-12-17"
+},
+{
+"reg": "20260020",
+"name": "IDMAP INC",
+"email": "michael.belsky@idmap.ai",
+"website": "idmap.ai",
+"rightsLink": "https://idmap.ai/privacy-policy.html",
+"phone": "7757667006",
+"address": "8 THE GRN NUM 20070, DOVER, DE, 19901-3618, United States",
+"submitted": "2026-01-27"
+},
+{
+"reg": "20260148",
+"name": "Inbound Insight, LLC",
+"email": "privacy@inboundinsight.com",
+"website": "https://inboundinsight.com/",
+"rightsLink": "https://inboundinsight.com/texas-privacy-policy",
+"phone": "2126559807",
+"address": "157 EW 57th St 15E, New York, NY, 10022, United States",
+"submitted": "2026-08-12"
+},
+{
+"reg": "20260031",
+"name": "Index Exchange Inc.",
+"email": "privacy@indexexchange.com",
+"website": "https://www.indexexchange.com/",
+"rightsLink": "https://www.indexexchange.com/privacy/rights-exercising-rights/",
+"phone": "14167855908",
+"address": "8 Spadina Ave. Suite 2900, Toronto, ON M5V 0S8",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20250162",
+"name": "Infillion Inc.",
+"email": "privacy@infillion.com",
+"website": "www.infillion.com",
+"rightsLink": "https://privacyportal.onetrust.com/webform/7665c53e-aae8-4a03-9dd3-66fb6bce8f55/22033015-0970-44c0-b5a5-8b180f7e4ef1",
+"phone": "18444419869",
+"address": "853 BROADWAY, NEW YORK, NY, 10003-4703, United States",
+"submitted": "2026-06-09"
+},
+{
+"reg": "20240213",
+"name": "Infinite Media Concepts Inc",
+"email": "unsubscribe@mailinglists.com",
+"website": "www.mailinglists.com",
+"rightsLink": "https://mailinglists.com/about/privacy-policy",
+"phone": "9149498300",
+"address": "190 East Post Road 2nd Floor, White Plains, New York, 10601, United States",
+"submitted": "2026-01-29"
+},
+{
+"reg": "20250146",
+"name": "InfoPay, Inc",
+"email": "compliance@infopay.com",
+"website": "https://www.infopay.com/",
+"rightsLink": "https://www.infopay.com/privacy",
+"phone": "8003099351",
+"address": "227 Lewis Wharf, Boston, Massachusetts, 02110, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20260138",
+"name": "Information.com LLC",
+"email": "TXcompliance@information.com",
+"website": "Information.com",
+"rightsLink": "https://checkpeople.slack.com/archives/D091EEUN10U/p1784133154145349",
+"phone": "5613497313",
+"address": "8875 HIDDEN RIVER PKWY, TAMPA, FL, 33637-2087, United States",
+"submitted": "2026-07-15"
+},
+{
+"reg": "20260032",
+"name": "Inmar Brand Solutions, Inc.",
+"email": "databroker@inmar.com",
+"website": "inmar.com",
+"rightsLink": "https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html",
+"phone": "8007651277",
+"address": "1 W 4TH ST, WINSTON SALEM, NC, 27101-3971, United States",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20250200",
+"name": "Innovation Brands Corp",
+"email": "privacy@proxima.ai",
+"website": "www.proxima.ai",
+"rightsLink": "www.proxima.ai/privacy",
+"phone": "5099996010",
+"address": "100 CROSBY ST, NEW YORK, NY, 10012-4715, United States",
+"submitted": "2025-12-01"
+},
+{
+"reg": "20260125",
+"name": "Innovative Data Services, Inc.",
+"email": "jadams@specialistsdata.com",
+"website": "www.specialistsmarketingsolutions.com",
+"rightsLink": "https://specialistsmarketingsolutions.com/privacy-notice/",
+"phone": "5616063401",
+"address": "1300 WALT WHITMAN RD, MELVILLE, NY, 11747-3001, United States",
+"submitted": "2026-06-30"
+},
+{
+"reg": "20250174",
+"name": "Insight Data Solutions LLC",
+"email": "compliance@idatabasesolutions.com",
+"website": "www.idatabasesolutions.com",
+"rightsLink": "https://idatabasesolutions.com/do-not-sell-my-personal-info/",
+"phone": "3038343412",
+"address": "9800 PYRAMID CT STE 400, ENGLEWOOD, CO, 80112-2669, United States",
+"submitted": "2026-07-06"
+},
+{
+"reg": "20260035",
+"name": "Institute for Police Conduct",
+"email": "hello@policeconduct.org",
+"website": "www.policeconduct.org",
+"rightsLink": "https://policeconduct.org/legal-notice/privacy",
+"phone": "6122089601",
+"address": "5900 BALCONES DR, AUSTIN, TX, 78731-4257, United States",
+"submitted": "2026-01-17"
+},
+{
+"reg": "20260023",
+"name": "Intent IQ LLC",
+"email": "eitan.krasner@intentiq.com",
+"website": "www.intentiq.com",
+"rightsLink": "https://www.intentiq.com/opt-out/",
+"phone": "972545657165",
+"address": "250 BROADWAY, NEW YORK, NY, 10007-2585, United States",
+"submitted": "2026-01-25"
+},
+{
+"reg": "20260179",
+"name": "Intentsify, LLC",
+"email": "robyn.tas@intentsify.io",
+"website": "www.intentsify.io",
+"rightsLink": "https://intentsify.io/privacy-policy/consumer-data-privacy-policy/",
+"phone": "5085457902",
+"address": "1 University Avenue, Suite 2C, South Lobby, Westwood, MA, 02090, United States",
+"submitted": "2026-09-25"
+},
+{
+"reg": "20260041",
+"name": "INTERACTIVE DATA, LLC",
+"email": "statebasedprivacy@ididata.com",
+"website": "https://www.ididata.com/",
+"rightsLink": "https://www.ididata.com/idis-privacy-statement/",
+"phone": "8883766659",
+"address": "2650 N MILITARY TRL, BOCA RATON, FL, 33431-6350, United States",
+"submitted": "2026-01-29"
+},
+{
+"reg": "20260065",
+"name": "iovation Inc.",
+"email": "Privacy@transunion.com",
+"website": "https://www.transunion.com/privacy/iovation",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20260017",
+"name": "IQVIA Digital, Inc.",
+"email": "privacyofficer@iqvia.com",
+"website": "https://www.iqviadigital.com/",
+"rightsLink": "https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f",
+"phone": "8662674479",
+"address": "100 IMS DR, PARSIPPANY, NJ, 07054-2957, United States",
+"submitted": "2026-01-27"
+},
+{
+"reg": "20250217",
+"name": "Irys Inc",
+"email": "Privacy@irys.us",
+"website": "https://irys.us",
+"rightsLink": "https://irys.us/privacy-policy",
+"phone": "3199369044",
+"address": "244 5th avenue, New York City, NY, 10031, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20250098",
+"name": "iSpot.TV, Inc.",
+"email": "legal@ispot.tv",
+"website": "ispot.tv",
+"rightsLink": "https://www.ispot.tv/hub/agreements/privacy/",
+"phone": "8553162377",
+"address": "3180 139TH AVE SE, BELLEVUE, WA, 98005-4092, United States",
+"submitted": "2026-05-06"
+},
+{
+"reg": "20240089",
+"name": "IXI Corporation",
+"email": "usprivacy@equifax.com",
+"website": "www.equifax.com",
+"rightsLink": "https://www.equifax.com/personal/my-privacy/",
+"phone": "18662956801",
+"address": "1550 Peachtree Street, NW, Atlanta, Georgia, 30309, United States",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20260046",
+"name": "J.D. Power",
+"email": "jdpowerprivacy@jdpa.com",
+"website": "https://www.jdpower.com/",
+"rightsLink": "https://www.jdpower.com/privacy/dsar",
+"phone": "8054188000",
+"address": "320 E BIG BEAVER RD, TROY, MI, 48083-1268, United States",
+"submitted": "2026-02-13"
+},
+{
+"reg": "20250181",
+"name": "J2 Global Canada, Inc.",
+"email": "privacy@ziffdavis.com",
+"website": "https://www.ziffdavis.com/brands/martech/campaigner",
+"rightsLink": "https://www.campaigner.com/legal/privacy-policy/",
+"phone": "2125033500",
+"address": "2 Gurdwara Rd, 3rd Floor\nNepean, ON K2E 1A2",
+"submitted": "2026-08-19"
+},
+{
+"reg": "20250180",
+"name": "J2 Martech Corp",
+"email": "privacy@fullcontact.com",
+"website": "https://www.fullcontact.com/",
+"rightsLink": "https://platform.fullcontact.com/your-privacy-choices",
+"phone": "2125033500",
+"address": "360 Park Ave South, Floor 17, New York, TX, 10011, United States",
+"submitted": "2026-08-19"
+},
+{
+"reg": "20260080",
+"name": "JG Media, Inc.",
+"email": "dev@communityimpact.com",
+"website": "https://communityimpact.com/",
+"rightsLink": "https://communityimpact.com/consumer-rights",
+"phone": "5129896808",
+"address": "16225 IMPACT WAY, PFLUGERVILLE, TX, 78660-4403, United States",
+"submitted": "2026-03-25"
+},
+{
+"reg": "20260071",
+"name": "JJGarrett Holdings LLC dba Community Impact Printing",
+"email": "dludwick@communityimpact.com",
+"website": "ciprinting.com",
+"rightsLink": "https://ciprinting.com/privacy/",
+"phone": "5126151299",
+"address": "16121 Impact Way, Pflugerville, TX, 78660, United States",
+"submitted": "2026-03-09"
+},
+{
+"reg": "20260050",
+"name": "JMR Media Consulting, Inc.",
+"email": "jon@jmr-media.com",
+"website": "www.jmr-media.com",
+"rightsLink": "https://jmr-media.com/privacy-notice",
+"phone": "9542057282",
+"address": "8212 NW 120TH WAY, CORAL SPRINGS, FL, 33076-3549, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20250092",
+"name": "Juicebox App, Inc.",
+"email": "angela@juicebox.ai",
+"website": "https://juicebox.ai/",
+"rightsLink": "https://juicebox.ai/privacy-center",
+"phone": "4435389591",
+"address": "77 Federal Street, Flr 2, SAN FRANCISCO, CA, 94107-1809, United States",
+"submitted": "2026-03-25"
+},
+{
+"reg": "20260011",
+"name": "Key Marketing Advantage, LLC",
+"email": "lbridson@keymarketingadvantage.com",
+"website": "www.keymarketingadvantage.com",
+"rightsLink": "https://keymarketingadvantage.com/do_not_use_my_personal_information         https://keymarketingadvantage.com/privacy_policy",
+"phone": "2034912200",
+"address": "7 EDMUND RD, NEWTOWN, CT, 06470-1650, United States",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20250165",
+"name": "Klarifi ApS",
+"email": "soren@klarifi.io",
+"website": "www.klarifi.io",
+"rightsLink": "https://klarifi.io/privacy-center",
+"phone": "4136000056",
+"address": "R\u00e5dhuspladsen 16\n1550 Copenhagen V\nDenmark",
+"submitted": "2026-04-30"
+},
+{
+"reg": "20260173",
+"name": "Kloudend, Inc.",
+"email": "legal@kloudend.com",
+"website": "ipapi.co",
+"rightsLink": "https://ipapi.co/privacy",
+"phone": "4085506507",
+"address": "C828 Sector C Mahanagar Lucknow",
+"submitted": "2026-09-06"
+},
+{
+"reg": "20240035",
+"name": "Knowledge Works, Inc.",
+"email": "usprivacy@equifax.com",
+"website": "https://sbinsights.paynetonline.com/why-register/",
+"rightsLink": "https://www.equifax.com/personal/my-privacy/",
+"phone": "18662956801",
+"address": "1550 Peachtree Street, NW, Atlanta, GA, 30309, United States",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20240061",
+"name": "Labels & Lists, Inc",
+"email": "SCOTT.SEMEL@L2-DATA.COM",
+"website": "L2-data.com",
+"rightsLink": "https://www.l2-data.com/",
+"phone": "7322994630",
+"address": "18912 N CREEK PKWY BLDG A, BOTHELL, Washington, 98011, United States",
+"submitted": "2026-10-08"
+},
+{
+"reg": "20260010",
+"name": "Lara Agency Inc",
+"email": "larafinancial@gmail.com",
+"website": "https://agents.farmers.com/tx/houston/jose-lara/?SourceID=AMPALFGMAG&utm_medium=Local&utm_source=GMB",
+"rightsLink": "https://agents.farmers.com/tx/houston/jose-lara/?SourceID=AMPALFGMAG&utm_medium=Local&utm_source=GMB",
+"phone": "7132780557",
+"address": "1880 S DAIRY ASHFORD RD, HOUSTON, TX, 77077-4854, United States",
+"submitted": "2026-10-14"
+},
+{
+"reg": "20240030",
+"name": "Lead Intelligence, Inc. D/B/A InfutorData",
+"email": "vmsprivacy@verisk.com",
+"website": "https://marketing.verisk.com/",
+"rightsLink": "https://marketing.verisk.com/privacy-center/",
+"phone": "8008884476",
+"address": "5900 BALCONES DR, AUSTIN, TX, 78731-4298, United States",
+"submitted": "2026-02-23"
+},
+{
+"reg": "20250155",
+"name": "Lead411 Corporation",
+"email": "tom@lead411.io",
+"website": "lead411.com",
+"rightsLink": "https://www.lead411.com/your-privacy-choices/",
+"phone": "5055002317",
+"address": "4655 7th Street, Boulder, Colorado, 80304, United States",
+"submitted": "2026-06-26"
+},
+{
+"reg": "20240066",
+"name": "LeadIQ, Inc.",
+"email": "accounting@leadiq.com",
+"website": "www.leadiq.com",
+"rightsLink": "https://leadiq.com/privacy-center",
+"phone": "8886532347",
+"address": "548 Market Street, PMB 20317, San Francisco, California, 94104, United States",
+"submitted": "2026-03-02"
+},
+{
+"reg": "20250018",
+"name": "LeadPost LLC",
+"email": "amanda@leadpost.com",
+"website": "www.leadpost.com",
+"rightsLink": "https://leadpost.com/privacy-policy/",
+"phone": "8664566674",
+"address": "555 WASHINGTON AVE, SAINT LOUIS, MO, 63101-1249, United States",
+"submitted": "2026-08-13"
+},
+{
+"reg": "20250109",
+"name": "Leadpsace Inc",
+"email": "compliance_privacy@leadspace.com",
+"website": "www.leadspace.com",
+"rightsLink": "https://www.leadspace.com/do-not-sell-form",
+"phone": "18555323772",
+"address": "530 LYTTON AVE, PALO ALTO, CA, 94301-1556, United States",
+"submitted": "2026-03-11"
+},
+{
+"reg": "20260156",
+"name": "Learnmore, LLC DBA Learnmore.com",
+"email": "Texascompliance@learnmore.com",
+"website": "learnmore.com",
+"rightsLink": "https://learnmore.com/privacy-policy/",
+"phone": "3213766933",
+"address": "901 N Market St. Suite 100, Wilmington, DE, 19801, United States",
+"submitted": "2026-08-21"
+},
+{
+"reg": "20250043",
+"name": "Leidos Digital Solutions, Inc.",
+"email": "teresa.chesson@leidos.com",
+"website": "https://leidosiq.com/",
+"rightsLink": "https://leidosiq.com",
+"phone": "7032085006",
+"address": "6909 Metro Park Drive, Alexandria, VA, 22310, United States",
+"submitted": "2025-11-18"
+},
+{
+"reg": "20260170",
+"name": "LEMPIRE (TALKUS)",
+"email": "privacy@lemlist.com",
+"website": "lemlist.com",
+"rightsLink": "privacy@lemlist.com",
+"phone": "33000000000",
+"address": "128 RUE LA BOETIE, 75008 PARIS",
+"submitted": "2026-09-14"
+},
+{
+"reg": "20260145",
+"name": "Leverage Digital LLC",
+"email": "privacy@leveragedigital.ai",
+"website": "https://leveragedigital.ai",
+"rightsLink": "https://leveragedigital.ai/privacy-policy/",
+"phone": "5164248988",
+"address": "1763 COLUMBIA RD NW, WASHINGTON, DC, 20009-2834, United States",
+"submitted": "2026-07-29"
+},
+{
+"reg": "20260059",
+"name": "LexisNexis Risk Solutions FL Inc.",
+"email": "consumer.documents@lexisnexisrisk.com",
+"website": "https://risk.lexisnexis.com/",
+"rightsLink": "https://consumer.risk.lexisnexis.com/privacy",
+"phone": "8882171591",
+"address": "1000 ALDERMAN DR, ALPHARETTA, GA, 30005-4101, United States",
+"submitted": "2026-02-25"
+},
+{
+"reg": "20240010",
+"name": "LexisNexis, a division of RELX Inc.",
+"email": "privacy.inquiries@lexisnexis.com",
+"website": "https://www.lexisnexis.com/global/privacy/en/privacy-center-us.page",
+"rightsLink": "https://www.lexisnexis.com/en-us/terms/us-privacy-notice.page",
+"phone": "8008973259",
+"address": "1801 Varsity Drive, Raleigh, North Carolina, 27606, United States",
+"submitted": "2026-01-05"
+},
+{
+"reg": "20260077",
+"name": "LightBox Parent, L.P.",
+"email": "jfranks@lightboxre.com",
+"website": "lightboxre.com",
+"rightsLink": "https://www.lightboxre.com/lightbox-individual-data-rights-request/",
+"phone": "9495846204",
+"address": "6 ARMSTRONG RD, SHELTON, CT, 06484-4722, United States",
+"submitted": "2026-03-24"
+},
+{
+"reg": "20250078",
+"name": "ListKit LLC",
+"email": "support@listkit.io",
+"website": "listkit.io",
+"rightsLink": "https://www.listkit.io/privacy-statement",
+"phone": "2727882122",
+"address": "8 THE GREEN STE 12710, DOVER, DE, 19901-3618, United States",
+"submitted": "2026-04-08"
+},
+{
+"reg": "20250175",
+"name": "Live Data Technologies Inc.",
+"email": "accounting@livedatatechnologies.com",
+"website": "https://www.livedatatechnologies.com/",
+"rightsLink": "https://www.livedatatechnologies.com/opting",
+"phone": "8055003293",
+"address": "15 W FIGUEROA ST, SANTA BARBARA, CA, 93101-3130, United States",
+"submitted": "2026-08-24"
+},
+{
+"reg": "20250137",
+"name": "LiveIntent",
+"email": "bhayes@zetaglobal.com",
+"website": "www.liveintent.com",
+"rightsLink": "https://privacy.liveintent.com/",
+"phone": "2023687202",
+"address": "3 PARK AVENUE, NEW YORK, NY, 10016, United States",
+"submitted": "2026-04-23"
+},
+{
+"reg": "20240003",
+"name": "LiveRamp Holdings Inc.",
+"email": "consumercare@liveramp.com",
+"website": "www.liveramp.com",
+"rightsLink": "https://liveramp.com/privacy/my-privacy-choices",
+"phone": "866-853-3267",
+"address": "225 Bush St. 17th Floor, San Francisco, California, 94104, United States",
+"submitted": "2025-12-02"
+},
+{
+"reg": "20260161",
+"name": "LogicTree, Inc.",
+"email": "marc@logictree.com",
+"website": "https://www.data247.com",
+"rightsLink": "https://www.data247.com/privacy",
+"phone": "7818640108",
+"address": "15 MAIN ST, FRANKLIN, MA, 02038-1914, United States",
+"submitted": "2026-09-01"
+},
+{
+"reg": "20250182",
+"name": "Lookify, LLC",
+"email": "support@lookify.io",
+"website": "lookify.io",
+"rightsLink": "https://lookify.io/privacy-policy",
+"phone": "5165193689",
+"address": "3571 FAR WEST BLVD, AUSTIN, TX, 78731-3064, United States",
+"submitted": "2026-09-01"
+},
+{
+"reg": "20250008",
+"name": "LoopMe Ltd",
+"email": "legal@loopme.com",
+"website": "https://loopme.com/",
+"rightsLink": "https://legal.loopme.com/privacy-center",
+"phone": "447779991560",
+"address": "Second Floor, The Sans, 20 St John's Sq, London EC1M 4AH",
+"submitted": "2026-08-12"
+},
+{
+"reg": "20260142",
+"name": "LP Brokering LLC",
+"email": "sara@lpbrokering.com",
+"website": "www.LPBrokering.com",
+"rightsLink": "https://privacy.lpbrokering.com/",
+"phone": "4048056386",
+"address": "4040 Fairfax Dr Ste 500, Arlington, TX, 22203, United States",
+"submitted": "2026-07-24"
+},
+{
+"reg": "20240159",
+"name": "Lusha Systems, Inc.",
+"email": "legal@lusha.com",
+"website": "https://www.lusha.com/",
+"rightsLink": "https://www.lusha.com/privacy-center/request-removal/",
+"phone": "7138154097",
+"address": "800 Boylston Street, Suite 1410, Boston, Massachusetts, 02199, United States",
+"submitted": "2025-11-05"
+},
+{
+"reg": "20260001",
+"name": "M1 Data & Analytics, LLC",
+"email": "gashe@m1-data.com",
+"website": "m1-data.com",
+"rightsLink": "https://m1-data.com/unsubscribe/",
+"phone": "9546078179",
+"address": "1000 NW 65TH ST, FORT LAUDERDALE, FL, 33309-1113, United States",
+"submitted": "2026-01-05"
+},
+{
+"reg": "20250178",
+"name": "MadHive, Inc",
+"email": "privacy@madhive.com",
+"website": "https://www.madhive.com/",
+"rightsLink": "https://www.madhive.com/user-rights",
+"phone": "6467274054",
+"address": "225 BROADWAY, NEW YORK, NY, 10007-3001, United States",
+"submitted": "2026-09-09"
+},
+{
+"reg": "20240020",
+"name": "Magnite Inc",
+"email": "privacy@magnite.com",
+"website": "www.magnite.com",
+"rightsLink": "https://www.magnite.com/legal/user-choice-portal/",
+"phone": "3102070272",
+"address": "6080 Center Drive, 4th Floore, Los Angeles, California, 90045, United States",
+"submitted": "2026-09-03"
+},
+{
+"reg": "20250143",
+"name": "MarketOps LLC",
+"email": "privacy@marketops.com",
+"website": "https://www.marketops.com",
+"rightsLink": "https://marketops.com/data-inquiries/",
+"phone": "8662512412",
+"address": "401 RYLAND ST STE 200A, RENO, NV, 89502-1672, United States",
+"submitted": "2026-06-29"
+},
+{
+"reg": "20260062",
+"name": "MarketShare Partners, LLC",
+"email": "Privacy@transunion.com",
+"website": "http://www.transunion.com/",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20260092",
+"name": "Marriott International, Inc.",
+"email": "privacy@marriott.com",
+"website": "https://www.marriott.com/default.mi",
+"rightsLink": "https://www.marriott.com/about/privacy.mi",
+"phone": "18002189316",
+"address": "7750 WISCONSIN AVE, BETHESDA, MD, 20814-3522, United States",
+"submitted": "2026-04-18"
+},
+{
+"reg": "20250172",
+"name": "Matchbook Data, LLC",
+"email": "privacy@matchbookdata.com",
+"website": "https://www.matchbookdata.com/",
+"rightsLink": "https://www.matchbookdata.com/your-privacy-choices/",
+"phone": "7622280583",
+"address": "150 Granby Street, Norfolk, Virginia, 23510, United States",
+"submitted": "2026-06-17"
+},
+{
+"reg": "20240093",
+"name": "MaxMind, Inc.",
+"email": "tgonzalez@maxmind.com",
+"website": "https://www.maxmind.com",
+"rightsLink": "https://www.maxmind.com/en/privacy-policy",
+"phone": "6175004493",
+"address": "51 Pleasant St. #1020, Malden, Massachusetts, 02148, United States",
+"submitted": "2026-03-02"
+},
+{
+"reg": "20250113",
+"name": "Media Resource Group LLC",
+"email": "tom@mrginc.com",
+"website": "www.mrginc.com",
+"rightsLink": "https://mrgstaging.com/policy/mrgprivacy.html",
+"phone": "9146495649",
+"address": "2430 VANDERBILT BEACH RD STE 108-558, NAPLES, FL, 34109-2654, United States",
+"submitted": "2026-02-13"
+},
+{
+"reg": "20240080",
+"name": "MediaZod LLC dba LeadZod",
+"email": "Brian@leadzod.com",
+"website": "HTTP://leadzod.com",
+"rightsLink": "",
+"phone": "9546481439",
+"address": "3418 Stocktie Road, Charlotte, North Carolina, 28210, United States",
+"submitted": "2025-01-30"
+},
+{
+"reg": "20260144",
+"name": "Melissa Data Corporation",
+"email": "ConsumerRequest@melissa.com",
+"website": "https://www.melissa.com/",
+"rightsLink": "https://www.melissa.com/state-law-privacy-notice",
+"phone": "8006354772",
+"address": "22382 AVENIDA EMPRESA, RANCHO SANTA MARGARITA, CA, 92688-2112, United States",
+"submitted": "2026-07-31"
+},
+{
+"reg": "20240149",
+"name": "Merkle Inc",
+"email": "americas.dpo@dentsu.com",
+"website": "www.merkle.com",
+"rightsLink": "https://www.merkle.com/en/privacy-policy/data-product-privacy-notice.html",
+"phone": "5085732311",
+"address": "7001 Columbia Gateway Drive, Columbia, Maryland, 21046, United States",
+"submitted": "2026-07-13"
+},
+{
+"reg": "20250016",
+"name": "Message Digital LLC",
+"email": "privacy@messagedigital.com",
+"website": "messagedigital.com",
+"rightsLink": "https://messagedigital.com/my-data",
+"phone": "5102008316",
+"address": "2054 UNIVERSITY AVE, BERKELEY, CA, 94704-1076, United States",
+"submitted": "2025-12-13"
+},
+{
+"reg": "20260114",
+"name": "Minerva BI Inc",
+"email": "josh.frost@minerva.io",
+"website": "www.mineva.io",
+"rightsLink": "preferences.minerva.io",
+"phone": "9178039020",
+"address": "Brooklyn, NY, TX, 11249, United States",
+"submitted": "2026-05-28"
+},
+{
+"reg": "20250041",
+"name": "Mississippi Tornado Alley LLC",
+"email": "privacy@mtalley.zendesk.com",
+"website": "Usa-people-search.com; Advancedbackgroundchecks.com; Peoplesearchnow.com; USphonebook.com; Fastpeoplesearch.com; Searchpeoplefree.com; Smartbackgroundchecks.com; Cyberbackgroundchecks.com; Fastbackgroundcheck.com; Phonebooks.com",
+"rightsLink": "https://www.fastpeoplesearch.com/privacy",
+"phone": "8666798725",
+"address": "1915 21ST ST, SACRAMENTO, CA, 95811-6813, United States",
+"submitted": "2025-11-21"
+},
+{
+"reg": "20250213",
+"name": "Mobile Technology Corporation",
+"email": "accounting@onspotdata.com",
+"website": "www.onspotdata.com",
+"rightsLink": "https://www.onspotdata.com/privacy-policy/",
+"phone": "7206969935",
+"address": "7193 S POPLAR ST, CENTENNIAL, CO, 80112-1629, United States",
+"submitted": "2026-09-24"
+},
+{
+"reg": "20260089",
+"name": "MobileFuse LLC",
+"email": "danb@mobilefuse.com",
+"website": "https://mobilefuse.com",
+"rightsLink": "https://mobilefuse.com/privacy-policy",
+"phone": "5164699430",
+"address": "10 JOSS WAY, MILLINGTON, NJ, 07946-1213, United States",
+"submitted": "2026-04-20"
+},
+{
+"reg": "20250138",
+"name": "Monevo Inc",
+"email": "Privacy@transunion.com",
+"website": "www.transunion.com",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-05-13"
+},
+{
+"reg": "20260108",
+"name": "Multimedia Lists Inc",
+"email": "daniel@multimedialists.com",
+"website": "multimedialists.com",
+"rightsLink": "multimedialists_ad652b95@inbound.forgetmenaut.com",
+"phone": "8002395478",
+"address": "3407 COMMERCE ST, ALPHARETTA, GA, 30009-3747, United States",
+"submitted": "2026-06-04"
+},
+{
+"reg": "20260048",
+"name": "MV Digital Group, LLC  (DBA CinqDI)",
+"email": "abigham@mvdigitalgroup.com",
+"website": "www.cinqdi.com",
+"rightsLink": "https://www.cinqdi.com/privacy-policy/#section-rights",
+"phone": "7177520101",
+"address": "One World Trade Center, New York, NY, 10007-0042, United States",
+"submitted": "2026-02-19"
+},
+{
+"reg": "20260180",
+"name": "My Lead Hawk, LLC",
+"email": "support@meadleybrothers.com",
+"website": "meadleybrothers.com",
+"rightsLink": "https://meadleybrothers.com/privacy#texas",
+"phone": "9802021165",
+"address": "219 SAWGRASS LN S, LEXINGTON, NC, 27295-0523, United States",
+"submitted": "2026-09-30"
+},
+{
+"reg": "20260043",
+"name": "NACHAL INC.",
+"email": "privacy@getliminal.com",
+"website": "www.getliminal.com",
+"rightsLink": "https://getliminal.com/privacypolicy",
+"phone": "8002869021",
+"address": "5660 STRAND CT, NAPLES, FL, 34110-3343, United States",
+"submitted": "2026-02-11"
+},
+{
+"reg": "20250015",
+"name": "Narvar, Inc.",
+"email": "legal@narvar.com",
+"website": "https://corp.narvar.com/",
+"rightsLink": "https://corp.narvar.com/",
+"phone": "6505859550",
+"address": "3 East Third Avenue, Suite 211, San Mateo, CA, 94401, United States",
+"submitted": "2025-12-01"
+},
+{
+"reg": "20260028",
+"name": "National Opinion Institute, LLC",
+"email": "privacy@nationalopinioninstitute.com",
+"website": "https://nationalopinioninstitute.com/",
+"rightsLink": "https://nationalopinioninstitute.com/disclosures/",
+"phone": "8449004722",
+"address": "4111 E 37TH ST N, WICHITA, KS, 67220-3203, United States",
+"submitted": "2026-01-12"
+},
+{
+"reg": "20260053",
+"name": "Neptune Ops LLC",
+"email": "trudie@neptuneops.com",
+"website": "https://www.neptuneops.com/",
+"rightsLink": "https://neptuneaii.com/legal/privacy-policy",
+"phone": "8182718351",
+"address": "3290 SWEET DR, LAFAYETTE, CA, 94549-5367, United States",
+"submitted": "2026-01-26"
+},
+{
+"reg": "20260099",
+"name": "Netunim, LLC dba DataShark",
+"email": "monica@datashark.net",
+"website": "www.countshark.net",
+"rightsLink": "http://www.countshark.net/grid_privacy/",
+"phone": "8179197569",
+"address": "11303 E. Rocky Creek Rd, Crowley, TX, 76036, United States",
+"submitted": "2026-04-27"
+},
+{
+"reg": "20260052",
+"name": "Neustar Information Services, Inc.",
+"email": "privacy@transunion.com",
+"website": "https://www.transunion.com",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-18"
+},
+{
+"reg": "20260079",
+"name": "Neustar IP Intelligence, Inc.",
+"email": "privacy@transunion.com",
+"website": "http://www.transunion.com/",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20260130",
+"name": "New Mexico Data Insights Inc",
+"email": "jesse@eleris.com",
+"website": "newmexicodatainsights.com",
+"rightsLink": "https://www.newmexicodatainsights.com/privacy-policy",
+"phone": "7024492295",
+"address": "3755 BREAKTHROUGH WAY, LAS VEGAS, NV, 89135-3052, United States",
+"submitted": "2026-07-16"
+},
+{
+"reg": "20240071",
+"name": "NextRoll, Inc.",
+"email": "legal@nextroll.com",
+"website": "https://www.nextroll.com/",
+"rightsLink": "https://www.nextroll.com/privacy",
+"phone": "7734140839",
+"address": "2300 Harrison Street, San Francisco, California, 94110, United States",
+"submitted": "2025-12-26"
+},
+{
+"reg": "20240168",
+"name": "Nexxa Group, Inc.",
+"email": "consumerchoice@nexxagroup.com",
+"website": "www.nexxagroup.com",
+"rightsLink": "https://www.nexxagroup.com/corporate-overview/consumer-opt-out/",
+"phone": "8005661895",
+"address": "10012 Gulf Center Dr, Fort Myers, Florida, 33913, United States",
+"submitted": "2026-10-08"
+},
+{
+"reg": "20250083",
+"name": "Nexxen, Inc.",
+"email": "compliance@nexxen.com",
+"website": "nexxen.com",
+"rightsLink": "https://nexxen.com/privacy-data-subject-rights-request/",
+"phone": "3322311003",
+"address": "100 Redwood Shores Pkwy, Redwood City, CA, 94065, United States",
+"submitted": "2026-08-16"
+},
+{
+"reg": "20260082",
+"name": "NFocus Consulting Inc",
+"email": "consumer@n-focus.com",
+"website": "https://www.n-focus.com/",
+"rightsLink": "https://www.n-focus.com/do-not-sell-or-share-my-personal-information/",
+"phone": "7406545809",
+"address": "1594 HUBBARD DR, LANCASTER, OH, 43130-8124, United States",
+"submitted": "2026-04-06"
+},
+{
+"reg": "20260003",
+"name": "Nuwber Inc.",
+"email": "tb@nuwber.com",
+"website": "nuwber.com",
+"rightsLink": "https://nuwber.com/policy",
+"phone": "8449121292",
+"address": "700 N FAIRFAX ST, ALEXANDRIA, VA, 22314-2085, United States",
+"submitted": "2026-01-03"
+},
+{
+"reg": "20260104",
+"name": "Nyne.ai Corp",
+"email": "michael@nyne.ai",
+"website": "nyne.ai",
+"rightsLink": "https://nyne.ai/privacy-choices/",
+"phone": "8186414575",
+"address": "1317 N San Fernando #334, Burbank, TX, 91504, United States",
+"submitted": "2026-05-31"
+},
+{
+"reg": "20260131",
+"name": "Occulytics Inc.",
+"email": "rahul@occulytics.com",
+"website": "www.occulytics.com",
+"rightsLink": "https://www.occulytics.com/dnspd",
+"phone": "6306604021",
+"address": "180 N STETSON AVE, CHICAGO, IL, 60601-6710, United States",
+"submitted": "2026-07-17"
+},
+{
+"reg": "20260075",
+"name": "Opensend Inc",
+"email": "privacy@opensend.com",
+"website": "opensend.com",
+"rightsLink": "https://www.opensend.com/privacy-policy",
+"phone": "7025532333",
+"address": "2620 REGATTA DR, LAS VEGAS, NV, 89128-6892, United States",
+"submitted": "2026-03-12"
+},
+{
+"reg": "20250210",
+"name": "Optable Technologies US Inc.",
+"email": "legal@optable.co",
+"website": "optable.co",
+"rightsLink": "https://terms.optable.co/privacy/opt-out-and-suppression-of-brokered-data",
+"phone": "3023943980",
+"address": "1209 N ORANGE ST, WILMINGTON, DE, 19801-1120, United States",
+"submitted": "2026-08-07"
+},
+{
+"reg": "20260127",
+"name": "Orgio, Inc.",
+"email": "privacy@theorg.com",
+"website": "https://theorg.com/",
+"rightsLink": "https://theorg.com/privacy",
+"phone": "3474215085",
+"address": "250 BROADWAY, NEW YORK, NY, 10007-2516, United States",
+"submitted": "2026-07-02"
+},
+{
+"reg": "20260015",
+"name": "Outkeep LLC",
+"email": "george.linville@outkeep.com",
+"website": "www.outkeep.com",
+"rightsLink": "https://outkeep.com/legal/",
+"phone": "7042315073",
+"address": "404 WATERWAY DR, LEXINGTON, NC, 27292-7849, United States",
+"submitted": "2026-01-09"
+},
+{
+"reg": "20250171",
+"name": "Outlogic, LLC",
+"email": "privacy@outlogic.io",
+"website": "https://outlogic.io/",
+"rightsLink": "https://outlogic.io/opt-out-form/",
+"phone": "8663469602",
+"address": "150 Granby Street, Norfolk, Virginia, 23510, United States",
+"submitted": "2026-06-26"
+},
+{
+"reg": "20250215",
+"name": "Outward Media, Inc.",
+"email": "privacy@outwardmedia.com",
+"website": "https://outwardmedia.com/",
+"rightsLink": "https://outwardmedia.com/privacypolicy",
+"phone": "7812587380",
+"address": "9229 W SUNSET BLVD, LOS ANGELES, CA, 90069-3402, United States",
+"submitted": "2025-10-27"
+},
+{
+"reg": "20260002",
+"name": "OWMN, LTD.",
+"email": "privacy@thebridgecorp.com",
+"website": "thebridgecorp.com",
+"rightsLink": "https://www.thebridgecorp.com/privacy-policy/",
+"phone": "2129915633",
+"address": "140 E RIDGEWOOD AVE, PARAMUS, NJ, 07652-3915, United States",
+"submitted": "2026-01-02"
+},
+{
+"reg": "20250058",
+"name": "Ownco, LLC",
+"email": "robert.zitting@monitorbase.com",
+"website": "https://www.monitorbase.com/",
+"rightsLink": "https://my.monitorbase.com/privacypolicy",
+"phone": "8887956575",
+"address": "6925 S UNION PARK CTR, Cottonwood Heights, UT, 84047-4142, United States",
+"submitted": "2025-12-18"
+},
+{
+"reg": "20240056",
+"name": "PaeDae, Inc. dba Infillion",
+"email": "privacy@infillion.com",
+"website": "www.infillion.com",
+"rightsLink": "",
+"phone": "18444419869",
+"address": "853 Broadway, 21st Floor, New York, New York, 10003, United States",
+"submitted": "2025-04-23"
+},
+{
+"reg": "20240155",
+"name": "Path2Response, LLC",
+"email": "legal@path2response.com",
+"website": "www.path2response.com",
+"rightsLink": "https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1d-7d1148a3f301/draft/7a5dc7d1-cc7e-43a8-9f24-702807deb65b.html",
+"phone": "3039277733",
+"address": "390 Interlocken Crescent, Broomfield, Colorado, 80021, United States",
+"submitted": "2026-06-11"
+},
+{
+"reg": "20260121",
+"name": "PebblePost, Inc.",
+"email": "legal@pebblepost.com",
+"website": "pebblepost.com",
+"rightsLink": "https://privacyportal-cdn.onetrust.com/dsarwebform/f3224586-fa40-4b58-822e-e86fec4761ed/39d1f47c-b268-42dc-8009-25d1fd37d305.html",
+"phone": "4156882844",
+"address": "1178 BROADWAY, NEW YORK, NY, 10001-5666, United States",
+"submitted": "2026-06-29"
+},
+{
+"reg": "20260073",
+"name": "Pen-Link, Ltd.",
+"email": "dan.smith@penlink.com",
+"website": "penlink.com",
+"rightsLink": "https://www.penlink.com/your-privacy-choices/",
+"phone": "4024218857",
+"address": "3400 PLANTATION DR, LINCOLN, NE, 68516-5199, United States",
+"submitted": "2026-03-12"
+},
+{
+"reg": "20250063",
+"name": "People Data Labs, Inc.",
+"email": "privacy@peopledatalabs.com",
+"website": "https://www.peopledatalabs.com/",
+"rightsLink": "https://privacy.peopledatalabs.com/policies?modal=select-subject",
+"phone": "18888681028",
+"address": "156 5th Ave #1200, New York, NY, 10010, United States",
+"submitted": "2026-04-03"
+},
+{
+"reg": "20240183",
+"name": "Peoplefinders, LLC",
+"email": "databroker@peoplefinders.com",
+"website": "peoplefinders.com",
+"rightsLink": "https://www.peoplefinders.com/about/privacy",
+"phone": "8775519688",
+"address": "548 Market St Suite 29296, San Francisco, California, 94101, United States",
+"submitted": "2025-11-21"
+},
+{
+"reg": "20260040",
+"name": "Pipl, Inc.",
+"email": "privacy@pipl.com",
+"website": "https://pipl.com",
+"rightsLink": "https://pipl.com/privacy-center",
+"phone": "4153730180",
+"address": "510 S CLEARWATER LOOP, POST FALLS, ID, 83854-6930, United States",
+"submitted": "2026-10-20"
+},
+{
+"reg": "20260045",
+"name": "Place Exchange, Inc.",
+"email": "privacy@placeexchange.com",
+"website": "https://www.placeexchange.com/",
+"rightsLink": "https://www.placeexchange.com/do-not-sell-my-information",
+"phone": "2122875660",
+"address": "254 W 31ST ST, NEW YORK, NY, 10001-2813, United States",
+"submitted": "2026-02-15"
+},
+{
+"reg": "20240094",
+"name": "PlaceIQ, Inc.",
+"email": "PlaceIQ.Privacy@precisely.com",
+"website": "www.precisely.com",
+"rightsLink": "https://www.precisely.com/your-privacy-choices/",
+"phone": "2015768960",
+"address": "1700 District Ave #300, Burlington, Massachusetts, 01803, United States",
+"submitted": "2026-01-06"
+},
+{
+"reg": "20260026",
+"name": "Plug Chargers LLC",
+"email": "blakehogan@plug-industries.com",
+"website": "www.plug-industries.com",
+"rightsLink": "https://plug-industries.com/opt-out",
+"phone": "7135153694",
+"address": "4515 N SANTA FE AVE, OKLAHOMA CITY, OK, 73118-7901, United States",
+"submitted": "2026-02-10"
+},
+{
+"reg": "20250038",
+"name": "Plunge, LLC",
+"email": "privacy@plungedigital.com",
+"website": "www.plungedigital.com",
+"rightsLink": "https://www.plungedigital.com/privacy-policy/",
+"phone": "8447586434",
+"address": "17200 Chenal Pkwy, Little Rock, AR, 72223, United States",
+"submitted": "2026-02-02"
+},
+{
+"reg": "20250062",
+"name": "PossibleNOW, Inc.",
+"email": "accounting@possiblenow.com",
+"website": "www.possiblenow.com",
+"rightsLink": "https://www.possiblenow.com/privacy-statement",
+"phone": "7702551020",
+"address": "4400 RIVER GREEN PKWY STE 100, DULUTH, GA, 30096-2538, United States",
+"submitted": "2025-12-11"
+},
+{
+"reg": "20260167",
+"name": "Postalytics, Inc.",
+"email": "andyb@postalytics.com",
+"website": "www.postalytics.com",
+"rightsLink": "https://www.postalytics.com/legal/privacy-policy/",
+"phone": "7812068990",
+"address": "55 ACCORD PARK DR, ROCKLAND, MA, 02370-1070, United States",
+"submitted": "2026-09-10"
+},
+{
+"reg": "20260029",
+"name": "Postie, Inc",
+"email": "legal@postie.com",
+"website": "https://postie.com",
+"rightsLink": "https://postie.com/your-privacy-choices/",
+"phone": "8889924935",
+"address": "3616 Far West Blvd, STE 117 #103, Austin, TX, 78731, United States",
+"submitted": "2026-01-21"
+},
+{
+"reg": "20250163",
+"name": "PostPilot, Inc.",
+"email": "operations@postpilot.com",
+"website": "www.postpilot.com",
+"rightsLink": "https://www.postpilot.com/privacy-policy",
+"phone": "8584129787",
+"address": "215 Northeast Drive, Spartanburg, South Carolina, 29303, United States",
+"submitted": "2026-06-12"
+},
+{
+"reg": "20250066",
+"name": "Precisely Software Incorporated",
+"email": "privacy@precisely.com",
+"website": "https://www.precisely.com/",
+"rightsLink": "https://www.precisely.com/your-privacy-choices/",
+"phone": "2015768960",
+"address": "1700 DISTRICT AVE, BURLINGTON, MA, 01803-5231, United States",
+"submitted": "2026-01-06"
+},
+{
+"reg": "20240257",
+"name": "Preqin Ltd",
+"email": "groupprivacyteam@blackrock.com",
+"website": "www.preqin.com",
+"rightsLink": "https://www.preqin.com/policies/privacy-policy",
+"phone": "4402032070333",
+"address": "Verde, 10 Bressenden Place\nLondon SW1E 5DH",
+"submitted": "2025-12-04"
+},
+{
+"reg": "20250075",
+"name": "PrivCo Media, LLC",
+"email": "basil@privco.com",
+"website": "https://www.privco.com/",
+"rightsLink": "",
+"phone": "6468593294",
+"address": "149 E 23RD ST, NEW YORK, NY, 10010-3765, United States",
+"submitted": "2025-03-25"
+},
+{
+"reg": "20260081",
+"name": "Propbot LLC",
+"email": "support@propbotusa.com",
+"website": "https://propbotusa.com/",
+"rightsLink": "https://propbotusa.com/consumer-rights",
+"phone": "4699330340",
+"address": "5900 BALCONES DR STE 100, AUSTIN, TX, 78731-4298, United States",
+"submitted": "2026-03-30"
+},
+{
+"reg": "20240179",
+"name": "Property Reach LP",
+"email": "compliance@propertyreach.com",
+"website": "propertyreach.com",
+"rightsLink": "https://www.propertyreach.com/privacy",
+"phone": "8775519855",
+"address": "5473 Blair Rd, Ste 100, PMB 75659, Dallas, Texas, 75231, United States",
+"submitted": "2025-11-21"
+},
+{
+"reg": "20240167",
+"name": "PropertyRadar Inc.",
+"email": "privacy@propertyradar.com",
+"website": "www.propertyradar.com",
+"rightsLink": "https://www.propertyradar.com/privacy-policy",
+"phone": "5305508801",
+"address": "12242 Business Park Dr STE 20, Truckee, California, 96160, United States",
+"submitted": "2025-11-05"
+},
+{
+"reg": "20250197",
+"name": "PublicNSA LLC",
+"email": "brad@bigdbm.com",
+"website": "WWW.BIGDBM.COM",
+"rightsLink": "https://bigdbm.com/privacy-policy/",
+"phone": "3365587717",
+"address": "9499 COLLINS AVE Apt 509, SURFSIDE, FL, 33154-2682, United States",
+"submitted": "2026-08-17"
+},
+{
+"reg": "20240045",
+"name": "PubMatic, Inc.",
+"email": "privacy@pubmatic.com",
+"website": "pubmatic.com",
+"rightsLink": "https://pubmatic.com/legal/privacy-policy/",
+"phone": "6503313485",
+"address": "601 Marshall Street, Redwood City, California, 94063, United States",
+"submitted": "2026-02-03"
+},
+{
+"reg": "20250030",
+"name": "Quad/Graphics, Inc",
+"email": "databroker@quad.com",
+"website": "www.quad.com",
+"rightsLink": "https://www.quad.com/legal/privacy-policy",
+"phone": "4145666000",
+"address": "N61W23044 HARRYS WAY, SUSSEX, WI, 53089-3995, United States",
+"submitted": "2025-12-09"
+},
+{
+"reg": "20260132",
+"name": "Quorum Data, Inc.",
+"email": "ezra@quorum.inc",
+"website": "www.quorum.inc",
+"rightsLink": "https://app.quorum.live/privacy",
+"phone": "2015190722",
+"address": "50 LAKESIDE AVE, BURLINGTON, VT, 05401-5402, United States",
+"submitted": "2026-07-20"
+},
+{
+"reg": "20260112",
+"name": "R.L Polk & Company",
+"email": "privacy@mobilityglobal.com",
+"website": "www.mobiityglobal.com",
+"rightsLink": "https://www.mobilityglobal.com/en-us/your-privacy-choices",
+"phone": "18884338408",
+"address": "5860 TRINITY PKWY, CENTREVILLE, VA, 20120-1997, United States",
+"submitted": "2026-06-15"
+},
+{
+"reg": "20250086",
+"name": "R.L. Polk & Co.",
+"email": "privacy@spglobal.com",
+"website": "www.polk.com",
+"rightsLink": "https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74",
+"phone": "2124381000",
+"address": "26533 Evergreen, Ste. 1100, Southfield, Missouri, 48076, United States",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20250121",
+"name": "Rainbarrel USA LLC",
+"email": "privacy@rbarrel.com",
+"website": "https://knowertech.com/",
+"rightsLink": "https://www.rbarrel.com/privacy-policy",
+"phone": "17802350934",
+"address": "225 W 34TH ST, NEW YORK, NY, 10122-0049, United States",
+"submitted": "2026-06-24"
+},
+{
+"reg": "20250186",
+"name": "RampedUp, LLC.",
+"email": "contact@rampedup.io",
+"website": "rampedup.io",
+"rightsLink": "https://rampedup.io/privacy-policy-1",
+"phone": "8882783433",
+"address": "1551 DUNWOODY VILLAGE PKWY, ATLANTA, GA, 30338-4120, United States",
+"submitted": "2026-08-31"
+},
+{
+"reg": "20240116",
+"name": "RealSource, Inc",
+"email": "karolyn@realsourcedata.com",
+"website": "www.realsourcedata.com",
+"rightsLink": "https://www.realsourcedata.com/privacy-policy",
+"phone": "6302081835",
+"address": "8N980 Dittman Rd, Elgin, Illinois, 60124, United States",
+"submitted": "2026-02-24"
+},
+{
+"reg": "20260057",
+"name": "RecruitBot, Inc.",
+"email": "privacy@recruitbot.com",
+"website": "www.recruitbot.com",
+"rightsLink": "www.recruitbot.com/privacy",
+"phone": "8186819266",
+"address": "2030 VALLEJO ST, SAN FRANCISCO, CA, 94123-4848, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20240265",
+"name": "Redi-Data Inc.",
+"email": "jlauda@redidirect.com",
+"website": "www.redidata.com",
+"rightsLink": "https://www.redidata.com/privacy-policy/",
+"phone": "9732274380",
+"address": "107 Little Falls Rd, Fairfield, New Jersey, 07004, United States",
+"submitted": "2026-09-08"
+},
+{
+"reg": "20250051",
+"name": "Redmob Limited Liability Company",
+"email": "privacy@redmob.io",
+"website": "www.redmob.io",
+"rightsLink": "www.redmob.io/privacy-policy",
+"phone": "3024068118",
+"address": "30 N GOULD ST, SHERIDAN, WY, 82801-6317, United States",
+"submitted": "2025-12-04"
+},
+{
+"reg": "20250026",
+"name": "Reklaim Ltd.",
+"email": "finance@reklaimyours.com",
+"website": "https://www.reklaimyours.com/",
+"rightsLink": "https://www.reklaimyours.com/privacy-policy",
+"phone": "4166025564",
+"address": "PO Box 60029 Etobicoke RPO\nThorncrest, ON\nM9A 5G2",
+"submitted": "2026-01-15"
+},
+{
+"reg": "20260153",
+"name": "RelPro, Inc.",
+"email": "info@relpro.com",
+"website": "https://relpro.com",
+"rightsLink": "https://relpro.com/privacy-policy",
+"phone": "8885617890",
+"address": "51 JFK Parkway, First Floor West, Short Hills, NJ, 07078, United States",
+"submitted": "2026-08-19"
+},
+{
+"reg": "20250160",
+"name": "RESONATE NETWORKS, INC.",
+"email": "privacy@resonate.com",
+"website": "www.resonate.com",
+"rightsLink": "https://www.resonate.com/privacy-policy/",
+"phone": "5712663200",
+"address": "11700 Plaza America Dr #1000, Reston, Virginia, 20190, United States",
+"submitted": "2026-04-06"
+},
+{
+"reg": "20260012",
+"name": "Response America Data, Inc.",
+"email": "ncoa@responseamerica.net",
+"website": "responseamerica.net",
+"rightsLink": "https://responseamerica.net/privacy_dec.html",
+"phone": "8149359796",
+"address": "3515 WEDGEWOOD LN SUITE 110, THE VILLAGES, FL, 32162-7187, United States",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20250193",
+"name": "Reveal Mobile, Inc.",
+"email": "smarcantonio@revealmobile.com",
+"website": "www.revealmobile.com",
+"rightsLink": "https://revealmobile.com/privacy",
+"phone": "9195739703",
+"address": "5540 CENTERVIEW DR STE 200 PMB 229, RALEIGH, NC, 27606-3386, United States",
+"submitted": "2026-06-24"
+},
+{
+"reg": "20260049",
+"name": "Revelio Labs, Inc.",
+"email": "hannah@reveliolabs.com",
+"website": "www.reveliolabs.com",
+"rightsLink": "www.reveliolabs.com/privacy",
+"phone": "2014216375",
+"address": "860 BROADWAY, NEW YORK, NY, 10003-1288, United States",
+"submitted": "2026-02-17"
+},
+{
+"reg": "20240063",
+"name": "RevOptimal, LLC",
+"email": "privacy@revoptimal.com",
+"website": "revoptimal.com",
+"rightsLink": "https://revoptimal.com/privacy/",
+"phone": "5042302388",
+"address": "612 Andrew Higgins Blvd, Suite 2000, New Orleans, Louisiana, 70130, United States",
+"submitted": "2026-01-29"
+},
+{
+"reg": "20260025",
+"name": "Rickenbacher Data LLC",
+"email": "SALES@DATAMASTERS.ORG",
+"website": "www.datamasters.org",
+"rightsLink": "https://www.datamasters.org/opt-out/",
+"phone": "4693281160",
+"address": "131 E VIEW CT, DOUBLE OAK, TX, 75077-3033, United States",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20240248",
+"name": "RocketReach LLC",
+"email": "privacy@rocketreach.co",
+"website": "rocketreach.co",
+"rightsLink": "https://rocketreach.co/privacy",
+"phone": "8332123828",
+"address": "418 Broadway STE N, Albany, New York, 12207, United States",
+"submitted": "2026-07-07"
+},
+{
+"reg": "20260162",
+"name": "Roq.ad Inc.",
+"email": "privacy@roq.ad",
+"website": "https://roq.ad/",
+"rightsLink": "https://roq.ad/opt-out",
+"phone": "4917664245026",
+"address": "2600 El Camino Real, Suite 400, Palo Alto, CA, 94306, United States",
+"submitted": "2026-08-28"
+},
+{
+"reg": "20250207",
+"name": "ROR Partners, LLC",
+"email": "legal@rorpartners.com",
+"website": "rorpartners.com",
+"rightsLink": "https://rorpartners.com/privacy-policy",
+"phone": "7074844836",
+"address": "6543 LAS VEGAS BLVD S, 2nd floor, LAS VEGAS, NV, 89119-3223, United States",
+"submitted": "2025-11-26"
+},
+{
+"reg": "20250220",
+"name": "Rushmore Labs, LLC",
+"email": "privacy@rushmorelabs.com",
+"website": "https://rushmorelabs.com/",
+"rightsLink": "https://rushmorelabs.com/disclosures/",
+"phone": "8446642552",
+"address": "4111 E 37TH ST N, WICHITA, KS, 67220-3203, United States",
+"submitted": "2025-12-17"
+},
+{
+"reg": "20240256",
+"name": "saleSEER, Inc.",
+"email": "jean.vansoelen@saleseer.com",
+"website": "www.saleseer.com",
+"rightsLink": "N/A",
+"phone": "8325923600",
+"address": "6622 Rodrigo Street, Houston, TX, 77007, United States",
+"submitted": "2026-10-01"
+},
+{
+"reg": "20260128",
+"name": "SalesIntel Research, Inc",
+"email": "data@salesintel.io",
+"website": "salesintel.io",
+"rightsLink": "https://salesintel.io/opt-out/",
+"phone": "7035205555",
+"address": "8614 WESTWOOD CENTER DR, VIENNA, VA, 22182-2233, United States",
+"submitted": "2026-07-06"
+},
+{
+"reg": "20250108",
+"name": "Salutary Data LLC.",
+"email": "info@salutarydata.com",
+"website": "https://salutarydata.com/",
+"rightsLink": "https://salutarydata.com/privacy-opt-out-and-disclosure-form/",
+"phone": "6179174084",
+"address": "29 Locust Avenue, Lexington, MA, 02421, United States",
+"submitted": "2025-12-10"
+},
+{
+"reg": "20240153",
+"name": "Samba TV, Inc.",
+"email": "jagdip.sekhon@samba.tv",
+"website": "https://www.samba.tv/",
+"rightsLink": "https://samba.tv/privacy-center/notice-of-right-to-opt-out",
+"phone": "4152336893",
+"address": "118 King Street, San Francisco, California, 94107, United States",
+"submitted": "2026-10-07"
+},
+{
+"reg": "20260097",
+"name": "Scout Data Inc.",
+"email": "compliance@scoutdata.com",
+"website": "scoutdata.com",
+"rightsLink": "https://store.scoutdata.com/privacy-rights",
+"phone": "4696896476",
+"address": "30 N Gould St Ste N, Sheridan, WY, 82801-6317, United States",
+"submitted": "2026-05-05"
+},
+{
+"reg": "20240162",
+"name": "Seamless Contacts, Inc.",
+"email": "privacy@seamlessleads.com",
+"website": "https://www.seamless.ai/",
+"rightsLink": "https://preferences.seamless.ai/",
+"phone": "8559533265",
+"address": "7652 SAWMILL RD PMB 341, DUBLIN, OH, 43016-9296, United States",
+"submitted": "2026-01-12"
+},
+{
+"reg": "20260033",
+"name": "SemantIQ Inc",
+"email": "ops@semantiqhealth.com",
+"website": "https://semantiqhealth.com",
+"rightsLink": "https://semantiqhealth.com/privacy-policy",
+"phone": "5619339030",
+"address": "2261 Market Street STE 86944, San Francisco, CA, 94114, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20260183",
+"name": "Semasio, Inc.",
+"email": "jagdip.sekhon@samba.tv",
+"website": "https://www.semasio.com/",
+"rightsLink": "https://www.semasio.com/legal/privacy-choices",
+"phone": "4153618751",
+"address": "118 KING ST, SAN FRANCISCO, CA, 94107-1905, United States",
+"submitted": "2026-10-08"
+},
+{
+"reg": "20250031",
+"name": "Semcasting, Inc.",
+"email": "jgreer@semcasting.com",
+"website": "https://www.semcasting.com/",
+"rightsLink": "https://privacychoice.com/",
+"phone": "9786847580",
+"address": "21 HIGH ST, NORTH ANDOVER, MA, 01845-2601, United States",
+"submitted": "2026-01-20"
+},
+{
+"reg": "20240029",
+"name": "SheerID, Inc.",
+"email": "greg.damon@sheerid.com",
+"website": "https://www.sheerid.com/",
+"rightsLink": "https://www.sheerid.com/global-privacy-policy/",
+"phone": "5033206614",
+"address": "1300 SW 5th Avenue, Portland, Oregon, 97201, United States",
+"submitted": "2025-12-29"
+},
+{
+"reg": "20250037",
+"name": "Similarweb Ltd.",
+"email": "legal@similarweb.com",
+"website": "https://www.similarweb.com/",
+"rightsLink": "https://www.similarweb.com/corp/legal/privacy-policy/",
+"phone": "0527807819",
+"address": "33 Yitzhak Rabin Road, Givatayim, 5348303",
+"submitted": "2026-01-13"
+},
+{
+"reg": "20240023",
+"name": "Simio Cloud, LLC",
+"email": "Privacy@simiocloud.com",
+"website": "simiocloud.com",
+"rightsLink": "https://simiocloud.com/simiocloud-products-services-privacy-policy/",
+"phone": "8666003430",
+"address": "10155 Westmoor Drive, Bldg. 3, Suite 165, Westminster, Colorado, 80021, United States",
+"submitted": "2026-07-20"
+},
+{
+"reg": "20260169",
+"name": "Skydeo Inc",
+"email": "privacy@skydeo.com",
+"website": "www.skydeo.com",
+"rightsLink": "https://skydeo.com/privacy-policy/",
+"phone": "3072237200",
+"address": "30 N GOULD ST, SHERIDAN, WY, 82801-6317, United States",
+"submitted": "2026-09-14"
+},
+{
+"reg": "20250050",
+"name": "Snovio Inc",
+"email": "admin@snov.io",
+"website": "https://snov.io/",
+"rightsLink": "https://snov.io/tdpsa",
+"phone": "13477050819",
+"address": "65 Wickliffe dr, Naples, FL, 34110, United States",
+"submitted": "2026-01-23"
+},
+{
+"reg": "20260152",
+"name": "Sojern Inc.",
+"email": "sojernlegal@sojern.com",
+"website": "https://www.sojern.com/",
+"rightsLink": "https://www.sojern.com/privacy/u-s-state-privacy-notice#security",
+"phone": "919711601221",
+"address": "575 Market Street, 4th Floor, San Francisco, CA, 94105, United States",
+"submitted": "2026-08-18"
+},
+{
+"reg": "20260155",
+"name": "Solar Connect LLC",
+"email": "beshear@apollointeractive.com",
+"website": "www.bluefireleads.com",
+"rightsLink": "www.bluefireleads.com",
+"phone": "3106662087",
+"address": "139 Illinois Street, El Segundo, CA, 90245, United States",
+"submitted": "2026-08-21"
+},
+{
+"reg": "20260172",
+"name": "Sovra AI, Inc.",
+"email": "minh@sovra.ai",
+"website": "https://sovrainsight.com/",
+"rightsLink": "https://app.sovra.ai/privacy-policy",
+"phone": "3175074803",
+"address": "10497 TOWN AND COUNTRY WAY, HOUSTON, TX, 77024-1150, United States",
+"submitted": "2026-09-14"
+},
+{
+"reg": "20250142",
+"name": "Speedeon Data LLC",
+"email": "accounting@speedeondata.com",
+"website": "https://speedeondata.com/",
+"rightsLink": "https://speedeondata.com/privacy-policy/",
+"phone": "4402642100",
+"address": "5875 Landerbrook Dr. Suite 130, Cleveland, Ohio, 44124, United States",
+"submitted": "2026-03-09"
+},
+{
+"reg": "20240084",
+"name": "Spokeo, Inc.",
+"email": "legal@spokeo.com",
+"website": "www.spokeo.com",
+"rightsLink": "www.spokeo.com/privacy-policy",
+"phone": "6263969499",
+"address": "199 S. Los Robles Ave Suite 711, Pasadena, California, 91101, United States",
+"submitted": "2025-11-25"
+},
+{
+"reg": "20260171",
+"name": "Sprout Social, Inc.",
+"email": "dpo@sproutsocial.com",
+"website": "sproutsocial.com",
+"rightsLink": "https://sproutsocial.com/legal/privacy-policy/",
+"phone": "8668783231",
+"address": "131 S DEARBORN ST, CHICAGO, IL, 60603-5569, United States",
+"submitted": "2026-09-14"
+},
+{
+"reg": "20260034",
+"name": "Spy Labs AdCo, LLC",
+"email": "info@spydialer.com",
+"website": "spydialer.com",
+"rightsLink": "https://spydialer.com/privacy.aspx",
+"phone": "8668342579",
+"address": "1915 21ST ST, SACRAMENTO, CA, 95811-6813, United States",
+"submitted": "2026-01-12"
+},
+{
+"reg": "20250117",
+"name": "StackAdapt Inc.",
+"email": "privacy@stackadapt.com",
+"website": "stackadapt.com",
+"rightsLink": "https://www.stackadapt.com/legal-document-centre/platform-and-services-privacy-policy",
+"phone": "6509993764101",
+"address": "200 Bay Street - South Tower, Unit # 2103, PO Box #94 Toronto, Ontario M5J 2J1",
+"submitted": "2026-02-19"
+},
+{
+"reg": "20260005",
+"name": "Statara Solutions LLC",
+"email": "gerald.allen@statara.com",
+"website": "https://statara.com/",
+"rightsLink": "https://statara.com/privacy/",
+"phone": "2025073103",
+"address": "502 SILVERSIDE RD, WILMINGTON, DE, 19809-1318, United States",
+"submitted": "2026-01-05"
+},
+{
+"reg": "20250118",
+"name": "Steppingblocks, Inc.",
+"email": "privacy@steppingblocks.com",
+"website": "www.steppingblocks.com",
+"rightsLink": "https://www.steppingblocks.com/privacy-ccpa",
+"phone": "4044823420",
+"address": "3423 Piedmont Road NE STE R17, Atlanta, Georgia, 30305, United States",
+"submitted": "2026-05-05"
+},
+{
+"reg": "20250023",
+"name": "Sterling Data Company LLC",
+"email": "privacy@sterling.ai",
+"website": "sterling.ai",
+"rightsLink": "https://sterling.ai/privacy-policy/",
+"phone": "2027018709",
+"address": "8 THE GRN, DOVER, DE, 19901-3618, United States",
+"submitted": "2025-12-10"
+},
+{
+"reg": "20250204",
+"name": "Stirista, LLC",
+"email": "h.jones@stirista.com",
+"website": "https://www.stirista.com/",
+"rightsLink": "https://www.stirista.com/privacy-policy/",
+"phone": "8883206083",
+"address": "777 E Sonterra blvd., San Antonio, TX, 78258, United States",
+"submitted": "2025-12-03"
+},
+{
+"reg": "20260122",
+"name": "Subgraph, Inc.",
+"email": "team@subgraph.tech",
+"website": "https://subgraph.tech",
+"rightsLink": "https://subgraph.tech/privacy-choices",
+"phone": "4133257002",
+"address": "1044 S COCHRAN AVE, LOS ANGELES, CA, 90019-2857, United States",
+"submitted": "2026-06-29"
+},
+{
+"reg": "20250179",
+"name": "Summit Resources, LLC d/b/a Client Command",
+"email": "legal@clientcommand.com",
+"website": "www.clientcommand.com",
+"rightsLink": "https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html",
+"phone": "8887866489",
+"address": "13560 Morris Rd. Ste 4250, Alpharetta, GA, 30004, United States",
+"submitted": "2026-08-18"
+},
+{
+"reg": "20260164",
+"name": "SuSea, Inc",
+"email": "legal@you.com",
+"website": "you.com",
+"rightsLink": "https://you.com/privacy-requests",
+"phone": "4084095360",
+"address": "417 Montgomery St, Floor 8, San Francisco, CA, 94104, United States",
+"submitted": "2026-09-04"
+},
+{
+"reg": "20250150",
+"name": "Swarm Holdings, Inc.",
+"email": "privacy@theswarm.com",
+"website": "https://www.theswarm.com/",
+"rightsLink": "https://www.theswarm.com/privacy",
+"phone": "4153669903",
+"address": "308 6TH ST, MONTARA, CA, 94037, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20260146",
+"name": "Swipejobs LLC",
+"email": "legal@swipejobs.com",
+"website": "swipejobs.com",
+"rightsLink": "https://www.swipejobs.com/privacy-center",
+"phone": "8003850855",
+"address": "5473 Blair Road, Suite 100-62793, Dallas, TX, 75231, United States",
+"submitted": "2026-08-08"
+},
+{
+"reg": "20240018",
+"name": "SWORDFISH AI INC",
+"email": "ben@swordfishapp.com",
+"website": "https://swordfish.ai/",
+"rightsLink": "https://swordfish.ai/texas-privacy-rights",
+"phone": "13323334114",
+"address": "8 THE GREEN, DOVER, Delaware, 19901, United States",
+"submitted": "2025-12-22"
+},
+{
+"reg": "20250042",
+"name": "Tagis, Inc.",
+"email": "privacy@amplemarket.com",
+"website": "https://www.amplemarket.com",
+"rightsLink": "https://www.amplemarket.com/legal/privacy",
+"phone": "16502006474",
+"address": "2443 Fillmore St #380-3880, San Francisco, CA, 94115, United States",
+"submitted": "2026-08-14"
+},
+{
+"reg": "20260007",
+"name": "TargetSmart Communications LLC",
+"email": "gerald.allen@targetsmart.com",
+"website": "www.targetsmart.com",
+"rightsLink": "https://targetsmart.com/about-targetsmart/support-center/privacy-policy/",
+"phone": "2025073103",
+"address": "5301 S KIRKMAN RD, ORLANDO, FL, 32819, United States",
+"submitted": "2026-01-05"
+},
+{
+"reg": "20240059",
+"name": "Task Genie, Inc.",
+"email": "admin@datalane.com",
+"website": "https://www.datalane.com/",
+"rightsLink": "https://www.datalane.com/privacy",
+"phone": "9149754714",
+"address": "54 W 21st Street Suite 1001, New York, New York, 10010, United States",
+"submitted": "2026-02-04"
+},
+{
+"reg": "20260102",
+"name": "Teads Holding Co.",
+"email": "ob-privacy@teads.com",
+"website": "https://www.outbrain.com/privacy/",
+"rightsLink": "https://dsr.outbrain.com/recommendations-settings/home/en",
+"phone": "447823771890",
+"address": "111 W 19th St, Third Floor, New York, NY, 10011, United States",
+"submitted": "2026-05-27"
+},
+{
+"reg": "20260101",
+"name": "Teads Inc.",
+"email": "dpo@teads.com",
+"website": "https://privacy-policy.teads.com/",
+"rightsLink": "https://privacy-policy.teads.com/",
+"phone": "447823771890",
+"address": "111 W 19th St, 3rd Floor, New York, NY, 10011, United States",
+"submitted": "2026-05-27"
+},
+{
+"reg": "20240102",
+"name": "TechTarget, Inc.",
+"email": "legal@techtarget.com",
+"website": "www.informatechtarget.com",
+"rightsLink": "https://www.informatechtarget.com/privacy-policy/#contact:~:text=Us%E2%80%9D%20section%20below.-,23.%20Contact%20Us,-If%20you%20wish",
+"phone": "6174319200",
+"address": "275 Grove Street, Newton, Massachusetts, 02466, United States",
+"submitted": "2026-03-19"
+},
+{
+"reg": "20240145",
+"name": "The Alesco Group, L.L.C.",
+"email": "steve@alescodata.com",
+"website": "https://alescodata.com",
+"rightsLink": "https://mydataprivacy.com/upload-csv",
+"phone": "12392777529",
+"address": "4575 Via Royale Su 110, Fort Myers, Florida, 33919, United States",
+"submitted": "2025-12-11"
+},
+{
+"reg": "20250173",
+"name": "The Data Group",
+"email": "compliance@thedatagroup.com",
+"website": "thedatagroup.com",
+"rightsLink": "https://thedatagroup.com/privacy/",
+"phone": "8002625609",
+"address": "3208 E COLONIAL DR PMB 118, ORLANDO, FL, 32803-5127, United States",
+"submitted": "2026-05-13"
+},
+{
+"reg": "20250040",
+"name": "The Nielsen Company, LLC",
+"email": "privacy.department@nielsen.com",
+"website": "https://www.nielsen.com/",
+"rightsLink": "https://privacyportal-de.onetrust.com/webform/70b0083d-d519-4ad2-84ca-96b7c5f8e1a9/17f0d6c3-8c86-4594-b68b-c8879ec128eb",
+"phone": "4107177134",
+"address": "675 Avenue of the Americas, New York, NY, 10010, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20260188",
+"name": "The Segerdahl LLC d/b/a sg360\u00b0",
+"email": "charlesg@sg360.com",
+"website": "www.sg360.com",
+"rightsLink": "https://submit-irm.trustarc.com/services/validation/7fd92316-e710-4faa-9a3f-12a2f33b0e13",
+"phone": "8475411080",
+"address": "1351 Wheeling Road, Wheeling, TX, 60090-5913, United States",
+"submitted": "2026-08-06"
+},
+{
+"reg": "20260008",
+"name": "Titan Locators",
+"email": "benlarocca626@gmail.com",
+"website": "https://secondchanceapartments.com/",
+"rightsLink": "https://secondchanceapartments.com/privacy-policy/",
+"phone": "8327314878",
+"address": "11402 Tara Pl, Pearland, TX, 77584, United States",
+"submitted": "2026-01-05"
+},
+{
+"reg": "20260189",
+"name": "Torus Voter Systems, Inc.",
+"email": "info@torusvotersystems.com",
+"website": "torusvotersystems.com",
+"rightsLink": "https://optout.torusvotersystems.com/",
+"phone": "7183603159",
+"address": "90 PRINCE ST #2N, NEW YORK, Torus Voter Systems, Inc., 10012-3275, United States",
+"submitted": "2026-10-20"
+},
+{
+"reg": "20260186",
+"name": "Tracerfy LLC",
+"email": "compliance@tracerfy.com",
+"website": "https://www.tracerfy.com",
+"rightsLink": "https://www.tracerfy.com/privacy-choices",
+"phone": "9293048463",
+"address": "418 BROADWAY STE N, ALBANY, NY, 12207-2922, United States",
+"submitted": "2026-10-16"
+},
+{
+"reg": "20250081",
+"name": "Trans Union LLC",
+"email": "privacy@transunion.com",
+"website": "https://www.transunion.com",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-20"
+},
+{
+"reg": "20260051",
+"name": "TransUnion Digital LLC",
+"email": "privacy@transunion.com",
+"website": "https://www.transunion.com",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-18"
+},
+{
+"reg": "20260064",
+"name": "TransUnion Interactive, Inc.",
+"email": "Privacy@transunion.com",
+"website": "http://www.transunion.com/",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20250080",
+"name": "TransUnion Risk and Alternative Data Solutions, Inc.",
+"email": "privacy@transunion.com",
+"website": "https://www.transunion.com",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-18"
+},
+{
+"reg": "20260076",
+"name": "Trelize, LLC",
+"email": "support@trelize.com",
+"website": "Trelize.com",
+"rightsLink": "https://trelize.com/data-rights",
+"phone": "2812247389",
+"address": "14710 Constellation Cir E, Willis, TX, 77, United States",
+"submitted": "2026-03-20"
+},
+{
+"reg": "20250091",
+"name": "TripleLift, Inc.",
+"email": "platformprivacy@triplelift.com",
+"website": "triplelift.com",
+"rightsLink": "https://triplelift.com/user-rights-policy-and-opt-out/",
+"phone": "18007609122",
+"address": "53 W. 23rd Street, 12th Floor, New York, NY, 10010, United States",
+"submitted": "2026-02-13"
+},
+{
+"reg": "20250218",
+"name": "True Blue Analytics LLC",
+"email": "ben@trueblueanalytics.org",
+"website": "trueblueanalytics.org",
+"rightsLink": "https://trueblueanalytics.org/privacy-policy",
+"phone": "7735304378",
+"address": "919 N MARKET ST, WILMINGTON, DE, 19801-3036, United States",
+"submitted": "2026-09-28"
+},
+{
+"reg": "20250130",
+"name": "TrueData Solutions, Inc.",
+"email": "privacy@truedata.co",
+"website": "www.truedata.co",
+"rightsLink": "https://info-prod.truedata.co/access-delete-request",
+"phone": "4154899252",
+"address": "1 E Erie St, Suite 525-4083, Chicago, Illinois, 60611, United States",
+"submitted": "2026-03-12"
+},
+{
+"reg": "20260067",
+"name": "TRUSTID, Inc.",
+"email": "privacy@transunion.com",
+"website": "http://www.transunion.com/",
+"rightsLink": "https://www.transunion.com/consumer-privacy",
+"phone": "8663108783",
+"address": "555 W ADAMS ST, CHICAGO, IL, 60661-3719, United States",
+"submitted": "2026-02-27"
+},
+{
+"reg": "20250028",
+"name": "TSG Holdco, LLC",
+"email": "tsg@finthrive.com",
+"website": "www.finthrive.com",
+"rightsLink": "https://finthrive.com/texas-data-broker-disclosure-tsg-holdco?hs_preview=hmAXRXQn-205484825751",
+"phone": "7703126418",
+"address": "7950 LEGACY DR, PLANO, TX, 75024-4110, United States",
+"submitted": "2026-01-28"
+},
+{
+"reg": "20260110",
+"name": "Tunnl, LLC",
+"email": "info@tunnldata.com",
+"website": "https://www.tunnldata.com/",
+"rightsLink": "https://privacy.tunnldata.com/",
+"phone": "2029903690",
+"address": "3100 CLARENDON BLVD, ARLINGTON, VA, 22201-5330, United States",
+"submitted": "2026-06-11"
+},
+{
+"reg": "20260036",
+"name": "Unacast, Inc.",
+"email": "privacy@unacast.com",
+"website": "https://www.unacast.com/",
+"rightsLink": "https://www.unacast.com/privacy-policy",
+"phone": "7038408850",
+"address": "44679 ENDICOTT DR, ASHBURN, VA, 20147-5567, United States",
+"submitted": "2026-01-09"
+},
+{
+"reg": "20250059",
+"name": "Unearth Campaigns LLC",
+"email": "ops@unearthcampaigns.com",
+"website": "https://www.unearthcampaigns.com/company/",
+"rightsLink": "https://www.unearthcampaigns.com/privacy-policy/",
+"phone": "9165869819",
+"address": "555 CAPITOL MALL STE 525, SACRAMENTO, CA, 95814-4583, United States",
+"submitted": "2026-03-06"
+},
+{
+"reg": "20260115",
+"name": "Unify AI Business Corporation",
+"email": "privacy@unifygtm.com",
+"website": "unifygtm.com",
+"rightsLink": "privacy.unifygtm.com",
+"phone": "6143302692",
+"address": "353 SACRAMENTO ST, SAN FRANCISCO, CA, 94111-3620, United States",
+"submitted": "2026-06-23"
+},
+{
+"reg": "20260139",
+"name": "Unmask LLC",
+"email": "txcompliance@unmask.com",
+"website": "https://unmask.com/",
+"rightsLink": "https://unmask.com/privacy-policy/",
+"phone": "3213766933",
+"address": "6900 TAVISTOCK LAKES BLVD, ORLANDO, FL, 32827-7593, United States",
+"submitted": "2026-07-27"
+},
+{
+"reg": "20250144",
+"name": "upcell, LLC.",
+"email": "policy@upcell.io",
+"website": "https://www.upcell.io/",
+"rightsLink": "https://www.upcell.io/data-claim",
+"phone": "8555257940",
+"address": "6 LIBERTY SQ PMB 455, Walpole, MA, 02081, United States",
+"submitted": "2026-04-10"
+},
+{
+"reg": "20240251",
+"name": "Uplead LLC",
+"email": "techteam@uplead.com",
+"website": "www.uplead.com",
+"rightsLink": "https://www.uplead.com/privacy",
+"phone": "8004934084",
+"address": "340 S Lemon Ave Ste 1022, Walnut, California, 91789, United States",
+"submitted": "2026-07-20"
+},
+{
+"reg": "20260105",
+"name": "Urban Science Applications, Inc.",
+"email": "pachandra@URBANSCIENCE.com",
+"website": "www.urbanscience.com",
+"rightsLink": "https://www.urbanscience.com/privacy/",
+"phone": "8003216900",
+"address": "400 RENAISSANCE CTR, SUITE 2900, DETROIT, MI, 48243-1602, United States",
+"submitted": "2026-06-01"
+},
+{
+"reg": "20240096",
+"name": "US Data Corporation",
+"email": "privacy@usdatacorporation.com",
+"website": "www.usdatacorporation.com",
+"rightsLink": "https://www.usdatacorporation.com/do-not-sell-my-info/",
+"phone": "8184444590",
+"address": "5115 Clareton Dr., #210, Agoura Hills, California, 91301, United States",
+"submitted": "2026-01-22"
+},
+{
+"reg": "20260084",
+"name": "USADATA, Inc.",
+"email": "privacy@usadata.com",
+"website": "www.usadata.com",
+"rightsLink": "https://www.usadata.com/privacy-policy",
+"phone": "2126791411",
+"address": "875 3RD AVE FL 6A, NEW YORK, NY, 10022-7203, United States",
+"submitted": "2026-04-07"
+},
+{
+"reg": "20240169",
+"name": "Valassis Communications, Inc., an RRD Company",
+"email": "valassisprivacy.request@rrd.com",
+"website": "rrd.com",
+"rightsLink": "https://www.rrd.com/privacy-policy/valassis",
+"phone": "6303226000",
+"address": "227 W MONROE ST, CHICAGO, IL, 60606-5001, United States",
+"submitted": "2026-01-07"
+},
+{
+"reg": "20250184",
+"name": "VANGUARD AI LLC",
+"email": "dee@vanguardai.net",
+"website": "https://electhq.net/",
+"rightsLink": "https://electhq.net/privacy.html",
+"phone": "2693524362",
+"address": "6715 RUTLEDGE CT, GARLAND, TX, 75044-75044, United States",
+"submitted": "2026-09-05"
+},
+{
+"reg": "20250194",
+"name": "Veeva Systems Inc.",
+"email": "privacy@veeva.com",
+"website": "veeva.com",
+"rightsLink": "https://www.veeva.com/privacy/",
+"phone": "9254526500",
+"address": "4280 HACIENDA DR, PLEASANTON, CA, 94588-2719, United States",
+"submitted": "2026-09-08"
+},
+{
+"reg": "20260103",
+"name": "Vendelux, Inc.",
+"email": "ben@vendelux.com",
+"website": "vendelux.com",
+"rightsLink": "https://vendelux.com/privacy",
+"phone": "3477034231",
+"address": "115 W 30TH ST, NEW YORK, NY, 10001-4010, United States",
+"submitted": "2026-05-30"
+},
+{
+"reg": "20260037",
+"name": "Venntel, Inc.",
+"email": "privacy@venntel.com",
+"website": "https://www.venntel.com/",
+"rightsLink": "https://www.venntel.com/privacy-policy",
+"phone": "8555455623",
+"address": "44679 ENDICOTT DR, ASHBURN, VA, 20147-5567, United States",
+"submitted": "2026-01-09"
+},
+{
+"reg": "20250185",
+"name": "VentiveIQ LLC",
+"email": "privay@ventiveiq.com",
+"website": "https://vetiveiq.com",
+"rightsLink": "https://ventiveiq.com/privacy-policy/",
+"phone": "8552029240",
+"address": "103 CARNEGIE CTR, PRINCETON, NJ, 08501, United States",
+"submitted": "2026-07-28"
+},
+{
+"reg": "20260100",
+"name": "Veraset LLC",
+"email": "tax@veraset.com",
+"website": "https://www.veraset.com/",
+"rightsLink": "https://www.veraset.com/legal/do-not-sell-request",
+"phone": "8185153432",
+"address": "127 S PEYTON ST, ALEXANDRIA, VA, 22314-2803, United States",
+"submitted": "2026-05-18"
+},
+{
+"reg": "20240233",
+"name": "Versar Data Solutions Inc",
+"email": "privacy@versium.com",
+"website": "www.versium.com",
+"rightsLink": "https://versium.com/privacy-policy/. , https://versium.com/california-privacy-policy/",
+"phone": "18003950164",
+"address": "7530 164TH AVE NE STE A204, REDMOND, WA, 98052-7825, United States",
+"submitted": "2026-01-26"
+},
+{
+"reg": "20260039",
+"name": "Vi Technologies, Inc.",
+"email": "privacy@vi.co",
+"website": "vi.co",
+"rightsLink": "https://vi.co/privacy-policy/",
+"phone": "6464559355",
+"address": "110 East 25th Street, Suite 422, New York, NY, 10010, United States",
+"submitted": "2026-01-31"
+},
+{
+"reg": "20260160",
+"name": "Victory Waves Co.",
+"email": "tom@victorywaves.com",
+"website": "https://www.victorywaves.com",
+"rightsLink": "https://www.victorywaves.com/legal/privacy-choices",
+"phone": "2035071105",
+"address": "324 Nicoll St, New Haven, CT, 06511, United States",
+"submitted": "2026-08-28"
+},
+{
+"reg": "20250034",
+"name": "VideoAmp, Inc.",
+"email": "legal@videoamp.com",
+"website": "www.videoamp.com",
+"rightsLink": "https://videoamp.com/your-privacy-choices/",
+"phone": "4242727774",
+"address": "12121 BLUFF CREEK DR, LOS ANGELES, CA, 90094-2994, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20260088",
+"name": "Vintory, LLC",
+"email": "brooke@vintory.com",
+"website": "www.vintory.com",
+"rightsLink": "https://www.vintory.com/privacy-policy/",
+"phone": "4104583900",
+"address": "1103 SOMERSET PL, LUTHERVILLE, MD, 21093, United States",
+"submitted": "2026-04-17"
+},
+{
+"reg": "20250219",
+"name": "Virtual Marketing LLC",
+"email": "databroker@fusion92.com",
+"website": "https://www.fusion92.com/",
+"rightsLink": "https://www.fusion92.com/privacy-choices",
+"phone": "18885504864",
+"address": "222 MERCHANDISE MART PLZ, CHICAGO, IL, 60654-1012, United States",
+"submitted": "2025-12-10"
+},
+{
+"reg": "20260024",
+"name": "Vistar Media, Inc.",
+"email": "privacy@vistarmedia.com",
+"website": "https://www.vistarmedia.com",
+"rightsLink": "https://www.vistarmedia.com/privacy-choices",
+"phone": "6467807607",
+"address": "625 AVENUE OF THE AMERICAS, 2nd Fl., NEW YORK, NY, 10011-2020, United States",
+"submitted": "2026-01-30"
+},
+{
+"reg": "20260058",
+"name": "VISTAVIEW REALTY SERVICES LLC",
+"email": "vamshi@vistaview.ai",
+"website": "www.vistaview.ai",
+"rightsLink": "www.vistaview.ai/privacy/consumer-rights",
+"phone": "7033384931",
+"address": "3128 DENALI DR, IRVING, TX, 75063-0126, United States",
+"submitted": "2026-02-24"
+},
+{
+"reg": "20260019",
+"name": "Visual Visitor LLC",
+"email": "privacy@visualvisitor.com",
+"website": "visualvisitor.com",
+"rightsLink": "https://www.visualvisitor.com/legal-agreements/",
+"phone": "6784967895",
+"address": "7400 BAYMEADOWS WAY, JACKSONVILLE, FL, 32256-6839, United States",
+"submitted": "2026-01-25"
+},
+{
+"reg": "20260069",
+"name": "Walla Media, LLC",
+"email": "lisa@therooftop.io",
+"website": "wallamedia.com",
+"rightsLink": "consumerdataprotect.com",
+"phone": "8184443006",
+"address": "1013 CENTRE RD, WILMINGTON, DE, 19805-1270, United States",
+"submitted": "2026-02-24"
+},
+{
+"reg": "20260090",
+"name": "Warmly, Inc.",
+"email": "privacy@warmly.ai",
+"website": "warmly.ai",
+"rightsLink": "https://www.warmly.ai/p/privacy-policy",
+"phone": "4042931239",
+"address": "1321 UPLAND DR, HOUSTON, TX, 77043-4718, United States",
+"submitted": "2026-04-21"
+},
+{
+"reg": "20250205",
+"name": "WealthFeed, Inc.",
+"email": "sam@wealthfeed.com",
+"website": "www.wealthfeed.com",
+"rightsLink": "https://www.wealthfeed.com/privacy-choices/",
+"phone": "4804405539",
+"address": "222 N PACIFIC COAST HWY, EL SEGUNDO, CA, 90245-5615, United States",
+"submitted": "2025-12-15"
+},
+{
+"reg": "20240050",
+"name": "Webbula, LLC",
+"email": "legal@webbula.com",
+"website": "https://webbula.com",
+"rightsLink": "https://webbula.com/privacy-center/",
+"phone": "18889922285",
+"address": "6041 Wallace Road Extension, Suite 210, Wexford, Pennsylvania, 15090, United States",
+"submitted": "2026-01-11"
+},
+{
+"reg": "20260074",
+"name": "Wednesday LLC",
+"email": "jamal@wednes.day",
+"website": "https://wednes.day/",
+"rightsLink": "https://wednes.day/privacy/texas",
+"phone": "4157107491",
+"address": "1020 E MOHAWK AVE, TAMPA, FL, 33604-7214, United States",
+"submitted": "2026-03-10"
+},
+{
+"reg": "20250132",
+"name": "West Publishing Corporation",
+"email": "privacy.enquiries@thomsonreuters.com",
+"website": "https://www.thomsonreuters.com",
+"rightsLink": "https://www.thomsonreuters.com/en/trust-center/data-privacy-information",
+"phone": "6516877000",
+"address": "2900 Ames Crossing, Eagan, Minnesota, 55121, United States",
+"submitted": "2026-05-04"
+},
+{
+"reg": "20240174",
+"name": "Whitepages, Inc",
+"email": "legal@whitepages.com",
+"website": "www.whitepages.com",
+"rightsLink": "https://www.whitepages.com/privacy/consumer-rights",
+"phone": "2067465409",
+"address": "2033 6th Ave., Suite 1100, Seattle, Washington, 98121, United States",
+"submitted": "2026-02-09"
+},
+{
+"reg": "20260054",
+"name": "Wiland, INc.",
+"email": "privacy@wiland.com",
+"website": "www.wiland.com",
+"rightsLink": "www.wiland.com/privacy-choices",
+"phone": "3034858686",
+"address": "7420 DRY CREEK PKWY, NIWOT, CO, 80503-8009, United States",
+"submitted": "2026-02-23"
+},
+{
+"reg": "20260129",
+"name": "Windfall Data, Inc.",
+"email": "privacy@windfall.com",
+"website": "windfall.com",
+"rightsLink": "https://my.datasubject.com/AkrxLuYOww/60579",
+"phone": "8009466710",
+"address": "595 PACIFIC AVE, SAN FRANCISCO, CA, 94133-4685, United States",
+"submitted": "2026-06-12"
+},
+{
+"reg": "20260118",
+"name": "WINR Alchemist Pty Ltd",
+"email": "privacy@winrdata.com",
+"website": "https://www.winrdata.com/",
+"rightsLink": "https://www.winrdata.com/privacy-policy-us/",
+"phone": "61414523064",
+"address": "56 Berry Street\nNorth Sydney\nNSW 2060\nAustralia",
+"submitted": "2026-06-24"
+},
+{
+"reg": "20240067",
+"name": "WINR Data B.V.",
+"email": "privacyoffice@winrdata.com",
+"website": "https://www.winrdata.com/",
+"rightsLink": "https://www.winrdata.com/privacy-policy-us/",
+"phone": "31687978400",
+"address": "Keizersgracht 127\n1015CJ, Amsterdam\nNetherlands",
+"submitted": "2026-02-02"
+},
+{
+"reg": "20260117",
+"name": "WINR Data Pty Ltd",
+"email": "privacy@winrdata.com",
+"website": "https://www.winrdata.com/",
+"rightsLink": "https://www.winrdata.com/privacy-policy-us/",
+"phone": "61414523064",
+"address": "56 Berry Street\nNorth Sydney\nNSW 2060\nAustralia",
+"submitted": "2026-06-24"
+},
+{
+"reg": "20250216",
+"name": "Wiza Inc.",
+"email": "harrison@wiza.com",
+"website": "www.wiza.com",
+"rightsLink": "https://wiza.co/privacy",
+"phone": "9172320799",
+"address": "4th Floor - 1162 BROADWAY, NEW YORK, NY, 10001-7500, United States",
+"submitted": "2025-10-29"
+},
+{
+"reg": "20260078",
+"name": "Worldwide Information, LLC",
+"email": "srusso@worldwideinformation.com",
+"website": "www.worldwideinformation.com",
+"rightsLink": "https://worldwideinformation.com/privacy-rights/",
+"phone": "8476130486",
+"address": "100 Cummings Center-331A, Beverly, MA, 01915, United States",
+"submitted": "2026-03-23"
+},
+{
+"reg": "20250211",
+"name": "Xcelerated Data LLC",
+"email": "privacy@xcelerated.com",
+"website": "xcelerated.com",
+"rightsLink": "https://www.xcelerated.com/privacy",
+"phone": "8772369155",
+"address": "601 W NORTHWEST HWY, GRAPEVINE, TX, 76051-3403, United States",
+"submitted": "2026-09-20"
+},
+{
+"reg": "20250141",
+"name": "Yobi Ventures, Inc.",
+"email": "privacy@yobi.ai",
+"website": "www.yobi.ai",
+"rightsLink": "https://www.yobi.ai/opt-out",
+"phone": "9136264257",
+"address": "136 E 76TH ST APT 4B, NEW YORK, NY, 10021-2830, United States",
+"submitted": "2026-06-09"
+},
+{
+"reg": "20260116",
+"name": "ZeetoGroup, LLC",
+"email": "support@zeetogroup.com",
+"website": "zeeto.io",
+"rightsLink": "https://www.zeeto.io/consumer-privacy-policy",
+"phone": "8887719194",
+"address": "3131 W BOLT ST, #A19, FORT WORTH, TX, 76110-5802, United States",
+"submitted": "2026-06-18"
+},
+{
+"reg": "20260154",
+"name": "ZEIL Limited",
+"email": "zeiladmin@zeil.com",
+"website": "www.zeil.com",
+"rightsLink": "https://zeil.com/privacy",
+"phone": "6421508624",
+"address": "Unit 1201-04, 06-07, 12/F, Energy Plaza, 92 Granville Road\nTsim Sha Tsui East\nKowloon\nHONG KONG",
+"submitted": "2026-08-20"
+},
+{
+"reg": "20240271",
+"name": "Zenleads, Inc.",
+"email": "dpo@apollo.io",
+"website": "https://www.apollo.io/",
+"rightsLink": "https://www.apollo.io/company/privacy-center",
+"phone": "2019170634",
+"address": "440 N Barranca Ave #4750, Covina, CA, 91723, United States",
+"submitted": "2026-01-06"
+},
+{
+"reg": "20260096",
+"name": "Zeta Global Corp.",
+"email": "bhayes@zetaglobal.com",
+"website": "www.zetaglobal.com",
+"rightsLink": "www.zetaglobal.com/privacy-choices/",
+"phone": "2023687202",
+"address": "3 PARK AVE, NEW YORK, NY, 10016-5902, United States",
+"submitted": "2026-05-01"
+},
+{
+"reg": "20260163",
+"name": "Ziff Davis LLC",
+"email": "privacy@ziffdavis.com",
+"website": "https://www.ziffdavis.com/",
+"rightsLink": "https://www.ziffdavis.com/privacy-rights-request",
+"phone": "2125033500",
+"address": "360 Park Ave South, Floor 17, New York, TX, 10011, United States",
+"submitted": "2026-08-26"
+},
+{
+"reg": "20260175",
+"name": "Zoom Communications, Inc.",
+"email": "privacy@zoom.us",
+"website": "https://www.zoom.com",
+"rightsLink": "https://privacyportal.onetrust.com/webform/65962359-ef0d-4399-9db4-572d06de08aa/f277f9f7-bfee-4233-815e-80e290139bc2",
+"phone": "18887990566",
+"address": "55 ALMADEN BLVD, SAN JOSE, CA, 95113-1608, United States",
+"submitted": "2026-09-18"
+},
+{
+"reg": "20240187",
+"name": "ZoomInfo Technologies LLC",
+"email": "Privacycompliance@zoominfo.com",
+"website": "www.zoominfo.com",
+"rightsLink": "https://www.zoominfo.com/legal/privacy-statement-for-residents-of-specified-states",
+"phone": "2407445042",
+"address": "330 W Columbia Way, Floor 8, Vancouver, Washington, 98660, United States",
+"submitted": "2025-12-03"
+}
+]
+}

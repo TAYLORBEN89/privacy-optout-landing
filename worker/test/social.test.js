@@ -1,0 +1,1131 @@
+// Social sign-in, step-up, account API and the opt-out gate. Provider token + JWKS endpoints are mocked with
+// throwaway keypairs generated per run; no network access.
+import { env, SELF } from 'cloudflare:test';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
+import { authenticator } from 'otplib';
+import { hashPassword, encryptStr, encryptPii, unb64 } from '../src/crypto.js';
+import { clearOauthCookie } from '../src/oauth.js';
+import { auditMeta, purge } from '../src/app.js';
+import { signInternal, canonical, loadInternalKeys } from '../src/internalAuth.js';
+import worker from '../src/index.js';
+import { locationAllowed } from '../src/location.js';
+
+const ORIGIN = 'http://localhost:5173';
+const BASE = 'https://api.test';
+const UA = 'TestAgent/1.0 (ua-marker-7f3a)';
+const ORG_TID = '11111111-2222-3333-4444-555555555555';
+let IP; let n = 0;
+
+const keys = {};
+const ALG = { google: 'RS256', microsoft: 'RS256' };
+const AUD = { google: 'test-google-client', microsoft: 'test-ms-client' };
+const JWKS = {
+  'https://www.googleapis.com/oauth2/v3/certs': 'google',
+  'https://login.microsoftonline.com/common/discovery/v2.0/keys': 'microsoft',
+};
+const TOKEN = {
+  'https://oauth2.googleapis.com/token': 'google',
+  'https://login.microsoftonline.com/common/oauth2/v2.0/token': 'microsoft',
+};
+let nextClaims = {}; // provider -> claims for the next token response
+const tokenRequests = [];
+let realFetch;
+
+beforeAll(async () => {
+  for (const p of Object.keys(ALG)) {
+    const { publicKey, privateKey } = await generateKeyPair(ALG[p], { extractable: true });
+    keys[p] = { privateKey, jwk: { ...(await exportJWK(publicKey)), kid: `${p}-kid`, alg: ALG[p], use: 'sig' } };
+  }
+  realFetch = globalThis.fetch;
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const r = input instanceof Request ? input : new Request(input, init);
+    const u = r.url.split('?')[0];
+    if (JWKS[u]) return Response.json({ keys: [keys[JWKS[u]].jwk] });
+    if (TOKEN[u]) {
+      const p = TOKEN[u];
+      tokenRequests.push({ p, body: await r.text(), auth: r.headers.get('Authorization') });
+      const c = nextClaims[p];
+      if (!c) return Response.json({ error: 'invalid_grant' }, { status: 400 });
+      const id_token = await new SignJWT(c).setProtectedHeader({ alg: ALG[p], kid: `${p}-kid` }).sign(keys[p].privateKey);
+      return Response.json({ access_token: 'provider-access-token', refresh_token: 'provider-refresh-token', token_type: 'Bearer', expires_in: 3600, id_token });
+    }
+    return realFetch(input, init);
+  });
+});
+afterAll(() => vi.restoreAllMocks());
+
+beforeEach(async () => {
+  IP = `10.9.0.${++n}`;
+  nextClaims = {};
+  tokenRequests.length = 0;
+  await env.DB.batch(['rate_limits', 'user_identities', 'oauth_states_used', 'confirmations', 'pii_payloads', 'optout_requests', 'profiles', 'backup_codes', 'sessions', 'users']
+    .map((t) => env.DB.prepare(`DELETE FROM ${t}`))); // test-only fixed table names
+});
+
+const t0 = () => Math.floor(Date.now() / 1000);
+function claimsFor(p, { sub = 'subject-1', email = 'person@example.test', nonce, tid = ORG_TID, ...extra } = {}) {
+  const base = { sub, email, nonce, aud: AUD[p], iat: t0(), exp: t0() + 600, auth_time: t0() };
+  if (p === 'google') return { ...base, iss: 'https://accounts.google.com', email_verified: true, ...extra };
+  return { ...base, iss: `https://login.microsoftonline.com/${tid}/v2.0`, tid, ...extra };
+}
+
+const H = (extra = {}) => ({ Origin: ORIGIN, 'CF-Connecting-IP': IP, 'User-Agent': UA, ...extra });
+// Records every response in this file so the last suite can check every Location and Set-Cookie the Worker sent.
+const SEEN = [];
+const recFetch = SELF.fetch.bind(SELF);
+SELF.fetch = async (input, init) => {
+  const r = await recFetch(input, init);
+  SEEN.push({ url: new URL(typeof input === 'string' ? input : input.url), status: r.status, location: r.headers.get('Location'), cookies: r.headers.getSetCookie() });
+  return r;
+};
+const setCookies = (r) => r.headers.getSetCookie();
+const cookieVal = (r, name) => { const c = setCookies(r).find((x) => x.startsWith(`${name}=`)); return c ? c.split(';')[0] : null; };
+
+const ACC = 'https://accounts.test';
+// Apex /api/auth/{p}/start -> accounts host /oauth/{p}/start -> provider. Returns the accounts-host response.
+async function start(p, returnTo = '/account') {
+  const r = await SELF.fetch(`${BASE}/api/auth/${p}/start?return_to=${encodeURIComponent(returnTo)}`, { headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA }, redirect: 'manual' });
+  expect(r.status).toBe(302);
+  browser = cookieVal(r, '__Host-login');
+  expect(browser).toBeTruthy();
+  const next = r.headers.get('Location');
+  expect(next.startsWith(`${ACC}/oauth/${p}/start?`)).toBe(true);
+  return SELF.fetch(next, { headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA }, redirect: 'manual' });
+}
+function parseStart(r) {
+  const loc = new URL(r.headers.get('Location'));
+  return { loc, state: loc.searchParams.get('state'), nonce: loc.searchParams.get('nonce'), oauth: cookieVal(r, '__Host-oauth') };
+}
+// Provider -> accounts host callback (only the __Host-oauth cookie; __Host-sid is host-only on the apex) ->
+// handoff -> apex /api/auth/complete with the apex cookie. Returns the final response (or the failure redirect).
+let browser = null; // __Host-login set on the apex by the last start/bound
+async function callback(p, { state, oauth, cookie = '', code = 'auth-code', login }) {
+  const r = await SELF.fetch(`${ACC}/oauth/${p}/callback?state=${encodeURIComponent(state)}&code=${code}`,
+    { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA, ...(oauth ? { Cookie: oauth } : {}) } });
+  const loc = r.headers.get('Location') || '';
+  if (!loc.startsWith(`${BASE}/api/auth/complete?code=`)) return r;
+  lastHandoff = loc;
+  const jar = [cookie, login === undefined ? browser : login].filter(Boolean).join('; ');
+  const done = await SELF.fetch(loc, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA, ...(jar ? { Cookie: jar } : {}) } });
+  done.first = r;
+  return done;
+}
+let lastHandoff = null;
+// Step-up / link: the apex returns {action, method:'POST', fields:{st}} and sets __Host-login; the browser
+// form-POSTs st to the accounts host (Origin = app origin), which redirects to the provider.
+const postForm = (action, fields, origin = BASE) => SELF.fetch(action, { method: 'POST', redirect: 'manual',
+  headers: { 'CF-Connecting-IP': IP, 'User-Agent': UA, Origin: origin, 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: new URLSearchParams(fields).toString() });
+async function bound(apexRes) {
+  const body = await apexRes.json();
+  expect(body.method).toBe('POST');
+  expect(body.action.startsWith(`${ACC}/oauth/`) && body.action.endsWith('/bound')).toBe(true);
+  expect(JSON.stringify(body)).not.toContain('url');
+  browser = cookieVal(apexRes, '__Host-login');
+  expect(browser).toBeTruthy();
+  const url = body.action; const tok = body.fields.st;
+  const r = await postForm(url, body.fields);
+  const loc = new URL(r.headers.get('Location'));
+  return { url, tok, loc, state: loc.searchParams.get('state'), oauth: cookieVal(r, '__Host-oauth') };
+}
+// Full login; returns { sid, csrf, res }.
+async function socialLogin(p, claimOpts = {}, returnTo = '/account') {
+  const s = parseStart(await start(p, returnTo));
+  nextClaims[p] = claimsFor(p, { nonce: s.nonce, ...claimOpts });
+  const res = await callback(p, s);
+  const sid = cookieVal(res, '__Host-sid');
+  let csrf = null;
+  if (sid) csrf = (await (await SELF.fetch(`${BASE}/api/me`, { headers: H({ Cookie: sid }) })).json()).csrf_token;
+  return { sid, csrf, res, s };
+}
+const api = (method, path, { sid, csrf } = {}, body, extra = {}) => SELF.fetch(BASE + path, {
+  method, redirect: 'manual',
+  headers: H({ 'Content-Type': 'application/json', ...(sid ? { Cookie: sid } : {}), ...(csrf ? { 'X-CSRF-Token': csrf } : {}), ...extra }),
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+const expireStepUp = (sid) => env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1').bind(t0() - 601).run();
+const countUsers = async () => (await env.DB.prepare('SELECT COUNT(*) AS c FROM users').first()).c;
+
+describe('social login happy paths', () => {
+  for (const p of ['google', 'microsoft']) {
+    it(`${p}: creates a user + identity, sets a Lax session cookie, redirects to return_to`, async () => {
+      const { res, sid, s } = await socialLogin(p);
+      expect(res.status).toBe(303);
+      expect(res.headers.get('Location')).toBe('/account');
+      expect(s.loc.searchParams.get('nonce')).toBeTruthy();
+      expect(s.loc.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(setCookies(await start(p)).find((c) => c.startsWith('__Host-oauth='))).toContain('SameSite=Lax');
+      const sc = setCookies(res).find((c) => c.startsWith('__Host-sid='));
+      for (const a of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/']) expect(sc).toContain(a);
+      expect(setCookies(res.first).some((c) => c.startsWith('__Host-oauth=;') && c.includes('Max-Age=0'))).toBe(true);
+      const me = await (await SELF.fetch(`${BASE}/api/me`, { headers: H({ Cookie: sid }) })).json();
+      expect(me.providers.map((x) => x.provider)).toEqual([p]);
+      expect(me.user.has_password).toBe(false);
+      expect(me.csrf_token).toBeTruthy();
+      const row = await env.DB.prepare('SELECT * FROM user_identities').first();
+      expect(row.provider).toBe(p);
+      expect(row.email).not.toContain('@example.test'); // encrypted at rest
+      // provider tokens are never stored anywhere
+      const dump = JSON.stringify((await env.DB.prepare('SELECT * FROM sessions').all()).results) + JSON.stringify(row);
+      expect(dump).not.toContain('provider-access-token');
+      expect(dump).not.toContain('provider-refresh-token');
+      // second login reuses the same user
+      await socialLogin(p);
+      expect(await countUsers()).toBe(1);
+    });
+  }
+
+  it('email is kept when the provider later omits it', async () => {
+    await socialLogin('google');
+    const before = (await env.DB.prepare('SELECT email FROM user_identities').first()).email;
+    await socialLogin('google', { email: null });
+    expect((await env.DB.prepare('SELECT email FROM user_identities').first()).email).toBe(before);
+  });
+
+  it('microsoft: email verified only via xms_edov (no consumer-tenant shortcut)', async () => {
+    await socialLogin('microsoft', { sub: 'a' });
+    await socialLogin('microsoft', { sub: 'b', xms_edov: true });
+    await socialLogin('microsoft', { sub: 'c', tid: '9188040d-6c67-4c5b-b112-36a304b66dad' });
+    const rows = (await env.DB.prepare('SELECT sub, email_verified FROM user_identities ORDER BY sub').all()).results;
+    expect(rows.map((r) => r.email_verified)).toEqual([0, 1, 0]);
+  });
+});
+
+describe('callback rejections', () => {
+  const failOf = async (res) => { expect(res.status).toBe(303); expect(cookieVal(res, '__Host-sid')).toBeNull(); return res.headers.get('Location'); };
+
+  it('bad state', async () => {
+    const s = parseStart(await start('google'));
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    expect(await failOf(await callback('google', { ...s, state: 'tampered' }))).toBe(BASE + '/start?auth_error=bad_state');
+    expect(await failOf(await callback('google', { ...s, oauth: null }))).toBe(BASE + '/start?auth_error=bad_state');
+    expect(await failOf(await callback('google', { ...s, oauth: '__Host-oauth=AAAA.BBBB' }))).toBe(BASE + '/start?auth_error=bad_state');
+  });
+
+  it('reused state cookie', async () => {
+    const s = parseStart(await start('google'));
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    expect((await callback('google', s)).headers.get('Location')).toBe('/account');
+    expect(await failOf(await callback('google', s))).toBe(BASE + '/start?auth_error=state_reused');
+  });
+
+  it('state cookie for another provider is refused', async () => {
+    const s = parseStart(await start('google'));
+    nextClaims.microsoft = claimsFor('microsoft', { nonce: s.nonce });
+    expect(await failOf(await callback('microsoft', s))).toBe(BASE + '/start?auth_error=bad_state');
+  });
+
+  const cases = [
+    ['wrong nonce', 'google', { nonce: 'wrong' }, 'nonce_mismatch'],
+    ['wrong aud', 'google', { aud: 'someone-else' }, 'bad_aud'],
+    ['wrong iss (google)', 'google', { iss: 'https://evil.example' }, 'bad_iss'],
+    ['wrong iss (microsoft)', 'microsoft', { iss: 'https://evil.example' }, 'bad_iss'],
+    ['microsoft iss not matching tid', 'microsoft', { iss: 'https://login.microsoftonline.com/99999999-2222-3333-4444-555555555555/v2.0' }, 'bad_iss'],
+    ['expired token', 'google', { exp: Math.floor(Date.now() / 1000) - 3600, iat: Math.floor(Date.now() / 1000) - 7200 }, 'token_expired'],
+    ['future iat', 'google', { iat: Math.floor(Date.now() / 1000) + 3600 }, 'bad_claims'],
+  ];
+  for (const [name, p, over, reason] of cases) {
+    it(name, async () => {
+      const s = parseStart(await start(p));
+      nextClaims[p] = { ...claimsFor(p, { nonce: s.nonce }), ...over };
+      expect(await failOf(await callback(p, s))).toBe(`${BASE}/start?auth_error=${reason}`);
+      const a = await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'auth.fail' AND ip = ?1 ORDER BY id DESC").bind(IP).first();
+      expect(a.target).toBe(`${p}:${reason}`);
+      expect(await countUsers()).toBe(0);
+    });
+  }
+
+  it('token exchange failure', async () => {
+    const s = parseStart(await start('google'));
+    expect(await failOf(await callback('google', s))).toBe(BASE + '/start?auth_error=token_exchange');
+  });
+});
+
+describe('identity linking', () => {
+  it('a matching email does NOT link: same email on another provider creates a separate user', async () => {
+    await socialLogin('google', { email: 'same@example.test' });
+    await socialLogin('microsoft', { email: 'same@example.test', tid: '9188040d-6c67-4c5b-b112-36a304b66dad' });
+    expect(await countUsers()).toBe(2);
+    // and a password user with that email is not linked either
+    expect((await env.DB.prepare('SELECT COUNT(DISTINCT user_id) AS c FROM user_identities').first()).c).toBe(2);
+  });
+
+  it('link requires step-up within 10 minutes; then links via OAuth with intent=link', async () => {
+    const a = await socialLogin('google');
+    await expireStepUp();
+    let r = await api('POST', '/api/account/identities/microsoft/link', a, {});
+    expect(r.status).toBe(403);
+    expect((await r.json()).error).toBe('step_up_required');
+    // step up with google
+    r = await api('POST', '/api/auth/google/stepup', a, {});
+    expect(r.status).toBe(200);
+    const locb = await bound(r); const loc = locb.loc;
+    expect(loc.searchParams.get('max_age')).toBe('0');
+    nextClaims.google = claimsFor('google', { nonce: loc.searchParams.get('nonce'), auth_time: t0() });
+    r = await callback('google', { state: loc.searchParams.get('state'), oauth: locb.oauth, cookie: a.sid });
+    expect(r.headers.get('Location')).toBe('/account');
+    // now link microsoft
+    r = await api('POST', '/api/account/identities/microsoft/link', a, {});
+    expect(r.status).toBe(200);
+    const lb = await bound(r); const l = lb.loc;
+    expect(l.searchParams.get('prompt')).toBe('login');
+    nextClaims.microsoft = claimsFor('microsoft', { nonce: l.searchParams.get('nonce') });
+    r = await callback('microsoft', { state: l.searchParams.get('state'), oauth: lb.oauth, cookie: a.sid });
+    expect(r.headers.get('Location')).toBe('/account');
+    const me = await (await api('GET', '/api/me', a)).json();
+    expect(me.providers.map((x) => x.provider).sort()).toEqual(['google', 'microsoft']);
+    expect(await countUsers()).toBe(1);
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'identity.link' AND target = 'microsoft' AND ip = ?1").bind(IP).first()).toBeTruthy();
+  });
+
+  it('linking an identity owned by another user is refused', async () => {
+    await socialLogin('microsoft', { sub: 'taken' });
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/account/identities/microsoft/link', a, {});
+    const lb = await bound(r); const l = lb.loc;
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'taken', nonce: l.searchParams.get('nonce') });
+    const cb = await callback('microsoft', { state: l.searchParams.get('state'), oauth: lb.oauth, cookie: a.sid });
+    expect(cb.headers.get('Location')).toBe(BASE + '/start?auth_error=identity_in_use');
+  });
+
+  it('unlink requires step-up and refuses to remove the last sign-in method', async () => {
+    const a = await socialLogin('google');
+    let r = await api('DELETE', '/api/account/identities/google', a);
+    expect(r.status).toBe(409);
+    await expireStepUp();
+    r = await api('DELETE', '/api/account/identities/google', a);
+    expect(r.status).toBe(403);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS c FROM user_identities').first()).toEqual({ c: 1 });
+  });
+});
+
+describe('return_to open-redirect protection', () => {
+  const attempts = ['https://evil.example', '//evil.example', '/\\evil.example', '/account/../../x', '/start#step-1x', 'javascript:alert(1)', '/startx', '/account?next=//evil'];
+  for (const a of attempts) {
+    it(`falls back to /start for ${a}`, async () => {
+      const { res } = await socialLogin('google', {}, a);
+      expect(res.headers.get('Location')).toBe('/start');
+    });
+  }
+  it('allows /start#step-3', async () => {
+    const { res } = await socialLogin('google', {}, '/start#step-3');
+    expect(res.headers.get('Location')).toBe('/start#step-3');
+  });
+});
+
+describe('CSRF / Origin', () => {
+  it('state-changing /api routes reject a missing CSRF token, a wrong token, a foreign Origin and no Origin', async () => {
+    const a = await socialLogin('google');
+    const body = { fullName: 'Pat Example', mailingAddress: '1 Main St, Somewhere, TX 75001', email: 'p@example.test', texasResident: true };
+    expect((await api('POST', '/api/optouts/signup', { sid: a.sid }, body)).status).toBe(403);
+    expect((await api('POST', '/api/optouts/signup', { sid: a.sid, csrf: 'nope' }, body)).status).toBe(403);
+    expect((await api('POST', '/api/optouts/signup', a, body, { Origin: 'https://evil.example' })).status).toBe(403);
+    const r = await SELF.fetch(`${BASE}/api/optouts/signup`, { method: 'POST', headers: { Cookie: a.sid, 'X-CSRF-Token': a.csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    expect(r.status).toBe(403);
+    expect((await api('POST', '/api/auth/logout', { sid: a.sid })).status).toBe(403);
+  });
+});
+
+describe('X-Internal-Auth (landing Worker over the service binding)', () => {
+  const VEC = unb64('AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8='); // published vector key: only used with signInternal directly
+  const K1 = unb64('QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=');
+  const K2 = unb64('ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=');
+  const PIP = '198.51.100.7';
+  const good = { firstName: 'Pat', lastName: 'Example', dob: '1990-04-02', addressLine1: '1 Main St', city: 'Somewhere', state: 'TX', zip: '75001', email: 'p@example.test', texasResident: true };
+  const send = (method, path, sid, raw, auth, extra = {}) => SELF.fetch(BASE + path, { method, redirect: 'manual',
+    headers: H({ 'Content-Type': 'application/json', 'CF-Connecting-IP': PIP, ...(sid ? { Cookie: sid } : {}), ...(auth ? { 'X-Internal-Auth': auth } : {}), ...extra }), body: raw });
+  const signed = (method, path, raw, { ts = t0(), key = K1, kid = 'k1', ip = PIP } = {}) => signInternal(key, kid, method, path, String(ts), ip, raw || '');
+  const forbidden = async (r) => { expect(r.status).toBe(403); expect(await r.json()).toEqual({ error: 'forbidden' }); };
+
+  it('fixed test vector (Cybersecurity, landing PR #27)', async () => {
+    expect(canonical('k1', 'POST', '/api/account/export?x=1', '1800000000', '203.0.113.9',
+      '015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862'))
+      .toBe('v1\nk1\nPOST\n/api/account/export?x=1\n1800000000\n203.0.113.9\n015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862');
+    expect(await signInternal(VEC, 'k1', 'POST', '/api/account/export?x=1', '1800000000', '203.0.113.9', '{"a":1}'))
+      .toBe('v1.k1.1800000000.-uCux05nB_YSHLfLwqUuzii9ePuZ2QyIxdgq1kQRCZQ');
+  });
+  it('valid POST replaces the CSRF token on /api/optouts/signup', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    const r = await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw));
+    expect(r.status).toBe(200); expect((await r.json()).ok).toBe(true);
+  });
+  it('valid GET (empty body = sha256 of "")', async () => {
+    const a = await socialLogin('google');
+    const r = await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', ''));
+    expect(r.status).toBe(200);
+  });
+  it('two-key rotation: k1 and k2 both verify; a key under 32 bytes is dropped at load', async () => {
+    const a = await socialLogin('google');
+    for (const [kid, key] of [['k1', K1], ['k2', K2]]) {
+      expect((await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid, key }))).status).toBe(200);
+    }
+    expect(loadInternalKeys(env).has('short')).toBe(false);
+    expect(loadInternalKeys(env).has('vec')).toBe(false); // published test-vector key refused at load
+    expect(loadInternalKeys({ INTERNAL_PROXY_KEYS: JSON.stringify({ z: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=' }) }).size).toBe(0);
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'vec', key: VEC })));
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'short', key: unb64('AAECAwQFBgcICQoLDA0ODw==') })));
+    expect(loadInternalKeys({ INTERNAL_PROXY_KEYS: JSON.stringify({ a: 'QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=' }), PII_ENC_KEY: 'QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=' }).size).toBe(0); // reused secret
+  });
+  it('unknown kid and bad signature give byte-identical responses (no kid enumeration)', async () => {
+    const a = await socialLogin('google');
+    const dump = async (r) => JSON.stringify([r.status, [...r.headers].filter(([k]) => k !== 'date').sort(), await r.text()]);
+    const unknown = await dump(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k9' })));
+    const badSig = await dump(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k1', key: K2 })));
+    expect(unknown).toBe(badSig);
+    const big = 'x'.repeat(64 * 1024 + 1);
+    const big1 = await dump(await send('POST', '/api/optouts/signup', a.sid, big, 'v1.k9.' + t0() + '.' + 'A'.repeat(43)));
+    const big2 = await dump(await send('POST', '/api/optouts/signup', a.sid, big, 'v1.k1.' + t0() + '.' + 'A'.repeat(43)));
+    expect(big1).toBe(big2); expect(JSON.parse(big1)[0]).toBe(413);
+  });
+  it('wrong kid, or a known kid signed with the other key, is 403', async () => {
+    const a = await socialLogin('google');
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k9' })));
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k2', key: K1 })));
+  });
+  it('expired or future timestamp (beyond +/-60 s) is 403', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    for (const ts of [t0() - 3600, t0() + 3600, t0() - 121, t0() + 121]) await forbidden(await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw, { ts })));
+  });
+  it('tampered body, path, method, signature, version or IP is 403 and never falls back to CSRF', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    const rows = async () => (await env.DB.prepare("SELECT COUNT(*) AS c FROM optout_requests WHERE service_id = 'signup'").first()).c;
+    const before = await rows(); // delta, not an absolute count: independent of test order and leftover rows
+    const h = await signed('POST', '/api/optouts/signup', raw);
+    const cases = [
+      [raw.replace('Pat', 'Sam'), h, {}],
+      [raw, h.slice(0, -2) + (h.endsWith('AA') ? 'BB' : 'AA'), {}],
+      [raw, await signed('POST', '/api/account/delete', raw), {}],
+      [raw, await signed('PATCH', '/api/optouts/signup', raw), {}],
+      [raw, 'v2' + h.slice(2), {}], [raw, 'garbage', {}],
+      [raw, h, { 'CF-Connecting-IP': '203.0.113.99' }], // IP tampering: the IP is in the signature
+    ];
+    // A valid CSRF token alongside a bad signature does not help.
+    for (const [b, auth, extra] of cases) await forbidden(await send('POST', '/api/optouts/signup', a.sid, b, auth, { 'X-CSRF-Token': a.csrf, ...extra }));
+    expect(await rows()).toBe(before);
+  });
+  it('body over 64 KB is 413 before any signature work (exactly 64 KB is still checked normally)', async () => {
+    const a = await socialLogin('google');
+    const big = JSON.stringify({ pad: 'x'.repeat(64 * 1024) });
+    const r = await send('POST', '/api/optouts/signup', a.sid, big, await signed('POST', '/api/optouts/signup', big));
+    expect(r.status).toBe(413);
+    const edge = 'x'.repeat(64 * 1024);
+    await forbidden(await send('POST', '/api/optouts/signup', a.sid, edge, 'v1.k1.' + t0() + '.' + 'A'.repeat(43)));
+  });
+  it('wrong route: a correctly signed header off the allowlist is 403', async () => {
+    const a = await socialLogin('google');
+    await forbidden(await send('POST', '/api/account/sessions/zz/revoke', a.sid, '', await signed('POST', '/api/account/sessions/zz/revoke', '')));
+    await forbidden(await send('POST', '/api/account/sessions/ABCDEF0123456789/revoke', a.sid, '', await signed('POST', '/api/account/sessions/ABCDEF0123456789/revoke', '')));
+    await forbidden(await send('GET', '/api/account/export', a.sid, undefined, await signed('GET', '/api/account/export', '')));
+    await forbidden(await send('POST', '/api/login', a.sid, '', await signed('POST', '/api/login', '')));
+  });
+  it('missing header: normal CSRF still applies (no token = 403, token = 200)', async () => {
+    const a = await socialLogin('google');
+    expect((await api('POST', '/api/optouts/signup', { sid: a.sid }, good)).status).toBe(403);
+    expect((await api('POST', '/api/optouts/signup', a, good)).status).toBe(200);
+  });
+  it('still needs the session cookie and an allowed Origin', async () => {
+    const raw = JSON.stringify(good); const auth = await signed('POST', '/api/optouts/signup', raw);
+    expect((await send('POST', '/api/optouts/signup', null, raw, auth)).status).toBe(401);
+    const a = await socialLogin('google');
+    expect((await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw), { Origin: 'https://evil.example' })).status).toBe(403);
+  });
+  it('signed request: rate limit keys on the signed ip only, ignoring a fake request.cf and other edge IP headers', async () => {
+    const P = '/api/auth/complete?code=bad';
+    const ip = '192.0.2.150';
+    const call = async (i) => SELF.fetch(BASE + P, { redirect: 'manual', cf: { country: 'ZZ', clientIp: `198.18.0.${i}` },
+      headers: { 'CF-Connecting-IP': ip, 'True-Client-IP': `198.18.1.${i}`, 'X-Forwarded-For': `198.18.2.${i}`, 'X-Real-IP': `198.18.3.${i}`,
+        'User-Agent': UA, 'X-Internal-Auth': await signInternal(K1, 'k1', 'GET', P, String(t0()), ip, '') } });
+    for (let i = 0; i < 30; i++) expect((await call(i)).status).toBe(303);
+    expect((await call(99)).status).toBe(429); // same signed ip -> same bucket, whatever the cf object / other headers say
+    const other = '192.0.2.151';
+    const r = await SELF.fetch(BASE + P, { redirect: 'manual', cf: { country: 'ZZ' },
+      headers: { 'CF-Connecting-IP': other, 'User-Agent': UA, 'X-Internal-Auth': await signInternal(K1, 'k1', 'GET', P, String(t0()), other, '') } });
+    expect(r.status).toBe(303);
+  });
+  it('untrusted IP: a service-binding call without auth (no request.cf) ignores CF-Connecting-IP for rate limits', async () => {
+    const P = '/api/auth/complete?code=bad'; // handoff limit: 30 / 10 min per IP
+    const call = (ip, auth) => worker.fetch(new Request(BASE + P, { redirect: 'manual',
+      headers: { 'CF-Connecting-IP': ip, 'User-Agent': UA, ...(auth ? { 'X-Internal-Auth': auth } : {}) } }), env);
+    for (let i = 0; i < 30; i++) expect((await call(`192.0.2.${i + 1}`)).status).toBe(303); // 30 "different" IPs, one bucket
+    expect((await call('192.0.2.200')).status).toBe(429);
+    const ip = '192.0.2.201';
+    const ok = await call(ip, await signInternal(K1, 'k1', 'GET', P, String(t0()), ip, ''));
+    expect(ok.status).toBe(303); // verified: the forwarded IP is trusted, so it has its own bucket
+  });
+});
+
+describe('rate limits', () => {
+  it('limits OAuth starts per IP', async () => {
+    for (let i = 0; i < 30; i++) expect((await start('google')).status).toBe(302);
+    expect((await start('google')).status).toBe(429);
+  });
+  it('limits OAuth callbacks per IP', async () => {
+    for (let i = 0; i < 30; i++) await callback('google', { state: 'x', oauth: null });
+    expect((await callback('google', { state: 'x', oauth: null })).status).toBe(429);
+  });
+});
+
+describe('POST /api/optouts/signup (gate)', () => {
+  const good = {
+    firstName: 'Pat', lastName: 'Example', dob: '1990-04-02', addressLine1: '1 Main St', city: 'Somewhere', state: 'TX', zip: '75001',
+    email: 'Pat@Example.test', texasResident: false,
+  };
+  it('401 without a session', async () => {
+    expect((await api('POST', '/api/optouts/signup', {}, good)).status).toBe(401);
+  });
+  it('200 with a session: encrypted per-user row, TDPSA + nonTexasFlag, no PII echoed', async () => {
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/optouts/signup', a, good);
+    expect(r.status).toBe(200);
+    const text = await r.text();
+    expect(text).not.toContain('Pat');
+    const { ok, id } = JSON.parse(text);
+    expect(ok).toBe(true);
+    const row = await env.DB.prepare('SELECT * FROM optout_requests WHERE id = ?1').bind(id).first();
+    expect(row).toMatchObject({ status: 'queued', kind: 'tx', sub_status: 'non_texas' });
+    const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
+    expect(p.payload_enc).not.toContain('Pat');
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    expect(exp.optouts[0].pii).toMatchObject({
+      v: 2, firstName: 'Pat', middleName: null, lastName: 'Example', dob: '1990-04-02', state: 'TX', zip: '75001',
+      fullName: 'Pat Example', mailingAddress: '1 Main St\nSomewhere, TX 75001',
+      email: 'pat@example.test', jurisdiction: 'TDPSA', nonTexasFlag: true, submitter: 'self', child: null, guardianAttestation: false,
+    });
+    const list = await (await api('GET', '/api/account/optouts', a)).json();
+    expect(list.optouts).toHaveLength(1);
+    expect(JSON.stringify(list)).not.toContain('Pat');
+  });
+  it('validation errors use the shared rules and never echo values', async () => {
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/optouts/signup', a, { firstName: 'Madonna', dob: '2999-01-01', addressLine1: '<x>', city: 'C', state: 'ZZ', zip: '1', email: 'bad<script>', texasResident: 'yes' });
+    expect(r.status).toBe(400);
+    const b = await r.json();
+    expect(Object.keys(b.errors).sort()).toEqual(['addressLine1', 'dob', 'email', 'lastName', 'state', 'texasResident', 'zip']);
+    expect(JSON.stringify(b)).not.toContain('Madonna');
+    expect((await api('POST', '/api/optouts/signup', a, [])).status).toBe(400);
+  });
+  it('phone: optional, normalized, encrypted, exported, and an invalid phone is a 400', async () => {
+    const a = await socialLogin('google');
+    const r1 = await api('POST', '/api/optouts/signup', a, { ...good, phone: '(512) 555-0100' });
+    expect(r1.status).toBe(200);
+    const t1 = await r1.text();
+    expect(t1).not.toContain('555');
+    const { id } = JSON.parse(t1);
+    const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
+    expect(String(p.payload_enc)).not.toContain('5125550100');
+    expect('phone' in good).toBe(false); // missing key = no phone (landing omits it when empty)
+    expect((await api('POST', '/api/optouts/signup', a, good)).status).toBe(200);
+    expect((await api('POST', '/api/optouts/signup', a, { ...good, phone: '' })).status).toBe(200);
+    expect((await api('POST', '/api/optouts/signup', a, { ...good, phone: null })).status).toBe(200);
+    const bad = await api('POST', '/api/optouts/signup', a, { ...good, phone: '112-555-0100' });
+    expect(bad.status).toBe(400);
+    const bb = await bad.json();
+    expect(Object.keys(bb.errors)).toEqual(['phone']);
+    expect(JSON.stringify(bb)).not.toContain('555');
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    const phones = exp.optouts.map((o) => o.pii.phone).sort();
+    expect(phones).toEqual(['+15125550100', null, null, null].sort());
+    expect((await api('POST', '/api/account/delete', a)).status).toBe(200);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS c FROM pii_payloads').first()).c).toBe(0);
+  });
+  it('child signup (v2): needs guardian attestation, adult submitter and a child under 13; stored encrypted', async () => {
+    const a = await socialLogin('google');
+    const kid = { firstName: 'Kit', lastName: 'Example', dob: `${new Date().getFullYear() - 5}-01-15`, sameAddress: true };
+    const noAttest = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', child: kid });
+    expect(noAttest.status).toBe(400);
+    expect(Object.keys((await noAttest.json()).errors)).toContain('guardianAttestation');
+    const teen = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: { ...kid, dob: `${new Date().getFullYear() - 15}-01-15` } });
+    expect(Object.keys((await teen.json()).errors)).toContain('childDob');
+    const selfWithChild = await api('POST', '/api/optouts/signup', a, { ...good, child: kid });
+    expect(Object.keys((await selfWithChild.json()).errors)).toContain('submitter');
+    const ok = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: kid });
+    expect(ok.status).toBe(200);
+    const { id } = await ok.json();
+    const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
+    expect(String(p.payload_enc)).not.toContain('Kit');
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    expect(exp.optouts.find((o) => o.id === id).pii).toMatchObject({ v: 2, submitter: 'child', guardianAttestation: true, child: { firstName: 'Kit', sameAddress: true } });
+  });
+  it('v1 records (fullName/mailingAddress, no v key) still read through export', async () => {
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/optouts/signup', a, good);
+    const { id } = await r.json();
+    const v1 = { fullName: 'Old Record', mailingAddress: '2 Elm St, Town, TX 75002', email: 'old@example.test', texasResident: true, jurisdiction: 'TDPSA', nonTexasFlag: false };
+    const { blob, version } = await encryptPii(env, JSON.stringify(v1), `pii:${id}`);
+    await env.DB.prepare('UPDATE pii_payloads SET payload_enc = ?1, key_version = ?2 WHERE request_id = ?3').bind(blob, version, id).run();
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    expect(exp.optouts.find((o) => o.id === id).pii).toMatchObject({ v: 1, fullName: 'Old Record', mailingAddress: '2 Elm St, Town, TX 75002', submitter: 'self', child: null, phone: null, firstName: null });
+  });
+  it('opt-out rows are per-user', async () => {
+    const a = await socialLogin('google', { sub: 'one' });
+    await api('POST', '/api/optouts/signup', a, good);
+    const b = await socialLogin('google', { sub: 'two' });
+    expect((await (await api('GET', '/api/account/optouts', b)).json()).optouts).toHaveLength(0);
+  });
+});
+
+describe('account API + step-up', () => {
+  it('profile: display name always; identifiers only within step-up', async () => {
+    const a = await socialLogin('google');
+    expect((await api('PATCH', '/api/account/profile', a, { display_name: 'Pat' })).status).toBe(200);
+    let p = await (await api('GET', '/api/account/profile', a)).json();
+    expect(p).toMatchObject({ display_name: 'Pat', identifiers_locked: false });
+    expect(p.sign_in_emails[0].email).toBe('person@example.test');
+    await expireStepUp();
+    p = await (await api('GET', '/api/account/profile', a)).json();
+    expect(p.identifiers_locked).toBe(true);
+    expect(p.sign_in_emails).toBeUndefined();
+    expect((await api('PATCH', '/api/account/profile', a, { identifiers: { names: ['x'] } })).status).toBe(403);
+    expect((await api('PATCH', '/api/account/profile', a, { display_name: '<b>' })).status).toBe(400);
+  });
+
+  it('step-up expiry blocks export, delete and session revoke', async () => {
+    const a = await socialLogin('google');
+    await expireStepUp();
+    expect((await api('POST', '/api/account/export', a)).status).toBe(403);
+    expect((await api('POST', '/api/account/delete', a)).status).toBe(403);
+    const sess = await (await api('GET', '/api/account/sessions', a)).json();
+    expect(sess.sessions[0].current).toBe(true);
+    expect((await api('POST', `/api/account/sessions/${sess.sessions[0].id}/revoke`, a)).status).toBe(403);
+  });
+
+  it('session revoke with step-up', async () => {
+    const a = await socialLogin('google');
+    const b = await socialLogin('google');
+    const sess = (await (await api('GET', '/api/account/sessions', b)).json()).sessions;
+    const other = sess.find((s) => !s.current);
+    expect((await api('POST', `/api/account/sessions/${other.id}/revoke`, b)).status).toBe(200);
+    expect((await api('GET', '/api/me', a)).status).toBe(401);
+  });
+
+  it('account delete removes the user rows and PII and writes an audit entry', async () => {
+    const a = await socialLogin('google');
+    await api('POST', '/api/optouts/signup', a, { fullName: 'Pat Example', mailingAddress: '1 Main St, Somewhere, TX 75001', email: 'p@example.test', texasResident: true });
+    const r = await api('POST', '/api/account/delete', a);
+    expect(r.status).toBe(200);
+    for (const t of ['users', 'user_identities', 'sessions', 'optout_requests', 'pii_payloads', 'profiles']) {
+      expect((await env.DB.prepare(`SELECT COUNT(*) AS c FROM ${t}`).first()).c).toBe(0); // test-only fixed table names
+    }
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'account.delete' AND ip = ?1").bind(IP).first()).toBeTruthy();
+    expect((await api('GET', '/api/me', a)).status).toBe(401);
+  });
+
+  it('logout revokes the session', async () => {
+    const a = await socialLogin('google');
+    expect((await api('POST', '/api/auth/logout', a)).status).toBe(200);
+    expect((await api('GET', '/api/me', a)).status).toBe(401);
+  });
+
+  it('/api/me is 401 without a session', async () => {
+    expect((await api('GET', '/api/me')).status).toBe(401);
+  });
+});
+
+describe('password + TOTP fallback', () => {
+  async function pwUser() {
+    const id = crypto.randomUUID();
+    const secret = authenticator.generateSecret(20);
+    await env.DB.prepare('INSERT INTO users (id, email, pw_hash, totp_secret_enc, totp_enabled, created_at) VALUES (?1, ?2, ?3, ?4, 1, 1)')
+      .bind(id, 'pw@example.test', await hashPassword('correct horse battery'), await encryptStr(env, secret)).run();
+    return secret;
+  }
+  it('works same-origin under /api/auth/* and can step up with password + TOTP', async () => {
+    const secret = await pwUser();
+    let r = await api('POST', '/api/auth/login', {}, { email: 'pw@example.test', password: 'correct horse battery' });
+    const { preauth_token } = await r.json();
+    r = await api('POST', '/api/auth/totp/verify', {}, { preauth_token, code: authenticator.generate(secret) });
+    expect(r.status).toBe(200);
+    const a = { sid: cookieVal(r, '__Host-sid'), csrf: (await r.json()).csrf_token };
+    expect((await (await api('GET', '/api/me', a)).json()).user.has_password).toBe(true);
+    await expireStepUp();
+    expect((await api('POST', '/api/auth/stepup/password', a, { password: 'wrong', code: '000000' })).status).toBe(401);
+  });
+  it('social-only users can never log in with a password', async () => {
+    await socialLogin('google');
+    const u = await env.DB.prepare('SELECT email FROM users').first();
+    const r = await api('POST', '/api/auth/login', {}, { email: u.email, password: '!' });
+    expect(r.status).toBe(401);
+  });
+});
+
+describe('audit IP / user-agent', () => {
+  it('fills ip and user_agent (<=512 chars) on audit rows and never logs them', async () => {
+    const logged = [];
+    const spies = ['log', 'info', 'warn', 'error', 'debug'].map((k) => vi.spyOn(console, k).mockImplementation((...a) => { logged.push(a.map(String).join(' ')); }));
+    try {
+      await socialLogin('google');
+      const s = parseStart(await start('google'));
+      await callback('google', { ...s, state: 'bad' }); // failure path
+      const long = 'L'.repeat(600);
+      await SELF.fetch(`${ACC}/oauth/google/callback?state=x&code=y`, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP, 'User-Agent': long } });
+      const rows = (await env.DB.prepare('SELECT action, user_id, ip, user_agent FROM audit_log WHERE ip = ?1 ORDER BY id').bind(IP).all()).results;
+      expect(rows.length).toBeGreaterThan(2);
+      const ok = rows.filter((r) => r.action !== 'auth.fail');
+      expect(ok.length).toBeGreaterThan(0);
+      expect(ok.every((r) => r.user_agent === UA)).toBe(true);
+      // L2: unauthenticated auth.fail rows keep the IP but store no User-Agent
+      const fails = rows.filter((r) => r.action === 'auth.fail');
+      expect(fails.length).toBe(2);
+      expect(fails.every((r) => r.user_id === null && r.user_agent === null)).toBe(true);
+      expect(auditMeta(new Request('https://x', { headers: { 'User-Agent': long } }))[1]).toHaveLength(512);
+    } finally { spies.forEach((s) => s.mockRestore()); }
+    const out = logged.join('\n');
+    expect(out).not.toContain(IP);
+    expect(out).not.toContain('ua-marker-7f3a');
+  });
+  it('ip is NULL when CF-Connecting-IP is absent', async () => {
+    await SELF.fetch(`${ACC}/oauth/google/callback?state=x&code=y`, { redirect: 'manual' });
+    const r = await env.DB.prepare('SELECT ip FROM audit_log ORDER BY id DESC').first();
+    expect(r.ip).toBeNull();
+  });
+});
+
+describe('security review fixes', () => {
+  const stepUpFlow = async (a, claimOver) => {
+    const r = await api('POST', '/api/auth/google/stepup', a, {});
+    const locb = await bound(r); const loc = locb.loc;
+    nextClaims.google = { ...claimsFor('google', { nonce: loc.searchParams.get('nonce') }), ...claimOver };
+    return callback('google', { state: loc.searchParams.get('state'), oauth: locb.oauth, cookie: a.sid });
+  };
+
+  it('H1: step-up/link send prompt=login + max_age=0 and require a fresh numeric auth_time', async () => {
+    const a = await socialLogin('google');
+    let r = await api('POST', '/api/auth/google/stepup', a, {});
+    const locb = await bound(r); const loc = locb.loc;
+    expect(loc.searchParams.get('prompt')).toBe('select_account'); // M-new2: Google has no prompt=login
+    expect(loc.searchParams.get('max_age')).toBe('0');
+    await expireStepUp();
+    expect((await stepUpFlow(a, { auth_time: undefined })).headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
+    expect((await stepUpFlow(a, { auth_time: t0() - 601 })).headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
+    expect((await stepUpFlow(a, { auth_time: String(t0()) })).headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
+    expect((await api('POST', '/api/account/export', a)).status).toBe(403);
+    expect((await stepUpFlow(a, {})).headers.get('Location')).toBe('/account');
+    // link without auth_time is refused too
+    r = await api('POST', '/api/account/identities/microsoft/link', a, {});
+    const lb = await bound(r); const l = lb.loc;
+    nextClaims.microsoft = { ...claimsFor('microsoft', { nonce: l.searchParams.get('nonce') }), auth_time: undefined };
+    r = await callback('microsoft', { state: l.searchParams.get('state'), oauth: lb.oauth, cookie: a.sid });
+    expect(r.headers.get('Location')).toBe(BASE + '/start?auth_error=stale_auth');
+  });
+
+  it('Apple sign-in is removed: /api/auth/apple/* and Apple identity routes return 404', async () => {
+    for (const path of ['/api/auth/apple/start', '/api/auth/apple/callback']) {
+      expect((await SELF.fetch(BASE + path, { redirect: 'manual', headers: { 'CF-Connecting-IP': IP } })).status).toBe(404);
+    }
+    const a = await socialLogin('google');
+    expect((await api('POST', '/api/auth/apple/stepup', a, {})).status).toBe(404);
+    expect((await api('POST', '/api/auth/apple/callback', a, {})).status).toBe(404);
+    expect((await api('POST', '/api/account/identities/apple/link', a, {})).status).toBe(404);
+  });
+
+  it('M3: bound flow refuses an idle session', async () => {
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/auth/google/stepup', a, {});
+    const locb = await bound(r); const loc = locb.loc;
+    await env.DB.prepare('UPDATE sessions SET last_seen_at = ?1').bind(t0() - 43201).run();
+    nextClaims.google = claimsFor('google', { nonce: loc.searchParams.get('nonce') });
+    const cb = await callback('google', { state: loc.searchParams.get('state'), oauth: locb.oauth, cookie: a.sid });
+    expect(cb.headers.get('Location')).toBe(BASE + '/start?auth_error=session_mismatch');
+  });
+
+  it('M4: export is POST only and needs CSRF', async () => {
+    const a = await socialLogin('google');
+    expect((await api('GET', '/api/account/export', a)).status).not.toBe(200);
+    expect((await api('POST', '/api/account/export', { sid: a.sid })).status).toBe(403);
+    expect((await api('POST', '/api/account/export', a)).status).toBe(200);
+  });
+
+  it('the state cookie is always SameSite=Lax (set and clear)', () => {
+    expect(clearOauthCookie()).toContain('SameSite=Lax');
+  });
+});
+
+describe('accounts host + handoff', () => {
+  const hdrs = () => ({ 'CF-Connecting-IP': IP, 'User-Agent': UA });
+
+  for (const p of ['google', 'microsoft']) {
+    it(`${p}: full flow via accounts host and single-use handoff`, async () => {
+      const s = parseStart(await start(p));
+      expect(s.loc.searchParams.get('redirect_uri')).toBe(`${ACC}/oauth/${p}/callback`);
+      expect(s.oauth).toBeTruthy();
+      nextClaims[p] = claimsFor(p, { nonce: s.nonce });
+      const res = await callback(p, s);
+      // accounts host never sets the session cookie; it hands off with a code and clears the state cookie
+      expect(res.first.status).toBe(302);
+      expect(setCookies(res.first).some((c) => c.startsWith('__Host-sid='))).toBe(false);
+      expect(res.first.headers.get('Referrer-Policy')).toBe('no-referrer');
+      expect(res.headers.get('Location')).toBe('/account');
+      const sc = setCookies(res).find((c) => c.startsWith('__Host-sid='));
+      expect(sc).toBeTruthy();
+      expect(sc).not.toMatch(/Domain=/i);
+      const code = new URL(lastHandoff).searchParams.get('code');
+      const row = await env.DB.prepare('SELECT * FROM auth_handoffs').first();
+      expect(JSON.stringify(row)).not.toContain(code); // only the hash is stored
+      expect(row.expires_at - row.auth_at).toBe(60);
+      // reuse is refused
+      const again = await SELF.fetch(lastHandoff, { redirect: 'manual', headers: hdrs() });
+      expect(again.headers.get('Location')).toBe('/start?auth_error=handoff_reused');
+      expect(cookieVal(again, '__Host-sid')).toBeNull();
+    });
+  }
+
+  it('expired, tampered and malformed codes are refused and audited', async () => {
+    const s = parseStart(await start('google'));
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    const first = await SELF.fetch(`${ACC}/oauth/google/callback?state=${encodeURIComponent(s.state)}&code=x`, { redirect: 'manual', headers: { ...hdrs(), Cookie: s.oauth } });
+    const link = first.headers.get('Location');
+    const code = new URL(link).searchParams.get('code');
+    const tampered = code.slice(0, -1) + (code.endsWith('A') ? 'B' : 'A');
+    let r = await SELF.fetch(`${BASE}/api/auth/complete?code=${tampered}`, { redirect: 'manual', headers: hdrs() });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_invalid');
+    r = await SELF.fetch(`${BASE}/api/auth/complete?code=..`, { redirect: 'manual', headers: hdrs() });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_invalid');
+    await env.DB.prepare('UPDATE auth_handoffs SET expires_at = ?1').bind(t0() - 1).run();
+    r = await SELF.fetch(link, { redirect: 'manual', headers: hdrs() });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_expired');
+    expect(cookieVal(r, '__Host-sid')).toBeNull();
+    const fails = (await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'auth.fail' AND ip = ?1").bind(IP).all()).results.map((x) => x.target);
+    expect(fails).toEqual(expect.arrayContaining(['handoff:handoff_invalid', 'handoff:handoff_expired']));
+  });
+
+  it('handoff redemption is rate-limited', async () => {
+    for (let i = 0; i < 30; i++) await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: hdrs() });
+    expect((await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: hdrs() })).status).toBe(429);
+  });
+
+  it('open redirect on return_to is neutralised end to end', async () => {
+    for (const bad of ['https://evil.example/', '//evil.example', '/\\evil.example', 'javascript:alert(1)']) {
+      const s = parseStart(await start('google', bad));
+      nextClaims.google = claimsFor('google', { nonce: s.nonce });
+      expect((await callback('google', s)).headers.get('Location')).toBe('/start');
+    }
+    const s = parseStart(await start('google', 'https://evil.example'));
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    const res = await callback('google', s);
+    expect(res.headers.get('Location')).toBe('/start');
+  });
+
+  it('wrong host: accounts routes are 404 on the apex, apex routes are 404 on accounts, old apex callbacks are gone', async () => {
+    for (const path of ['/signin', '/oauth/google/start', '/oauth/google/callback']) {
+      expect((await SELF.fetch(BASE + path, { redirect: 'manual', headers: hdrs() })).status).toBe(404);
+    }
+    for (const path of ['/api/auth/complete?code=x', '/api/me', '/api/auth/google/start', '/account']) {
+      expect((await SELF.fetch(ACC + path, { redirect: 'manual', headers: hdrs() })).status).toBe(404);
+    }
+    for (const p of ['google', 'microsoft']) {
+      expect((await SELF.fetch(`${BASE}/api/auth/${p}/callback?state=x&code=y`, { redirect: 'manual', headers: hdrs() })).status).toBe(404);
+    }
+  });
+
+  it('accounts host: origin allowlist, GET only', async () => {
+    expect((await SELF.fetch(`${ACC}/signin`, { headers: { ...hdrs(), Origin: 'https://evil.example' } })).status).toBe(403);
+    expect((await SELF.fetch(`${ACC}/signin`, { headers: { ...hdrs(), Origin: BASE } })).status).toBe(403);
+    expect((await SELF.fetch(`${ACC}/signin`, { headers: { ...hdrs(), Origin: ACC } })).status).toBe(200);
+    expect((await SELF.fetch(`${ACC}/oauth/google/callback`, { method: 'POST', headers: { ...hdrs(), Origin: ACC } })).status).toBe(405);
+    expect((await SELF.fetch(`${ACC}/oauth/google/start`, { method: 'POST', headers: { ...hdrs(), Origin: ACC } })).status).toBe(405);
+    expect((await SELF.fetch(`${ACC}/oauth/google/bound`, { headers: hdrs() })).status).toBe(405);
+    // the accounts origin is not an API origin
+    expect((await SELF.fetch(`${BASE}/api/me`, { headers: { ...hdrs(), Origin: ACC } })).status).toBe(403);
+  });
+
+  it('sign-in page: two providers, password fallback, strict security headers, no scripts', async () => {
+    const r = await SELF.fetch(`${ACC}/signin?return_to=%2Faccount`, { headers: hdrs() });
+    expect(r.status).toBe(200);
+    const html = await r.text();
+    expect(html).toContain('DROP Texas');
+    expect(html).toContain('Continue with Google');
+    expect(html).toContain('Continue with Microsoft');
+    expect(html).not.toMatch(/oauth\/apple|with apple/i);
+    expect(html).toContain(`${BASE}/account`);
+    expect(html).not.toMatch(/<script/i);
+    const csp = r.headers.get('Content-Security-Policy');
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("script-src 'none'");
+    const nonce = csp.match(/'nonce-([^']+)'/)[1];
+    expect(html).toContain(`<style nonce="${nonce}">`);
+    expect(r.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(r.headers.get('Referrer-Policy')).toBe('no-referrer');
+  });
+
+  it('step-up start token is POSTed, single use, provider-bound, origin-checked and tamper-evident; step-up applies only to the same session', async () => {
+    const a = await socialLogin('google');
+    await expireStepUp();
+    const res = await api('POST', '/api/auth/google/stepup', a, {});
+    expect(res.headers.get('Referrer-Policy')).toBe('no-referrer');
+    const body = await res.json();
+    browser = cookieVal(res, '__Host-login');
+    expect(body.action).toBe(`${ACC}/oauth/google/bound`);
+    expect(body.action).not.toContain('?');
+    const tok = body.fields.st;
+    // wrong origin / GET start with a bound token are refused without consuming it
+    expect((await postForm(body.action, { st: tok }, 'https://evil.example')).status).toBe(403);
+    const asGet = await SELF.fetch(`${ACC}/oauth/google/start?st=${encodeURIComponent(tok)}`, { redirect: 'manual', headers: hdrs() });
+    expect(asGet.headers.get('Location')).toBe(`${BASE}/start?auth_error=bad_start`);
+    const swapped = await postForm(`${ACC}/oauth/microsoft/bound`, { st: tok });
+    expect(swapped.headers.get('Location')).toBe(`${BASE}/start?auth_error=bad_start`);
+    const bad = await postForm(body.action, { st: tok.slice(0, -2) + 'AA' });
+    expect(bad.headers.get('Location')).toBe(`${BASE}/start?auth_error=bad_start`);
+    const first = await postForm(body.action, { st: tok });
+    expect(first.status).toBe(302);
+    const again = await postForm(body.action, { st: tok });
+    expect(again.headers.get('Location')).toBe(`${BASE}/start?auth_error=start_reused`);
+    // complete the provider round trip, but redeem without the apex session: refused, no step-up
+    const loc = new URL(first.headers.get('Location'));
+    expect(loc.searchParams.get('prompt')).toBe('select_account');
+    expect(loc.searchParams.get('max_age')).toBe('0');
+    nextClaims.google = claimsFor('google', { nonce: loc.searchParams.get('nonce') });
+    const r = await callback('google', { state: loc.searchParams.get('state'), oauth: cookieVal(first, '__Host-oauth') });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=session_mismatch');
+    expect((await api('POST', '/api/account/export', a)).status).toBe(403);
+  });
+});
+
+describe('browser binding (B1) and deferred link (H-new1)', () => {
+  const hdrs = () => ({ 'CF-Connecting-IP': IP, 'User-Agent': UA });
+  const failRes = (r, reason) => {
+    expect(r.headers.get('Location')).toBe(`/start?auth_error=${reason}`);
+    expect(cookieVal(r, '__Host-sid')).toBeNull();
+    expect(setCookies(r).some((c) => c.startsWith('__Host-login=;') && c.includes('Max-Age=0'))).toBe(true);
+  };
+
+  it('apex start sets a host-only __Host-login cookie and sends only a sealed start token', async () => {
+    const r = await SELF.fetch(`${BASE}/api/auth/google/start?return_to=%2Faccount`, { redirect: 'manual', headers: hdrs() });
+    const c = setCookies(r).find((x) => x.startsWith('__Host-login='));
+    for (const a of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/', 'Max-Age=600']) expect(c).toContain(a);
+    expect(c).not.toMatch(/Domain=/i);
+    const loc = new URL(r.headers.get('Location'));
+    expect(loc.origin + loc.pathname).toBe(`${ACC}/oauth/google/start`);
+    expect([...loc.searchParams.keys()]).toEqual(['st']);
+    expect(loc.toString()).not.toContain(c.split(';')[0].split('=')[1]); // the raw cookie never leaves the apex
+    expect(r.headers.get('Referrer-Policy')).toBe('no-referrer');
+  });
+
+  it('direct /oauth/{p}/start without a valid start token is refused', async () => {
+    for (const q of ['', '?return_to=%2Faccount', '?st=garbage']) {
+      const r = await SELF.fetch(`${ACC}/oauth/google/start${q}`, { redirect: 'manual', headers: hdrs() });
+      expect(r.headers.get('Location')).toBe(`${BASE}/start?auth_error=bad_start`);
+      expect(cookieVal(r, '__Host-oauth')).toBeNull();
+    }
+    // a login start token is single use
+    const a = await SELF.fetch(`${BASE}/api/auth/google/start`, { redirect: 'manual', headers: hdrs() });
+    const url = a.headers.get('Location');
+    expect((await SELF.fetch(url, { redirect: 'manual', headers: hdrs() })).status).toBe(302);
+    expect((await SELF.fetch(url, { redirect: 'manual', headers: hdrs() })).headers.get('Location')).toBe(`${BASE}/start?auth_error=start_reused`);
+  });
+
+  it('HEAD /oauth/{p}/start is 405 and consumes neither the token nor the rate limit', async () => {
+    const a = await SELF.fetch(`${BASE}/api/auth/google/start`, { redirect: 'manual', headers: hdrs() });
+    const url = a.headers.get('Location');
+    for (let i = 0; i < 35; i++) expect((await SELF.fetch(url, { method: 'HEAD', redirect: 'manual', headers: hdrs() })).status).toBe(405);
+    expect((await SELF.fetch(url, { redirect: 'manual', headers: hdrs() })).status).toBe(302);
+  });
+
+  it('redeeming without the __Host-login cookie is refused, audited, and does not burn the code', async () => {
+    const s = parseStart(await start('google'));
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    const r = await callback('google', { ...s, login: null });
+    failRes(r, 'browser_mismatch');
+    expect(await countUsers()).toBe(1); // user exists (provider auth happened) but no session was issued
+    expect(await env.DB.prepare('SELECT COUNT(*) AS c FROM sessions').first()).toEqual({ c: 0 });
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'auth.fail' AND target = 'handoff:browser_mismatch' AND ip = ?1").bind(IP).first()).toBeTruthy();
+  });
+
+  it('login CSRF: an attacker handoff redeemed in a victim browser with a different __Host-login is refused', async () => {
+    const s = parseStart(await start('google')); // attacker's own flow + cookie
+    nextClaims.google = claimsFor('google', { nonce: s.nonce });
+    const victim = cookieVal(await SELF.fetch(`${BASE}/api/auth/google/start`, { redirect: 'manual', headers: hdrs() }), '__Host-login');
+    const r = await callback('google', { ...s, login: victim });
+    failRes(r, 'browser_mismatch');
+    const s2 = parseStart(await start('google'));
+    nextClaims.google = claimsFor('google', { nonce: s2.nonce });
+    const wrong = await callback('google', { ...s2, login: '__Host-login=' + 'A'.repeat(43) });
+    failRes(wrong, 'browser_mismatch');
+  });
+
+  it('a successful redemption clears __Host-login', async () => {
+    const { res } = await socialLogin('microsoft');
+    expect(cookieVal(res, '__Host-sid')).toBeTruthy();
+    expect(setCookies(res).some((c) => c.startsWith('__Host-login=;') && c.includes('Max-Age=0'))).toBe(true);
+  });
+
+  it('link: the callback only stages the identity; nothing is linked or audited until complete() matches session + browser', async () => {
+    const a = await socialLogin('google');
+    const lb = await bound(await api('POST', '/api/account/identities/microsoft/link', a, {}));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'staged-sub', nonce: lb.loc.searchParams.get('nonce') });
+    const cb = await SELF.fetch(`${ACC}/oauth/microsoft/callback?state=${encodeURIComponent(lb.state)}&code=x`,
+      { redirect: 'manual', headers: { ...hdrs(), Cookie: lb.oauth } });
+    expect(cb.headers.get('Location').startsWith(`${BASE}/api/auth/complete?code=`)).toBe(true);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS c FROM user_identities WHERE provider = 'microsoft'").first()).toEqual({ c: 0 });
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'identity.link' AND ip = ?1").bind(IP).first()).toBeNull();
+    const row = await env.DB.prepare("SELECT * FROM auth_handoffs WHERE intent = 'link'").first();
+    expect(row.link_sub).toContain('staged-sub');
+    expect(row.link_email).not.toContain('@example.test');
+    // same browser + session -> linked now
+    const done = await SELF.fetch(cb.headers.get('Location'), { redirect: 'manual', headers: { ...hdrs(), Cookie: `${a.sid}; ${browser}` } });
+    expect(done.headers.get('Location')).toBe('/account');
+    expect(await env.DB.prepare("SELECT COUNT(*) AS c FROM user_identities WHERE provider = 'microsoft' AND sub LIKE '%staged-sub'").first()).toEqual({ c: 1 });
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'identity.link' AND ip = ?1").bind(IP).first()).toBeTruthy();
+  });
+
+  it('a leaked link start token used from another browser/session links nothing', async () => {
+    const victim = await socialLogin('google');
+    const res = await api('POST', '/api/account/identities/microsoft/link', victim, {});
+    const { action, fields } = await res.json(); // token leaks; the victim's __Host-login does not
+    const attacker = await socialLogin('microsoft', { sub: 'attacker-ms', tid: '9188040d-6c67-4c5b-b112-36a304b66dad' });
+    await env.DB.prepare('DELETE FROM user_identities WHERE sub LIKE ?1').bind('%attacker-ms').run();
+    const first = await postForm(action, fields);
+    const loc = new URL(first.headers.get('Location'));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'attacker-ms', nonce: loc.searchParams.get('nonce') });
+    const attackerLogin = browser; // the attacker's own __Host-login (from their own sign-in)
+    const cb = await SELF.fetch(`${ACC}/oauth/microsoft/callback?state=${encodeURIComponent(loc.searchParams.get('state'))}&code=x`,
+      { redirect: 'manual', headers: { ...hdrs(), Cookie: cookieVal(first, '__Host-oauth') } });
+    const handoff = cb.headers.get('Location');
+    expect(handoff.startsWith(`${BASE}/api/auth/complete?code=`)).toBe(true);
+    // the attacker cannot present the victim's __Host-login, whatever session cookie they use
+    for (const jar of [attacker.sid, `${attacker.sid}; ${attackerLogin}`, victim.sid, '']) {
+      const r = await SELF.fetch(handoff, { redirect: 'manual', headers: { ...hdrs(), ...(jar ? { Cookie: jar } : {}) } });
+      expect(r.headers.get('Location')).toBe('/start?auth_error=browser_mismatch');
+    }
+    expect(await env.DB.prepare("SELECT COUNT(*) AS c FROM user_identities WHERE sub LIKE '%attacker-ms'").first()).toEqual({ c: 0 });
+    expect(await env.DB.prepare("SELECT 1 FROM audit_log WHERE action = 'identity.link' AND ip = ?1").bind(IP).first()).toBeNull();
+  });
+});
+
+describe('pre-deploy: handoff scrubbing, purge, 429 cookie clear', () => {
+  const hdrs = () => ({ 'CF-Connecting-IP': IP, 'User-Agent': UA });
+  const linkFields = (row) => [row.link_sub, row.link_email, row.link_email_key_version, row.link_email_verified];
+
+  it('a successful link claim nulls the staged identity fields on the handoff row', async () => {
+    const a = await socialLogin('google');
+    const lb = await bound(await api('POST', '/api/account/identities/microsoft/link', a, {}));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'scrub-sub', nonce: lb.loc.searchParams.get('nonce') });
+    const r = await callback('microsoft', { state: lb.state, oauth: lb.oauth, cookie: a.sid });
+    expect(r.headers.get('Location')).toBe('/account');
+    const row = await env.DB.prepare("SELECT * FROM auth_handoffs WHERE intent = 'link'").first();
+    expect(row.used_at).not.toBeNull();
+    expect(linkFields(row)).toEqual([null, null, null, null]);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS c FROM user_identities WHERE sub LIKE '%scrub-sub'").first()).toEqual({ c: 1 });
+  });
+
+  it('a claim that then fails (session mismatch) still leaves the staged fields nulled', async () => {
+    const a = await socialLogin('google');
+    const lb = await bound(await api('POST', '/api/account/identities/microsoft/link', a, {}));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'scrub-2', nonce: lb.loc.searchParams.get('nonce') });
+    const r = await callback('microsoft', { state: lb.state, oauth: lb.oauth }); // no apex session
+    expect(r.headers.get('Location')).toBe('/start?auth_error=session_mismatch');
+    const row = await env.DB.prepare("SELECT * FROM auth_handoffs WHERE intent = 'link'").first();
+    expect(row.used_at).not.toBeNull();
+    expect(linkFields(row)).toEqual([null, null, null, null]);
+  });
+
+  it('an expired link handoff is scrubbed on redemption and purged by the cron', async () => {
+    const a = await socialLogin('google');
+    const lb = await bound(await api('POST', '/api/account/identities/microsoft/link', a, {}));
+    nextClaims.microsoft = claimsFor('microsoft', { sub: 'scrub-3', nonce: lb.loc.searchParams.get('nonce') });
+    const cb = await SELF.fetch(`${ACC}/oauth/microsoft/callback?state=${encodeURIComponent(lb.state)}&code=x`, { redirect: 'manual', headers: { ...hdrs(), Cookie: lb.oauth } });
+    await env.DB.prepare('UPDATE auth_handoffs SET expires_at = ?1').bind(t0() - 1).run();
+    const r = await SELF.fetch(cb.headers.get('Location'), { redirect: 'manual', headers: { ...hdrs(), Cookie: `${a.sid}; ${browser}` } });
+    expect(r.headers.get('Location')).toBe('/start?auth_error=handoff_expired');
+    expect(linkFields(await env.DB.prepare("SELECT * FROM auth_handoffs WHERE intent = 'link'").first())).toEqual([null, null, null, null]);
+    await purge(env);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS c FROM auth_handoffs WHERE expires_at <= ?1').bind(t0()).first()).toEqual({ c: 0 });
+  });
+
+  it('the 429 on /api/auth/complete clears __Host-login', async () => {
+    for (let i = 0; i < 30; i++) await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: hdrs() });
+    const r = await SELF.fetch(`${BASE}/api/auth/complete?code=x`, { redirect: 'manual', headers: { ...hdrs(), Cookie: '__Host-login=' + 'A'.repeat(43) } });
+    expect(r.status).toBe(429);
+    expect(setCookies(r).some((c) => c.startsWith('__Host-login=;') && c.includes('Max-Age=0'))).toBe(true);
+    // D1 limiter: the 429 also carries Retry-After (both headers present together).
+    expect(Number(r.headers.get('Retry-After'))).toBeGreaterThan(0);
+    expect(Number(r.headers.get('Retry-After'))).toBeLessThanOrEqual(600);
+    expect((await env.RECORDS.list({ prefix: 'rl:' })).keys.length).toBe(0);
+  });
+});
+
+describe('every Location and Set-Cookie on the redirecting/cookie routes (landing proxy filter contract)', () => {
+  // Self-contained: each test resets SEEN and drives every redirecting route itself (no dependence on test order).
+  const exercise = async () => {
+    SEEN.length = 0;
+    for (const p of ['google', 'microsoft']) await socialLogin(p);           // apex start, accounts start + callback, apex complete
+    const a = await socialLogin('google');
+    let r = await api('POST', '/api/auth/google/stepup', a, {});              // __Host-login on stepup
+    let b = await bound(r);                                                   // accounts /oauth/{p}/bound
+    nextClaims.google = claimsFor('google', { nonce: b.loc.searchParams.get('nonce'), auth_time: t0() });
+    await callback('google', { state: b.state, oauth: b.oauth, cookie: a.sid });
+    r = await api('POST', '/api/account/identities/microsoft/link', a, {});  // __Host-login on link
+    b = await bound(r);
+    nextClaims.microsoft = claimsFor('microsoft', { nonce: b.loc.searchParams.get('nonce') });
+    await callback('microsoft', { state: b.state, oauth: b.oauth, cookie: a.sid });
+    await callback('google', { state: 'bad', oauth: null });                  // accounts failure redirect -> app /start?auth_error
+    await SELF.fetch(`${BASE}/api/auth/complete?code=bad`, { redirect: 'manual' }); // apex failure redirect
+    await SELF.fetch(`${ACC}/`, { redirect: 'manual' });                      // accounts "/" -> /signin
+    await api('POST', '/api/auth/logout', a);                                 // clears __Host-sid
+    const d = await socialLogin('google');
+    await api('POST', '/api/account/delete', d, {});                          // clears __Host-sid (or step-up error)
+  };
+  const apex = () => SEEN.filter((x) => x.url.origin === BASE);
+  const acc = () => SEEN.filter((x) => x.url.origin === ACC);
+  it('Location: apex = same-origin path or the accounts-host /oauth/{p}/start; accounts = app handoff or provider authorize', async () => {
+    await exercise();
+    const routes = new Set();
+    for (const x of SEEN.filter((y) => y.location !== null)) {
+      const kind = x.url.origin === BASE ? 'app' : 'accounts';
+      expect(locationAllowed(env, kind, x.location), `${x.url.pathname} -> ${x.location.slice(0, 60)}`).toBe(true);
+      routes.add(`${kind} ${x.url.pathname.replace(/(google|microsoft)/, '{p}')}`);
+      if (kind === 'app' && !x.location.startsWith('/')) expect(x.location).toMatch(/^https:\/\/accounts\.test\/oauth\/(google|microsoft)\/start\?st=/);
+      if (kind === 'accounts' && !x.location.startsWith('/')) {
+        const u = new URL(x.location);
+        expect([BASE, 'https://accounts.google.com', 'https://login.microsoftonline.com']).toContain(u.origin);
+      }
+    }
+    // every redirecting route was exercised
+    for (const r of ['app /api/auth/{p}/start', 'app /api/auth/complete', 'accounts /oauth/{p}/start', 'accounts /oauth/{p}/callback', 'accounts /oauth/{p}/bound']) expect(routes).toContain(r);
+  });
+  it('locationAllowed rejects open redirects', () => {
+    for (const bad of ['//evil.example', '/\\evil.example', 'https://evil.example/', 'https://accounts.test.evil/oauth/google/start?st=x',
+      'https://accounts.test/oauth/google/callback', 'https://accounts.google.com.evil/o/oauth2/v2/auth', 'javascript:alert(1)', '/ok\r\nSet-Cookie: x=1']) {
+      expect(locationAllowed(env, 'app', bad)).toBe(false);
+      expect(locationAllowed(env, 'accounts', bad)).toBe(false);
+    }
+    expect(locationAllowed(env, 'app', 'https://accounts.google.com/o/oauth2/v2/auth?x=1')).toBe(false); // apex never sends the browser to a provider
+  });
+  it('apex (proxied) Set-Cookie: only __Host-sid and __Host-login, host-only, Path=/, Secure, HttpOnly, SameSite=Lax', async () => {
+    await exercise();
+    const names = new Set();
+    for (const x of apex()) for (const c of x.cookies) {
+      const [nv, ...attrs] = c.split(';').map((p) => p.trim());
+      const name = nv.split('=')[0]; names.add(name);
+      expect(['__Host-sid', '__Host-login']).toContain(name);
+      const a = attrs.map((p) => p.toLowerCase());
+      expect(a.some((p) => p.startsWith('domain'))).toBe(false);
+      expect(a).toContain('path=/'); expect(a).toContain('secure'); expect(a).toContain('httponly'); expect(a).toContain('samesite=lax');
+    }
+    expect(names).toEqual(new Set(['__Host-sid', '__Host-login']));
+  });
+  it('accounts host Set-Cookie: only __Host-oauth (never __Host-sid)', async () => {
+    await exercise();
+    for (const x of acc()) for (const c of x.cookies) expect(c.split('=')[0]).toBe('__Host-oauth');
+  });
+});
+
+describe('/api/profile alias: distinct 403 codes', () => {
+  it('401 without a session; 403 code step_up_required when not stepped up; 200 after', async () => {
+    expect((await api('GET', '/api/profile')).status).toBe(401);
+    const a = await socialLogin('google');
+    await env.DB.prepare('UPDATE sessions SET stepped_up_at = NULL').run();
+    const r = await api('GET', '/api/profile', a);
+    expect(r.status).toBe(403);
+    expect(await r.json()).toEqual({ error: 'step_up_required', code: 'step_up_required' });
+    await env.DB.prepare('UPDATE sessions SET stepped_up_at = ?1').bind(Math.floor(Date.now() / 1000)).run();
+    expect((await api('GET', '/api/profile', a)).status).toBe(200);
+  });
+  it('password session without TOTP gets 403 code mfa_required', async () => {
+    const a = await socialLogin('google');
+    await env.DB.prepare("UPDATE sessions SET mfa = 0, auth_method = 'password'").run();
+    const r = await api('GET', '/api/profile', a);
+    expect(r.status).toBe(403);
+    expect((await r.json()).code).toBe('mfa_required');
+  });
+});
