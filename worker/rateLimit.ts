@@ -30,32 +30,61 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Conditional UPSERT: a request that is already at the limit does not increment
+// (the DO UPDATE ... WHERE skips, so RETURNING yields no row). Atomic per window.
 const UPSERT = `INSERT INTO rate_limits (key, window_start, count, expires_at) VALUES (?1, ?2, 1, ?3)
- ON CONFLICT (key, window_start) DO UPDATE SET count = count + 1 RETURNING count`;
+ ON CONFLICT (key, window_start) DO UPDATE SET count = count + 1 WHERE count < ?4 RETURNING count`;
+const REFUND = "UPDATE rate_limits SET count = MAX(count - 1, 0) WHERE key = ?1 AND window_start = ?2";
 
 export class D1SignupLimiter implements SignupLimiter {
   constructor(private readonly db: RateLimitDatabase) {}
 
   async reserve(ip: string, at = Math.floor(Date.now() / 1000)): Promise<number> {
+    const taken: Array<{ key: string; start: number }> = [];
     let retry = 0;
-    for (const limit of SIGNUP_LIMITS) {
+    // Daily window first, then 10 minutes. If a later window rejects, earlier slots are refunded,
+    // so a rejected attempt never uses up any cap.
+    for (const limit of [...SIGNUP_LIMITS].reverse()) {
       const start = Math.floor(at / limit.windowSec) * limit.windowSec;
       const end = start + limit.windowSec;
-      const row = await this.db
-        .prepare(UPSERT)
-        .bind(await sha256Hex(`${limit.scope}|${ip}`), start, end)
-        .first<{ count: number }>();
-      if (!row || typeof row.count !== "number") throw new Error("rate_limit_unavailable");
-      if (row.count > limit.max) retry = Math.max(retry, Math.max(1, end - at));
+      const key = await sha256Hex(`${limit.scope}|${ip}`);
+      const row = await this.db.prepare(UPSERT).bind(key, start, end, limit.max).first<{ count: number }>();
+      if (row && typeof row.count === "number") {
+        taken.push({ key, start });
+        continue;
+      }
+      retry = Math.max(1, end - at);
+      break;
     }
-    // Opportunistic cleanup: the landing Worker has no cron. About 1 in 50 requests.
-    if (Math.random() < 0.02) {
+    if (retry > 0) {
+      for (const slot of taken) await this.db.prepare(REFUND).bind(slot.key, slot.start).run();
+      return retry;
+    }
+    await this.cleanup(at);
+    return 0;
+  }
+
+  /** Best-effort: never blocks a signup that already passed the limit. Logs no PII. */
+  private async cleanup(at: number): Promise<void> {
+    if (Math.random() >= 0.02) return;
+    try {
       await this.db.prepare("DELETE FROM rate_limits WHERE expires_at < ?1").bind(at).run();
+    } catch (error) {
+      console.log(JSON.stringify({ message: "rate_limit_cleanup_failed", codes: [error instanceof Error ? error.name : "Error"] }));
     }
-    return retry;
   }
 }
 
-export function clientIp(headers: { get(name: string): string | null }): string {
-  return headers.get("cf-connecting-ip") || "unknown";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+/**
+ * Limiter key for a request. Cloudflare always sets CF-Connecting-IP in production.
+ * Missing header: a local dev host gets a dev-only key; anything else returns null,
+ * and the caller rejects with a generic 400 instead of sharing one bucket.
+ */
+export function clientIp(headers: { get(name: string): string | null }, requestUrl: string): string | null {
+  const ip = headers.get("cf-connecting-ip")?.trim();
+  if (ip && ip.length <= 64) return ip;
+  if (LOCAL_HOSTS.has(new URL(requestUrl).hostname)) return "dev-local";
+  return null;
 }

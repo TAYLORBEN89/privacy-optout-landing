@@ -227,9 +227,13 @@ async function handleSignup(
   if (limiter) {
     // Counted only after validation, so fixing form errors does not use up attempts.
     // Fail closed: if the limiter's D1 write fails, the signup write would fail too.
+    const ip = clientIp(request.headers, request.url);
+    if (ip === null) {
+      return formError("bad_request", "We couldn't process that request. Try again.", 400, request);
+    }
     let retryAfter: number;
     try {
-      retryAfter = await limiter.reserve(clientIp(request.headers));
+      retryAfter = await limiter.reserve(ip);
     } catch (error) {
       logOutcome({
         message: "signup_rate_limit_unavailable",

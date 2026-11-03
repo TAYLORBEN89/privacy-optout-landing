@@ -3,25 +3,36 @@ import { handleRequest } from "../worker/handle";
 import { D1SignupLimiter, type RateLimitDatabase } from "../worker/rateLimit";
 import type { SignupStore } from "../worker/storage";
 
-/** In-memory stand-in for the rate_limits UPSERT ... RETURNING. */
-function fakeDb(): RateLimitDatabase & { keys: string[] } {
+/** In-memory stand-in for rate_limits: conditional UPSERT ... RETURNING, refund, cleanup. */
+function fakeDb(opts: { failDelete?: boolean } = {}): RateLimitDatabase & { keys: string[]; rows: Map<string, number> } {
   const rows = new Map<string, number>();
   const keys: string[] = [];
   return {
     keys,
+    rows,
     prepare(query: string) {
       return {
         bind(...values: unknown[]) {
+          const k = `${values[0]}|${values[1]}`;
           return {
             async first<T>() {
-              const k = `${values[0]}|${values[1]}`;
+              expect(query).toContain("WHERE count < ?4 RETURNING count");
               keys.push(String(values[0]));
-              const n = (rows.get(k) ?? 0) + 1;
-              rows.set(k, n);
-              expect(query).toContain("RETURNING count");
-              return { count: n } as T;
+              const cur = rows.get(k);
+              if (cur === undefined) {
+                rows.set(k, 1);
+                return { count: 1 } as T;
+              }
+              if (cur >= Number(values[3])) return null;
+              rows.set(k, cur + 1);
+              return { count: cur + 1 } as T;
             },
             async run() {
+              if (query.startsWith("DELETE")) {
+                if (opts.failDelete) throw new Error("D1_ERROR: 203.0.113.9");
+                return {};
+              }
+              if (query.startsWith("UPDATE")) rows.set(k, Math.max((rows.get(k) ?? 0) - 1, 0));
               return {};
             },
           };
@@ -73,6 +84,66 @@ describe("D1SignupLimiter", () => {
     await new D1SignupLimiter(db).reserve("203.0.113.9");
     expect(db.keys.join()).not.toContain("203.0.113.9");
     expect(db.keys[0]).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("rejected attempts and cleanup", () => {
+  it("over-limit retries do not use up the daily cap", async () => {
+    const db = fakeDb();
+    const limiter = new D1SignupLimiter(db);
+    const day = 1_800_000_000 - (1_800_000_000 % 86_400);
+    for (let i = 0; i < 5; i += 1) expect(await limiter.reserve("203.0.113.9", day)).toBe(0);
+    for (let i = 0; i < 50; i += 1) expect(await limiter.reserve("203.0.113.9", day)).toBeGreaterThan(0);
+    const counts = [...db.rows.values()].sort((x, y) => x - y);
+    expect(counts).toEqual([5, 5]);
+    // The next 10-minute window still has its full 5.
+    for (let i = 0; i < 5; i += 1) expect(await limiter.reserve("203.0.113.9", day + 600)).toBe(0);
+  });
+
+  it("a failing cleanup DELETE does not block an allowed signup", async () => {
+    const random = Math.random;
+    Math.random = () => 0;
+    const lines: string[] = [];
+    const log = console.log;
+    console.log = (m: unknown) => void lines.push(String(m));
+    try {
+      expect(await new D1SignupLimiter(fakeDb({ failDelete: true })).reserve("203.0.113.9")).toBe(0);
+    } finally {
+      Math.random = random;
+      console.log = log;
+    }
+    expect(lines.join()).toContain("rate_limit_cleanup_failed");
+    expect(lines.join()).not.toContain("203.0.113.9");
+  });
+});
+
+describe("client IP key", () => {
+  it("rejects a production request without CF-Connecting-IP with a generic 400", async () => {
+    let calls = 0;
+    const res = await handleRequest(
+      new Request("https://droptexas.com/api/signup", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "https://droptexas.com" },
+        body: JSON.stringify(valid),
+      }),
+      { signupStore: store, signupLimiter: { reserve: async () => { calls += 1; return 0; } } },
+    );
+    expect(res.status).toBe(400);
+    expect(calls).toBe(0);
+  });
+
+  it("uses a dev-only key on localhost", async () => {
+    const seen: string[] = [];
+    const res = await handleRequest(
+      new Request("http://localhost:8787/api/signup", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:8787" },
+        body: JSON.stringify(valid),
+      }),
+      { signupStore: store, signupLimiter: { reserve: async (ip) => { seen.push(ip); return 0; } } },
+    );
+    expect(res.status).toBe(200);
+    expect(seen).toEqual(["dev-local"]);
   });
 });
 
