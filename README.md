@@ -27,7 +27,7 @@ npm run build
 npx wrangler dev
 ```
 
-`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. It needs one Worker secret. See **Signup PII encryption** below.
+`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. It needs one Worker secret (see **Signup PII encryption**) and two migrations, 0004 and 0005 (see **Before deploy**).
 
 ## Signup PII encryption
 
@@ -41,6 +41,17 @@ Signup PII is encrypted in the Worker with AES-256-GCM before it is written to D
 - **Wrong or missing key:** `/api/signup` fails closed. It stores nothing, returns a generic 500, and logs the error code `signup_key_missing` or `signup_key_invalid` (never the value).
 - **Losing the key** makes stored PII unreadable, so keep a copy in the password manager. Rotating it needs a re-encryption job, which is not built yet.
 
+## Signup rate limit
+
+`POST /api/signup` is rate limited in D1, in the `rate_limits` table from migration 0005. No new binding is used.
+
+- **Limits:** 5 per 10 minutes and 20 per day, per hashed client IP. The key is sha256 of the scope and `CF-Connecting-IP`; raw IPs are never stored.
+- **What counts:** only submissions that pass validation. A request that's already over the limit doesn't increment either counter, because the UPSERT is conditional and earlier slots are refunded. Retrying doesn't use up the daily cap.
+- **Over the limit:** a uniform `429` with `{"form":{"code":"rate_limited","message":"Too many requests. Try again later."}}`, a `Retry-After` header (seconds until the window resets) and `cache-control: no-store`. No counts, scopes or IPs are returned.
+- **Limiter unavailable:** if the D1 write fails, it fails closed with a generic `503`. The signup would need the same database anyway.
+- **Missing `CF-Connecting-IP`:** Cloudflare always sets it in production, so a request without it gets a generic `400` rather than sharing one bucket. On `localhost` and `127.0.0.1`, a dev-only key is used instead.
+- **Cleanup:** expired rows are deleted on about 2% of allowed requests. It's best-effort: a failure is logged as `rate_limit_cleanup_failed`, with no PII, and the signup continues.
+
 ### Before deploy (needs Ben's approval)
 
 1. Set `SIGNUP_PII_KEY` as described above.
@@ -50,6 +61,7 @@ Signup PII is encrypted in the Worker with AES-256-GCM before it is written to D
    - **Backfill:** run a one-off script that writes `pii_enc` and `email_hmac` with the same key, then blanks the plaintext columns.
 4. Confirm the count above returns 0 before going live.
 5. A later migration can drop the legacy plaintext columns.
+6. **Required:** apply migration `0005_rate_limits.sql`, which creates `rate_limits`. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`. Without it, every signup returns 503.
 
 ## Deploy
 

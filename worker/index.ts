@@ -1,4 +1,5 @@
 import { handleRequest } from "./handle";
+import { D1SignupLimiter } from "./rateLimit";
 import { D1SignupStore } from "./storage";
 
 /**
@@ -36,6 +37,7 @@ export default {
           fetchAsset: () => env.ASSETS.fetch(request),
           forwardApi: api ? (upstream) => api.fetch(upstream) : undefined,
           callApi: api,
+          signupLimiter: new D1SignupLimiter(env.DB),
           signupStore: new D1SignupStore(env.DB, (env as Env & { SIGNUP_PII_KEY?: string }).SIGNUP_PII_KEY),
         },
       );
