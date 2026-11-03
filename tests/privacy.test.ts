@@ -31,7 +31,10 @@ describe("privacy page", () => {
     expect(phoneKeptAt).toBeGreaterThan(plannedAt);
     expect(html.indexOf("An account phone number is kept while your account is active", phoneKeptAt + 1)).toBe(-1);
     expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
-    expect(html).toContain("Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256).");
+    expect(html).toContain(
+      "Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers.",
+    );
+    expect(html).not.toContain("Saved information is stored in Cloudflare D1 and Workers KV");
     expect(html).toContain("Coming soon");
     expect(html).toContain(
       "Sign in with Google or Microsoft, secure session cookies, and self-service export and delete. Until then, email help@droptexas.com to see or delete your data.",

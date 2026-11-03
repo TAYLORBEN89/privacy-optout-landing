@@ -4,7 +4,6 @@ import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE, DISCLAIMER } from "..
  * REVIEW: Cybersecurity and Compliance Agents must review this copy before launch.
  * Only claims that are true of this stack belong here. HSTS is not set in this
  * Worker, so it is omitted. Do not write "certified".
- * Retention values come from the approved schedule in compliance/data-retention.md.
  */
 
 const COLLECTED =
@@ -37,7 +36,7 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
     id: "rest",
     title: "Encryption at rest",
-    paragraphs: ["Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256)."],
+    paragraphs: ["Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers."],
   },
   {
     id: "coming-soon",
