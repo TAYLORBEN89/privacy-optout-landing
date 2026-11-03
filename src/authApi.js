@@ -1,7 +1,7 @@
 // Session-based API client for the D1 auth routes. Uses the HttpOnly session cookie (credentials: 'include')
 // and sends the per-session CSRF token on every state-changing request. The CSRF token is kept in memory only.
 // Same-origin plan: leave VITE_API_URL empty and the app calls /api/* on its own origin.
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '');
 let csrf = '';
 export const setCsrf = (t) => { csrf = t || ''; };
 

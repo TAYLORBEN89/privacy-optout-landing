@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { useEffect, useState } from 'react';
 import Account from './Account.jsx';
 import './styles.css';
+import { clearLegacyStorage } from './legacyStorage.js';
+
+clearLegacyStorage(); // wipe plaintext caches (records, Texas requests, identifiers, access key) left by older versions
 
 // The legacy shared-key KV dashboard (App.jsx + storage.js) needs VITE_API_URL pointing at a host that routes every
 // path to the Worker. Production builds leave VITE_API_URL empty (same-origin /api/*), so there the legacy dashboard

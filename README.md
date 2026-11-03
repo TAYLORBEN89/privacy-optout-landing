@@ -1,7 +1,7 @@
 # Privacy Opt-Out Dashboard
 
 DROP Texas: a privacy opt-out tracker for Texans covering direct mail, data brokers, credit freezes, Do Not Call, and paid removal services.
-Vite + React frontend, Cloudflare Worker + D1/KV backend (source of truth), localStorage as an offline cache.
+Vite + React frontend, Cloudflare Worker + D1/KV backend (the only store). Nothing about the user (records, Texas requests, identifiers) is kept in browser storage; plaintext caches left by older versions are wiped on every load.
 
 ## Frontend setup
 ```bash
@@ -10,11 +10,13 @@ cp .env.example .env   # VITE_API_URL: empty for same-origin /api/* (production)
 npm run dev            # http://localhost:5173
 npm run build          # production build to dist/
 ```
-If the API is unreachable, the app falls back to cached data in localStorage and shows "offline (cached)".
+If the API is unreachable, the legacy dashboard shows "offline: read-only, reload to retry" and disables editing, so it can never overwrite server state with defaults. There is no offline cache. `npm run test:storage` checks the cache wipe and the read-only rules.
 
-### Access key
-The access key (the Worker's `API_TOKEN` secret) is **not** built into the bundle. On first load the dashboard asks for it and stores it in this browser's localStorage.
-Use **Forget key** in the header to remove it. If the API ever returns 401, the key is cleared and you are prompted again.
+### Access key (legacy dashboard, dev builds only)
+Identifiers ("Your identifiers" on the Texas tab) load from `GET/PUT /api/profile` on the signed-in session, encrypted in D1. `/api/profile` is a same-origin alias of the step-up-gated `/profile`. `loadProfile` calls `/api/me` first and falls back to the legacy KV route `/settings/profile` **only** on a true no-session `401`, and only when a legacy key exists. An MFA-pending, not-stepped-up or otherwise forbidden session (`403`, see the `code` values below) never falls back. It gets its own note on the page instead. If neither source is available, or the server is unreachable, the editor is read-only.
+
+The access key (the Worker's `API_TOKEN` secret) is **not** built into the bundle. On first load the dashboard asks for it and keeps it in this tab's sessionStorage only (gone when the tab closes). Old copies in localStorage are deleted on load.
+Use **Forget key** in the header to remove it sooner. If the API ever returns 401, the key is cleared and you are prompted again.
 Consider also putting the dashboard behind Cloudflare Access.
 
 ### Deploy frontend (Cloudflare Pages)
@@ -51,8 +53,9 @@ npx wrangler d1 create privacy-dashboard            # paste database_id into [[d
 | `0004_audit_append_only.sql` | append-only triggers on audit_log, the expiry gate and maintenance_log (idempotent) |
 | `0007_social_auth.sql` | user_identities (google/microsoft), oauth_states_used, auth_handoffs, step-up columns, audit ip/user_agent |
 | `0008_rate_limits.sql` | strongly consistent fixed-window rate-limit counters (replaces the old KV limiter) |
+| `0010_inactive_accounts.sql` | `users.last_active_at` + `users.inactivity_warned_at` for the inactive-account lifecycle (backfills `last_active_at = created_at`) |
 
-There are no 0005/0006 files (numbers were skipped). Wrangler applies whatever is unapplied, in file order:
+There are no 0005/0006 files (numbers were skipped), and 0009 is reserved for the planned email work. Wrangler applies whatever is unapplied, in file order:
 ```bash
 npm run db:migrate:local                                  # = wrangler d1 migrations apply DB --local
 npx wrangler d1 migrations apply DB --remote              # production; only with the owner's approval
@@ -73,6 +76,8 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 | `PII_ENC_KEY_PREV` | optional, only during PII key rotation (old key, readable with `PII_PREV_KEY_VERSION`) | the previous `PII_ENC_KEY` |
 
 ### 4. Vars (`[vars]` in `wrangler.toml`)
+- `INACTIVE_WARN_DAYS` (default `700`, about 23 months), `INACTIVE_DELETE_DAYS` (default `730`, 24 months), `INACTIVE_MIN_NOTICE_DAYS` (default `14`) – inactive-account lifecycle, see below.
+- `MAIL_FROM` – sender address for account mail. **Stub**: commented out until Email Sending is enabled for the Worker.
 - `GOOGLE_CLIENT_ID`, `MICROSOFT_CLIENT_ID` – public client IDs (placeholders in the repo; set yours at deploy).
 - `OAUTH_REDIRECT_URIS` – comma-separated exact allowlist, e.g. `https://accounts.droptexas.com/oauth/google/callback,https://accounts.droptexas.com/oauth/microsoft/callback`. Must match the provider consoles exactly.
 - `ALLOWED_ORIGIN` – comma-separated CORS origins, production only (`npm run check:origins` enforces this). Dev origins go in `.dev.vars`.
@@ -120,13 +125,21 @@ Sign-in host (`ACCOUNTS_HOST`):
 App origin (`/api`, JSON, cookie session `__Host-sid`; state-changing requests need `X-CSRF-Token`):
 - `GET /api/auth/{google|microsoft}/start` – sets `__Host-login`, sends the browser to the sign-in host.
 - `GET /api/auth/complete?code=` – redeems the handoff code, creates the session.
-- `POST /api/auth/{google|microsoft}/stepup`, `POST /api/auth/stepup/password` – re-authentication (valid 10 min). Sensitive routes return `403 {"error":"step_up_required"}` without it.
+- `POST /api/auth/{google|microsoft}/stepup`, `POST /api/auth/stepup/password` – re-authentication (valid 10 min). Sensitive routes return `403 {"error":"step_up_required","code":"step_up_required"}` without it.
+- Auth errors on session routes: no session (or an expired or revoked one) is `401 {"error":"unauthorized"}`. A `403` body carries a `code` field the client branches on:
+  - `mfa_required`: a password session that has not finished TOTP;
+  - `step_up_required`: re-authentication needed;
+  - `forbidden`: a CSRF or Origin failure. Its body is `{"error":"forbidden"}`, and the client treats a 403 with no `code` the same way.
+  
+  These come after the session cookie check, so they reveal nothing about other accounts. The sign-in endpoints keep their uniform messages.
 - `POST /api/auth/logout`, `GET /api/me`.
+- `GET|PUT /api/profile`: same-origin alias of `/profile` below (step-up gated; same body and errors).
 - `POST /api/account/identities/{p}/link`, `DELETE /api/account/identities/{p}`.
 - `GET|PATCH /api/account/profile`, `GET /api/account/optouts`, `GET /api/account/sessions`, `POST /api/account/sessions/{id}/revoke`, `POST /api/account/export`, `POST /api/account/delete`.
 - `POST /api/optouts/signup` – v2 payload (landing PR #12 `shared/signup.ts`, copied byte-identical to `worker/src/shared/signup.ts`): `{firstName, middleName?, lastName, dob, addressLine1, addressLine2?, city, state, zip, email, phone?, texasResident, submitter?, child?, guardianAttestation?}`. `submitter` is `self` (default) or `child`; a child signup needs `child` and `guardianAttestation: true`. `jurisdiction` and `nonTexasFlag` are derived server-side, never client-set. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted (`pii_payloads`, key `v: 2`). The old v1 body (`{fullName, mailingAddress, ...}`) is now a **400**, so this change must ship together with landing PR #12 (which sends v2); stored v1 records are still readable.
 
 Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/admin/bootstrap`.
+TOTP on the older routes: only **password** sessions need a finished TOTP for `/profile`, `/optouts` (and `/tx-requests` once #9 lands). Google and Microsoft sessions are accepted, matching the newer `/api/*` routes. Before this change, those routes rejected social sessions with `mfa required`. *This is pending Ben's decision and should be reverted if social sessions must stay blocked there.*
 Legacy KV API (`Authorization: Bearer <API_TOKEN>`): `GET|POST /records`, `GET|PUT|DELETE /records/:id`, `/txrequests`, `/settings/profile`.
 
 ### Landing proxy contract (droptexas.com Worker -> this API over the `API` service binding)
@@ -220,3 +233,19 @@ Checklist categories now also include People-search sites, Search & apps, and Sp
 
 ## Social sign-in
 Provider console setup for Google and Microsoft sign-in: see [docs/oauth-setup.md](docs/oauth-setup.md).
+
+## Inactive accounts (24-month deletion)
+- `last_active_at` is set whenever a session is created (password/MFA login, social sign-in, refresh), in the same D1 batch as the session INSERT, and a new sign-in clears any pending warning.
+- A daily cron job (`inactiveAccounts`, alongside `purge` and `expireAudit`) sends **one** warning email to accounts inactive for `INACTIVE_WARN_DAYS`. The email text states the actual number of months and the days left, derived from the config.
+- At `INACTIVE_DELETE_DAYS` the account is deleted, **but only if** a warning was recorded at least `INACTIVE_MIN_NOTICE_DAYS` earlier. Deleting the `users` row cascades to sessions, identities, handoffs, backup codes, profile, opt-out requests, confirmations and encrypted PII payloads. `audit_log` rows keep only the user id and expire on their own schedule.
+- **Mailer stub**: the `[[send_email]] MAILER` binding and `MAIL_FROM` are commented out in `wrangler.toml`. Without them nobody is warned, so nobody is deleted.
+- **Backlog**: each run warns at most 100 accounts (`LIMIT 100`). A larger backlog drains over the following daily runs, and each account still gets the full notice period after its own warning, so a backlog delays deletions and never shortens notice. A failed send is skipped (no address logged) and retried next run.
+- **Deadline in the email**: deletion happens at the later of last activity + `INACTIVE_DELETE_DAYS` and warning + `INACTIVE_MIN_NOTICE_DAYS`. The email states that real per-account deadline (days left and a UTC date): about 29-30 days for an on-time warning, 14 days for a late one. Signing in at any point before deletion resets `last_active_at` and clears the warning, so the next run cannot delete the account.
+- Social-only accounts store a placeholder `users.email` (`<id>@users.invalid`); the job skips those addresses. Warning them needs the real (encrypted) identity email, which is part of the email work.
+- The public privacy policy should state this 24-month inactivity deletion; that page lives in the landing site repo.
+
+## Logging (Workers Logs)
+- `worker/wrangler.toml` enables Workers Logs: `[observability] enabled = true`, `head_sampling_rate = 1` (every request is logged).
+- **Only `worker/src/log.js` may log.** Everything else calls `log(event, fields)` / `logError(event, err, fields)`. `npm --prefix worker run check:logs` fails if `console.*` appears anywhere else in `worker/src`.
+- Fields are allowlisted (`method`, `route`, `status`, `ms`, `surface`, `counts`, `deleted`, `warned`, `job`, `error`). Request bodies, headers, cookies, tokens, query strings, IPs, user agents and PII are never logged. Routes are normalized (`/optouts/:id`) so ids and user input never appear. Errors log only the error name (no message or stack). Free text is scrubbed of emails, long tokens and phone numbers as a second line of defense.
+- One `request` line per response from every surface: `accounts` (sign-in host), `legacy` (KV routes), `app`, `api`, including 403 origin rejects, OPTIONS preflights and 500s. Scheduled jobs log counts only (`purge`, `audit_expiry`, `inactive_accounts`). One `scheduled` handler (`runScheduled` in `worker/src/index.js`) runs all three independently; a failed job logs `scheduled_job` with its name and error class, and the others still run.

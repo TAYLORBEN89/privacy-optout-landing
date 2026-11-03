@@ -1,25 +1,24 @@
-// Storage module. The Cloudflare Worker (see /worker) is the source of truth;
-// localStorage is only an offline cache used when the API is unreachable.
+// Storage module. The Cloudflare Worker (see /worker) is the only store. Nothing about the user (records,
+// Texas requests, identifiers/profile) is written to localStorage any more; old plaintext caches are wiped on load.
 import { SERVICES } from './services.js';
+import { call } from './authApi.js';
+import { SessionAuthError, sessionReason, SIGNED_OUT } from './sessionErrors.js';
 
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '');
 const KEY_STORAGE = 'privacy-dashboard:access-key';
 
-// The access key is entered at runtime (never baked into the bundle) and kept in localStorage.
-export const getKey = () => localStorage.getItem(KEY_STORAGE) || '';
-export const setKey = (k) => localStorage.setItem(KEY_STORAGE, k.trim());
-export const forgetKey = () => localStorage.removeItem(KEY_STORAGE);
+// Legacy shared access key: per-tab sessionStorage only (gone when the tab closes), until the legacy routes retire.
+export const getKey = () => sessionStorage.getItem(KEY_STORAGE) || '';
+export const setKey = (k) => sessionStorage.setItem(KEY_STORAGE, k.trim());
+export const forgetKey = () => sessionStorage.removeItem(KEY_STORAGE);
 export class AuthError extends Error {}
-const CACHE_KEY = 'privacy-dashboard:records:v1';
+
+export { LEGACY_LOCAL_KEYS, clearLegacyStorage } from './legacyStorage.js';
 
 export function defaultRecord(svc) {
   return { id: svc.id, status: 'not_started', url: svc.url, dateSubmitted: '', confirmation: '', notes: svc.notes || '', nextReverify: '' };
 }
 
-function readCache() {
-  try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch { return {}; }
-}
-function writeCache(map) { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); }
 
 async function api(path, opts = {}) {
   if (!API_URL) throw new Error('VITE_API_URL not set');
@@ -41,65 +40,64 @@ export async function loadRecords() {
   try {
     const list = await api('/records');
     const map = Object.fromEntries(list.map((r) => [r.id, r]));
-    writeCache(map);
     return { records: merge(map), online: true };
   } catch (e) {
     if (e instanceof AuthError) throw e;
-    return { records: merge(readCache()), online: false };
+    return { records: merge({}), online: false };
   }
 }
 
-/** Upsert one record (PUT /records/:id). Cache is updated even if offline. */
+/** Upsert one record (PUT /records/:id). Returns false if the API is unreachable (nothing stored locally). */
 export async function saveRecord(record) {
-  const map = readCache();
-  map[record.id] = record;
-  writeCache(map);
   try { await api(`/records/${encodeURIComponent(record.id)}`, { method: 'PUT', body: JSON.stringify(record) }); return true; }
   catch (e) { if (e instanceof AuthError) throw e; return false; }
 }
 
 export async function deleteRecord(id) {
-  const map = readCache();
-  delete map[id];
-  writeCache(map);
   try { await api(`/records/${encodeURIComponent(id)}`, { method: 'DELETE' }); return true; }
   catch (e) { if (e instanceof AuthError) throw e; return false; }
 }
 
 // ---- Texas TDPSA broker requests (Worker collection /txrequests, KV prefix 'txreq:') ----
-const TX_CACHE_KEY = 'privacy-dashboard:txrequests:v1';
-const readTx = () => { try { return JSON.parse(localStorage.getItem(TX_CACHE_KEY)) || {}; } catch { return {}; } };
-const writeTx = (m) => localStorage.setItem(TX_CACHE_KEY, JSON.stringify(m));
 
 /** Returns { map: {id: request}, online }. */
 export async function loadTxRequests() {
   try {
     const list = await api('/txrequests');
     const map = Object.fromEntries(list.map((r) => [r.id, r]));
-    writeTx(map);
     return { map, online: true };
   } catch (e) {
     if (e instanceof AuthError) throw e;
-    return { map: readTx(), online: false };
+    return { map: {}, online: false };
   }
 }
 
 export async function saveTxRequest(req) {
-  const map = readTx(); map[req.id] = req; writeTx(map);
   try { await api(`/txrequests/${encodeURIComponent(req.id)}`, { method: 'PUT', body: JSON.stringify(req) }); return true; }
   catch (e) { if (e instanceof AuthError) throw e; return false; }
 }
 
-// ---- Profile (identifiers for request emails). Worker: /settings/profile. Cached locally for offline use. ----
-const PROFILE_CACHE = 'privacy-dashboard:profile:v1';
+// ---- Profile (identifiers for request emails). Never cached in the browser.
+// Signed-in session (D1, encrypted at rest): GET/PUT /profile. Users who only have the legacy shared key (not yet
+// migrated) fall back to the legacy KV route /settings/profile, so they keep access until the KV->D1 migration.
+// loadProfile resolves { profile, source: 'session' | 'legacy' }. It throws ProfileAuthError when neither a session
+// nor a legacy key is available, AuthError when the legacy key is rejected, and rethrows anything else (network, 5xx) so the UI can tell the two apart.
+// ProfileAuthError.reason is one of sessionErrors' reasons. The legacy KV fallback is used ONLY when there is no
+// session at all (401 from /api/me) and a legacy key exists: an MFA-pending or not-stepped-up session never falls back.
+export class ProfileAuthError extends SessionAuthError {}
+const toProfileErr = (e) => { const r = sessionReason(e); return r ? new ProfileAuthError(r) : e; };
 export async function loadProfile() {
-  try { const p = await api('/settings/profile'); localStorage.setItem(PROFILE_CACHE, JSON.stringify(p)); return p; }
-  catch (e) {
-    if (e instanceof AuthError) throw e;
-    try { return JSON.parse(localStorage.getItem(PROFILE_CACHE)); } catch { return null; }
+  try {
+    await call('/api/me'); // restores the in-memory CSRF token after a reload (needed for the PUT)
+  } catch (e) {
+    if (sessionReason(e) !== SIGNED_OUT) throw toProfileErr(e);
+    if (!getKey() || !API_URL) throw new ProfileAuthError(SIGNED_OUT);
+    // A rejected legacy key throws AuthError (key cleared), which the page routes to onAuthFail as before.
+    return { profile: await api('/settings/profile'), source: 'legacy' };
   }
+  try { return { profile: await call('/api/profile'), source: 'session' }; } catch (e) { throw toProfileErr(e); }
 }
-export async function saveProfile(p) {
-  localStorage.setItem(PROFILE_CACHE, JSON.stringify(p));
-  await api('/settings/profile', { method: 'PUT', body: JSON.stringify(p) });
+export async function saveProfile(p, source) {
+  if (source === 'legacy') return api('/settings/profile', { method: 'PUT', body: JSON.stringify(p) });
+  try { return await call('/api/profile', { method: 'PUT', body: p }); } catch (e) { throw toProfileErr(e); }
 }

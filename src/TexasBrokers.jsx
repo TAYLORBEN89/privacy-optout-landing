@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import bundled from './data/tx-brokers.json';
-import { loadProfile, loadTxRequests, saveProfile, saveTxRequest } from './storage.js';
+import { SESSION_NOTES } from './sessionErrors.js';
+import { AuthError, ProfileAuthError, loadProfile, loadTxRequests, saveProfile, saveTxRequest } from './storage.js';
 import { AG_COMPLAINT_URL, EMPTY_PROFILE, RESPONSE_DAYS, buildEmail } from './txProfile.js';
 
 // Texas data broker registry -> TDPSA deletion/opt-out requests.
@@ -118,7 +119,7 @@ const FIELDS = [
   ['addresses', 'Addresses, current first (one per line)', true], ['phones', 'Phone numbers (one per line)', true],
   ['emails', 'Email addresses (one per line)', true], ['replyTo', 'Reply-to email', false],
 ];
-function ProfileEditor({ profile, onSave }) {
+function ProfileEditor({ profile, onSave, readOnly }) {
   const [open, setOpen] = useState(!profile.name);
   const [draft, setDraft] = useState(profile);
   const [msg, setMsg] = useState('');
@@ -128,7 +129,12 @@ function ProfileEditor({ profile, onSave }) {
   const save = async () => {
     const clean = { ...draft, id: 'profile' };
     for (const [k, , multi] of FIELDS) if (multi) clean[k] = (clean[k] || []).map((x) => x.trim()).filter(Boolean);
-    try { await onSave(clean); setMsg('Saved to your Worker ✓'); } catch (e) { setMsg('Saved on this device only (Worker unreachable)'); }
+    if (readOnly) return;
+    try { await onSave(clean); setMsg('Saved to your Worker ✓'); } catch (e) {
+      setMsg(e instanceof ProfileAuthError ? `Not saved. ${SESSION_NOTES[e.reason]}`
+        : e instanceof AuthError ? 'Not saved: sign in at #/account (nothing is stored in this browser)'
+          : 'Not saved: the server could not be reached. Try again.');
+    }
     setTimeout(() => setMsg(''), 2500);
   };
   const n = (k) => (profile[k] || []).length;
@@ -147,7 +153,7 @@ function ProfileEditor({ profile, onSave }) {
                 : <input type="text" value={val(k, false)} onChange={(e) => setVal(k, false, e.target.value)} />}
             </label>
           ))}
-          <div className="full tx-email-actions"><button className="toggle small" onClick={save}>Save identifiers</button>{msg && <span className="tx-note">{msg}</span>}</div>
+          <div className="full tx-email-actions"><button className="toggle small" onClick={save} disabled={readOnly}>Save identifiers</button>{msg && <span className="tx-note">{msg}</span>}</div>
         </div>
       )}
     </section>
@@ -156,8 +162,18 @@ function ProfileEditor({ profile, onSave }) {
 
 export default function TexasBrokers({ onAuthFail }) {
   const [profile, setProfile] = useState(null);
-  useEffect(() => { loadProfile().then((p) => setProfile({ ...EMPTY_PROFILE, ...(p || {}) })).catch(onAuthFail); }, []);
-  const storeProfile = async (p) => { setProfile(p); await saveProfile(p); };
+  const [profileNote, setProfileNote] = useState('');
+  const [profileSource, setProfileSource] = useState(null); // 'session' | 'legacy' | null (not loaded: read-only)
+  useEffect(() => {
+    loadProfile().then(({ profile: p, source }) => { setProfile({ ...EMPTY_PROFILE, ...(p || {}) }); setProfileSource(source); }).catch((e) => {
+      if (e instanceof AuthError) { onAuthFail(e); return; } // legacy key rejected: same path as every other legacy call
+      setProfile(EMPTY_PROFILE); setProfileSource(null);
+      setProfileNote(e instanceof ProfileAuthError
+        ? `Your identifiers: ${SESSION_NOTES[e.reason]}`
+        : 'Could not load your identifiers (server unreachable). Editing is disabled so nothing gets overwritten; reload to retry.');
+    });
+  }, []);
+  const storeProfile = async (p) => { await saveProfile(p, profileSource); setProfile(p); };
   const [registry, setRegistry] = useState(loadRegistry);
   const [reqs, setReqs] = useState(null);
   const [online, setOnline] = useState(true);
@@ -168,7 +184,8 @@ export default function TexasBrokers({ onAuthFail }) {
 
   useEffect(() => { loadTxRequests().then(({ map, online }) => { setReqs(map); setOnline(online); }).catch(onAuthFail); }, []);
 
-  const update = (r) => { setReqs((m) => ({ ...m, [r.id]: r })); saveTxRequest(r).then(setOnline).catch(onAuthFail); };
+  // Offline = read-only: the server state is unknown, so an edit here could overwrite it with defaults.
+  const update = (r) => { if (!online) return; setReqs((m) => ({ ...m, [r.id]: r })); saveTxRequest(r).then(setOnline).catch(onAuthFail); };
 
   const upload = async (e) => {
     const f = e.target.files?.[0]; if (!f) return;
@@ -202,11 +219,12 @@ export default function TexasBrokers({ onAuthFail }) {
 
   return (
     <>
-      <ProfileEditor profile={profile} onSave={storeProfile} />
+      {profileNote && <div className="tx-note">{profileNote}</div>}
+      <ProfileEditor profile={profile} onSave={storeProfile} readOnly={!profileSource} />
       <section className="progress-wrap">
         <div className="progress-label">
           <strong>{done} / {brokers.length} brokers completed</strong>
-          <span>{sent} requests sent {online ? '' : <span className="offline">· offline (cached)</span>}</span>
+          <span>{sent} requests sent {online ? '' : <span className="offline">· offline: read-only, reload to retry</span>}</span>
         </div>
         <div className="progress">
           <div className="bar confirmed" style={{ width: `${(done / brokers.length) * 100}%` }} />
@@ -240,7 +258,7 @@ export default function TexasBrokers({ onAuthFail }) {
         <span className="count">{shown.length} shown</span>
       </div>
       <div className="tx-list">
-        {shown.slice(0, limit).map((b) => <BrokerRow key={reqId(b)} profile={profile} broker={b} req={reqFor(b)} onChange={update} />)}
+        <fieldset disabled={!online} style={{ display: 'contents', border: 0, padding: 0, margin: 0 }}>{shown.slice(0, limit).map((b) => <BrokerRow key={reqId(b)} profile={profile} broker={b} req={reqFor(b)} onChange={update} />)}</fieldset>
       </div>
       {shown.length > limit && <button className="toggle more" onClick={() => setLimit(limit + 100)}>Show more ({shown.length - limit} left)</button>}
     </>

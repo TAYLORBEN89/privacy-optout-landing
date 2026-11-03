@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Production build (VITE_API_URL empty) must not contain the legacy KV dashboard (App.jsx / storage.js) or the "Legacy dashboard" link in Account.jsx.
 set -euo pipefail
+# Note: src/legacyStorage.js (the localStorage wipe) is meant to ship; it builds key names from a prefix, so it
+# does not match these markers. A real match means App.jsx/storage.js leaked into the bundle.
 cd "$(dirname "$0")/.."
 out=$(mktemp -d)
 VITE_API_URL= npx vite build --outDir "$out" --emptyOutDir >/dev/null
