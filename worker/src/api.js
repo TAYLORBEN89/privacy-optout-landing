@@ -5,7 +5,7 @@ import {
   checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
-import { reserve, refund, clientIp, retryHeaders, trustForwardedIp } from './ratelimit.js';
+import { reserve, refund, clientIp, retryHeaders, trustSignedIp } from './ratelimit.js';
 import {
   PROVIDERS, redirectUriFor, client, authorizationUrl, newFlowSecrets, exchange, verifyIdToken, IdTokenError,
   sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo, sealStart, openStart,
@@ -524,8 +524,8 @@ export async function handleApi(req, env) {
   if (req.headers.has(INTERNAL_HEADER)) {
     const v = await verifyInternal(req, env, path);
     if (v === TOO_LARGE) return json(ctx, { error: 'payload too large' }, 413);
-    if (v !== true) return FORBIDDEN(ctx);
-    ctx.internal = true; trustForwardedIp(req);
+    if (!v || typeof v !== 'object') return FORBIDDEN(ctx);
+    ctx.internal = true; trustSignedIp(req, v.ip);
   }
 
   if (LEGACY_AUTH_ALIASES.has(path)) {

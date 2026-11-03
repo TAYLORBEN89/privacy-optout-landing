@@ -62,12 +62,13 @@ export const purgeRateLimitsStmt = (env, at) => env.DB.prepare('DELETE FROM rate
 // Retry-After header for 429 responses (bodies stay the per-scope uniform messages).
 export const retryHeaders = (secs, extra = {}) => ({ 'Retry-After': String(secs), ...extra });
 
-// CF-Connecting-IP is set by Cloudflare's edge on public requests (req.cf present). On a service-binding call the
-// caller writes it, so it is trusted only after X-Internal-Auth verified (the IP is bound in the signature);
-// otherwise all such calls share one 'service-binding' bucket.
-const trustedIp = new WeakSet();
-export const trustForwardedIp = (req) => { trustedIp.add(req); };
+// Signed landing-proxy call (X-Internal-Auth verified): the client IP is ONLY the signed ip field; request.cf and every
+// other edge header are ignored. Unsigned direct traffic: CF-Connecting-IP, which Cloudflare's edge sets (request.cf
+// present). A service-binding call without valid auth has no edge IP, so all such calls share one bucket.
+const signedIp = new WeakMap();
+export const trustSignedIp = (req, ip) => { signedIp.set(req, ip); };
 export const clientIp = (req) => {
-  if (trustedIp.has(req) || req.cf) return req.headers.get('CF-Connecting-IP') || 'unknown';
+  if (signedIp.has(req)) return signedIp.get(req) || 'unknown';
+  if (req.cf) return req.headers.get('CF-Connecting-IP') || 'unknown';
   return 'service-binding';
 };

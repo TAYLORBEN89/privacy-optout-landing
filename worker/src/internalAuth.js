@@ -42,6 +42,9 @@ const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replac
 const KID = /^[a-z0-9]{1,16}$/;
 const OTHER_SECRETS = ['PII_ENC_KEY', 'PII_ENC_KEY_PREV', 'TOTP_ENC_KEY', 'OAUTH_COOKIE_KEY', 'SIGNUP_PII_KEY'];
 
+// Published test-vector key (bytes 0x00..0x1f, README/tests). Never accepted as a real key.
+const TEST_VECTOR_KEY = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
+const DUMMY_KEY = new Uint8Array(32); // used for unknown kids so the response and the work done match a bad signature
 const cache = new WeakMap();
 /** Parses INTERNAL_PROXY_KEYS once per env. Drops bad kids, non-base64 values, keys < 32 bytes and reused secrets. */
 export function loadInternalKeys(env) {
@@ -52,9 +55,9 @@ export function loadInternalKeys(env) {
   const others = new Set(OTHER_SECRETS.map((n) => String(env[n] || '')).filter(Boolean));
   if (map && typeof map === 'object' && !Array.isArray(map)) {
     for (const [kid, v] of Object.entries(map)) {
-      if (!KID.test(kid) || typeof v !== 'string' || others.has(v)) continue;
+      if (!KID.test(kid) || typeof v !== 'string' || others.has(v) || v === TEST_VECTOR_KEY) continue;
       let bytes; try { bytes = unb64(v); } catch { continue; }
-      if (bytes.length < MIN_KEY_BYTES) continue;
+      if (bytes.length < MIN_KEY_BYTES || bytes.every((x, i) => x === i)) continue;
       out.set(kid, bytes);
     }
   }
@@ -92,18 +95,20 @@ async function readCapped(req) {
   return out;
 }
 
-/** true for a valid, fresh header from a known kid on an allowed route; TOO_LARGE for a body over 64 KB; else false. */
+/** { ip } (the signed ip field) for a valid, fresh header from a known kid on an allowed route; TOO_LARGE for a body over 64 KB; else false. */
 export async function verifyInternal(req, env, path, nowSec = Math.floor(Date.now() / 1000)) {
   const h = req.headers.get(INTERNAL_HEADER) || '';
   const m = h.match(/^v1\.([a-z0-9]{1,16})\.(\d{1,12})\.([A-Za-z0-9_-]{43})$/);
   if (!m || !internalRouteAllowed(req.method, path)) return false;
-  const key = loadInternalKeys(env).get(m[1]);
-  if (!key) return false;
   if (Math.abs(nowSec - Number(m[2])) > INTERNAL_SKEW_SECONDS) return false;
+  const real = loadInternalKeys(env).get(m[1]);
+  const key = real || DUMMY_KEY; // unknown kid: same body read + HMAC + compare as a bad signature, same 403
   if (Number(req.headers.get('Content-Length') || 0) > MAX_BODY_BYTES) return TOO_LARGE; // before any body read or hash
   const u = new URL(req.url);
   const body = req.method === 'GET' || req.method === 'HEAD' ? new Uint8Array() : await readCapped(req);
   if (body === null) return TOO_LARGE;
-  const want = await signInternal(key, m[1], req.method, u.pathname + u.search, m[2], req.headers.get('CF-Connecting-IP') ?? '', body);
-  return timingSafeEqual(want, h);
+  const ip = req.headers.get('CF-Connecting-IP') ?? '';
+  const want = await signInternal(key, m[1], req.method, u.pathname + u.search, m[2], ip, body);
+  const match = timingSafeEqual(want, h);
+  return real && match ? { ip } : false; // ip = the exact value that was signed
 }
