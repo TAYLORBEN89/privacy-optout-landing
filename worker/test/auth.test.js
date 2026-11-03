@@ -17,8 +17,10 @@ async function makeUser({ email = 'owner@example.test', password = 'correct hors
   return { id, email, password, secret };
 }
 
+// Simulates a public edge request (request.cf set), where Cloudflare writes CF-Connecting-IP.
+const EDGE = { country: 'US' };
 const post = (path, body, headers = {}) => SELF.fetch(BASE + path, {
-  method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ORIGIN, 'CF-Connecting-IP': IP, ...headers },
+  method: 'POST', cf: EDGE, headers: { 'Content-Type': 'application/json', Origin: ORIGIN, 'CF-Connecting-IP': IP, ...headers },
   body: body === undefined ? undefined : JSON.stringify(body),
 });
 const get = (path, headers = {}) => SELF.fetch(BASE + path, { headers: { Origin: ORIGIN, 'CF-Connecting-IP': IP, ...headers } });

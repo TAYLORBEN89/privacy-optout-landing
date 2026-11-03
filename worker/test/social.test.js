@@ -4,9 +4,12 @@ import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { authenticator } from 'otplib';
-import { hashPassword, encryptStr } from '../src/crypto.js';
+import { hashPassword, encryptStr, encryptPii, unb64 } from '../src/crypto.js';
 import { clearOauthCookie } from '../src/oauth.js';
 import { auditMeta, purge } from '../src/app.js';
+import { signInternal, canonical, loadInternalKeys } from '../src/internalAuth.js';
+import worker from '../src/index.js';
+import { locationAllowed } from '../src/location.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -56,7 +59,7 @@ beforeEach(async () => {
   IP = `10.9.0.${++n}`;
   nextClaims = {};
   tokenRequests.length = 0;
-  await env.DB.batch(['user_identities', 'oauth_states_used', 'confirmations', 'pii_payloads', 'optout_requests', 'profiles', 'backup_codes', 'sessions', 'users']
+  await env.DB.batch(['rate_limits', 'user_identities', 'oauth_states_used', 'confirmations', 'pii_payloads', 'optout_requests', 'profiles', 'backup_codes', 'sessions', 'users']
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`))); // test-only fixed table names
 });
 
@@ -68,6 +71,14 @@ function claimsFor(p, { sub = 'subject-1', email = 'person@example.test', nonce,
 }
 
 const H = (extra = {}) => ({ Origin: ORIGIN, 'CF-Connecting-IP': IP, 'User-Agent': UA, ...extra });
+// Records every response in this file so the last suite can check every Location and Set-Cookie the Worker sent.
+const SEEN = [];
+const recFetch = SELF.fetch.bind(SELF);
+SELF.fetch = async (input, init) => {
+  const r = await recFetch(input, init);
+  SEEN.push({ url: new URL(typeof input === 'string' ? input : input.url), status: r.status, location: r.headers.get('Location'), cookies: r.headers.getSetCookie() });
+  return r;
+};
 const setCookies = (r) => r.headers.getSetCookie();
 const cookieVal = (r, name) => { const c = setCookies(r).find((x) => x.startsWith(`${name}=`)); return c ? c.split(';')[0] : null; };
 
@@ -316,6 +327,134 @@ describe('CSRF / Origin', () => {
   });
 });
 
+describe('X-Internal-Auth (landing Worker over the service binding)', () => {
+  const VEC = unb64('AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8='); // published vector key: only used with signInternal directly
+  const K1 = unb64('QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=');
+  const K2 = unb64('ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=');
+  const PIP = '198.51.100.7';
+  const good = { firstName: 'Pat', lastName: 'Example', dob: '1990-04-02', addressLine1: '1 Main St', city: 'Somewhere', state: 'TX', zip: '75001', email: 'p@example.test', texasResident: true };
+  const send = (method, path, sid, raw, auth, extra = {}) => SELF.fetch(BASE + path, { method, redirect: 'manual',
+    headers: H({ 'Content-Type': 'application/json', 'CF-Connecting-IP': PIP, ...(sid ? { Cookie: sid } : {}), ...(auth ? { 'X-Internal-Auth': auth } : {}), ...extra }), body: raw });
+  const signed = (method, path, raw, { ts = t0(), key = K1, kid = 'k1', ip = PIP } = {}) => signInternal(key, kid, method, path, String(ts), ip, raw || '');
+  const forbidden = async (r) => { expect(r.status).toBe(403); expect(await r.json()).toEqual({ error: 'forbidden' }); };
+
+  it('fixed test vector (Cybersecurity, landing PR #27)', async () => {
+    expect(canonical('k1', 'POST', '/api/account/export?x=1', '1800000000', '203.0.113.9',
+      '015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862'))
+      .toBe('v1\nk1\nPOST\n/api/account/export?x=1\n1800000000\n203.0.113.9\n015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862');
+    expect(await signInternal(VEC, 'k1', 'POST', '/api/account/export?x=1', '1800000000', '203.0.113.9', '{"a":1}'))
+      .toBe('v1.k1.1800000000.-uCux05nB_YSHLfLwqUuzii9ePuZ2QyIxdgq1kQRCZQ');
+  });
+  it('valid POST replaces the CSRF token on /api/optouts/signup', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    const r = await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw));
+    expect(r.status).toBe(200); expect((await r.json()).ok).toBe(true);
+  });
+  it('valid GET (empty body = sha256 of "")', async () => {
+    const a = await socialLogin('google');
+    const r = await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', ''));
+    expect(r.status).toBe(200);
+  });
+  it('two-key rotation: k1 and k2 both verify; a key under 32 bytes is dropped at load', async () => {
+    const a = await socialLogin('google');
+    for (const [kid, key] of [['k1', K1], ['k2', K2]]) {
+      expect((await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid, key }))).status).toBe(200);
+    }
+    expect(loadInternalKeys(env).has('short')).toBe(false);
+    expect(loadInternalKeys(env).has('vec')).toBe(false); // published test-vector key refused at load
+    expect(loadInternalKeys({ INTERNAL_PROXY_KEYS: JSON.stringify({ z: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=' }) }).size).toBe(0);
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'vec', key: VEC })));
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'short', key: unb64('AAECAwQFBgcICQoLDA0ODw==') })));
+    expect(loadInternalKeys({ INTERNAL_PROXY_KEYS: JSON.stringify({ a: 'QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=' }), PII_ENC_KEY: 'QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=' }).size).toBe(0); // reused secret
+  });
+  it('unknown kid and bad signature give byte-identical responses (no kid enumeration)', async () => {
+    const a = await socialLogin('google');
+    const dump = async (r) => JSON.stringify([r.status, [...r.headers].filter(([k]) => k !== 'date').sort(), await r.text()]);
+    const unknown = await dump(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k9' })));
+    const badSig = await dump(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k1', key: K2 })));
+    expect(unknown).toBe(badSig);
+    const big = 'x'.repeat(64 * 1024 + 1);
+    const big1 = await dump(await send('POST', '/api/optouts/signup', a.sid, big, 'v1.k9.' + t0() + '.' + 'A'.repeat(43)));
+    const big2 = await dump(await send('POST', '/api/optouts/signup', a.sid, big, 'v1.k1.' + t0() + '.' + 'A'.repeat(43)));
+    expect(big1).toBe(big2); expect(JSON.parse(big1)[0]).toBe(413);
+  });
+  it('wrong kid, or a known kid signed with the other key, is 403', async () => {
+    const a = await socialLogin('google');
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k9' })));
+    await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k2', key: K1 })));
+  });
+  it('expired or future timestamp (beyond +/-60 s) is 403', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    for (const ts of [t0() - 3600, t0() + 3600, t0() - 121, t0() + 121]) await forbidden(await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw, { ts })));
+  });
+  it('tampered body, path, method, signature, version or IP is 403 and never falls back to CSRF', async () => {
+    const a = await socialLogin('google'); const raw = JSON.stringify(good);
+    const rows = async () => (await env.DB.prepare("SELECT COUNT(*) AS c FROM optout_requests WHERE service_id = 'signup'").first()).c;
+    const before = await rows(); // delta, not an absolute count: independent of test order and leftover rows
+    const h = await signed('POST', '/api/optouts/signup', raw);
+    const cases = [
+      [raw.replace('Pat', 'Sam'), h, {}],
+      [raw, h.slice(0, -2) + (h.endsWith('AA') ? 'BB' : 'AA'), {}],
+      [raw, await signed('POST', '/api/account/delete', raw), {}],
+      [raw, await signed('PATCH', '/api/optouts/signup', raw), {}],
+      [raw, 'v2' + h.slice(2), {}], [raw, 'garbage', {}],
+      [raw, h, { 'CF-Connecting-IP': '203.0.113.99' }], // IP tampering: the IP is in the signature
+    ];
+    // A valid CSRF token alongside a bad signature does not help.
+    for (const [b, auth, extra] of cases) await forbidden(await send('POST', '/api/optouts/signup', a.sid, b, auth, { 'X-CSRF-Token': a.csrf, ...extra }));
+    expect(await rows()).toBe(before);
+  });
+  it('body over 64 KB is 413 before any signature work (exactly 64 KB is still checked normally)', async () => {
+    const a = await socialLogin('google');
+    const big = JSON.stringify({ pad: 'x'.repeat(64 * 1024) });
+    const r = await send('POST', '/api/optouts/signup', a.sid, big, await signed('POST', '/api/optouts/signup', big));
+    expect(r.status).toBe(413);
+    const edge = 'x'.repeat(64 * 1024);
+    await forbidden(await send('POST', '/api/optouts/signup', a.sid, edge, 'v1.k1.' + t0() + '.' + 'A'.repeat(43)));
+  });
+  it('wrong route: a correctly signed header off the allowlist is 403', async () => {
+    const a = await socialLogin('google');
+    await forbidden(await send('POST', '/api/account/sessions/zz/revoke', a.sid, '', await signed('POST', '/api/account/sessions/zz/revoke', '')));
+    await forbidden(await send('POST', '/api/account/sessions/ABCDEF0123456789/revoke', a.sid, '', await signed('POST', '/api/account/sessions/ABCDEF0123456789/revoke', '')));
+    await forbidden(await send('GET', '/api/account/export', a.sid, undefined, await signed('GET', '/api/account/export', '')));
+    await forbidden(await send('POST', '/api/login', a.sid, '', await signed('POST', '/api/login', '')));
+  });
+  it('missing header: normal CSRF still applies (no token = 403, token = 200)', async () => {
+    const a = await socialLogin('google');
+    expect((await api('POST', '/api/optouts/signup', { sid: a.sid }, good)).status).toBe(403);
+    expect((await api('POST', '/api/optouts/signup', a, good)).status).toBe(200);
+  });
+  it('still needs the session cookie and an allowed Origin', async () => {
+    const raw = JSON.stringify(good); const auth = await signed('POST', '/api/optouts/signup', raw);
+    expect((await send('POST', '/api/optouts/signup', null, raw, auth)).status).toBe(401);
+    const a = await socialLogin('google');
+    expect((await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw), { Origin: 'https://evil.example' })).status).toBe(403);
+  });
+  it('signed request: rate limit keys on the signed ip only, ignoring a fake request.cf and other edge IP headers', async () => {
+    const P = '/api/auth/complete?code=bad';
+    const ip = '192.0.2.150';
+    const call = async (i) => SELF.fetch(BASE + P, { redirect: 'manual', cf: { country: 'ZZ', clientIp: `198.18.0.${i}` },
+      headers: { 'CF-Connecting-IP': ip, 'True-Client-IP': `198.18.1.${i}`, 'X-Forwarded-For': `198.18.2.${i}`, 'X-Real-IP': `198.18.3.${i}`,
+        'User-Agent': UA, 'X-Internal-Auth': await signInternal(K1, 'k1', 'GET', P, String(t0()), ip, '') } });
+    for (let i = 0; i < 30; i++) expect((await call(i)).status).toBe(303);
+    expect((await call(99)).status).toBe(429); // same signed ip -> same bucket, whatever the cf object / other headers say
+    const other = '192.0.2.151';
+    const r = await SELF.fetch(BASE + P, { redirect: 'manual', cf: { country: 'ZZ' },
+      headers: { 'CF-Connecting-IP': other, 'User-Agent': UA, 'X-Internal-Auth': await signInternal(K1, 'k1', 'GET', P, String(t0()), other, '') } });
+    expect(r.status).toBe(303);
+  });
+  it('untrusted IP: a service-binding call without auth (no request.cf) ignores CF-Connecting-IP for rate limits', async () => {
+    const P = '/api/auth/complete?code=bad'; // handoff limit: 30 / 10 min per IP
+    const call = (ip, auth) => worker.fetch(new Request(BASE + P, { redirect: 'manual',
+      headers: { 'CF-Connecting-IP': ip, 'User-Agent': UA, ...(auth ? { 'X-Internal-Auth': auth } : {}) } }), env);
+    for (let i = 0; i < 30; i++) expect((await call(`192.0.2.${i + 1}`)).status).toBe(303); // 30 "different" IPs, one bucket
+    expect((await call('192.0.2.200')).status).toBe(429);
+    const ip = '192.0.2.201';
+    const ok = await call(ip, await signInternal(K1, 'k1', 'GET', P, String(t0()), ip, ''));
+    expect(ok.status).toBe(303); // verified: the forwarded IP is trusted, so it has its own bucket
+  });
+});
+
 describe('rate limits', () => {
   it('limits OAuth starts per IP', async () => {
     for (let i = 0; i < 30; i++) expect((await start('google')).status).toBe(302);
@@ -328,7 +467,10 @@ describe('rate limits', () => {
 });
 
 describe('POST /api/optouts/signup (gate)', () => {
-  const good = { fullName: 'Pat Example', mailingAddress: '1 Main St, Somewhere, TX 75001', email: 'Pat@Example.test', texasResident: false };
+  const good = {
+    firstName: 'Pat', lastName: 'Example', dob: '1990-04-02', addressLine1: '1 Main St', city: 'Somewhere', state: 'TX', zip: '75001',
+    email: 'Pat@Example.test', texasResident: false,
+  };
   it('401 without a session', async () => {
     expect((await api('POST', '/api/optouts/signup', {}, good)).status).toBe(401);
   });
@@ -345,17 +487,21 @@ describe('POST /api/optouts/signup (gate)', () => {
     const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
     expect(p.payload_enc).not.toContain('Pat');
     const exp = await (await api('POST', '/api/account/export', a)).json();
-    expect(exp.optouts[0].pii).toMatchObject({ fullName: 'Pat Example', email: 'pat@example.test', jurisdiction: 'TDPSA', nonTexasFlag: true });
+    expect(exp.optouts[0].pii).toMatchObject({
+      v: 2, firstName: 'Pat', middleName: null, lastName: 'Example', dob: '1990-04-02', state: 'TX', zip: '75001',
+      fullName: 'Pat Example', mailingAddress: '1 Main St\nSomewhere, TX 75001',
+      email: 'pat@example.test', jurisdiction: 'TDPSA', nonTexasFlag: true, submitter: 'self', child: null, guardianAttestation: false,
+    });
     const list = await (await api('GET', '/api/account/optouts', a)).json();
     expect(list.optouts).toHaveLength(1);
     expect(JSON.stringify(list)).not.toContain('Pat');
   });
   it('validation errors use the shared rules and never echo values', async () => {
     const a = await socialLogin('google');
-    const r = await api('POST', '/api/optouts/signup', a, { fullName: 'Madonna', mailingAddress: 'x', email: 'bad<script>', texasResident: 'yes' });
+    const r = await api('POST', '/api/optouts/signup', a, { firstName: 'Madonna', dob: '2999-01-01', addressLine1: '<x>', city: 'C', state: 'ZZ', zip: '1', email: 'bad<script>', texasResident: 'yes' });
     expect(r.status).toBe(400);
     const b = await r.json();
-    expect(Object.keys(b.errors).sort()).toEqual(['email', 'fullName', 'mailingAddress', 'texasResident']);
+    expect(Object.keys(b.errors).sort()).toEqual(['addressLine1', 'dob', 'email', 'lastName', 'state', 'texasResident', 'zip']);
     expect(JSON.stringify(b)).not.toContain('Madonna');
     expect((await api('POST', '/api/optouts/signup', a, [])).status).toBe(400);
   });
@@ -382,6 +528,34 @@ describe('POST /api/optouts/signup (gate)', () => {
     expect(phones).toEqual(['+15125550100', null, null, null].sort());
     expect((await api('POST', '/api/account/delete', a)).status).toBe(200);
     expect((await env.DB.prepare('SELECT COUNT(*) AS c FROM pii_payloads').first()).c).toBe(0);
+  });
+  it('child signup (v2): needs guardian attestation, adult submitter and a child under 13; stored encrypted', async () => {
+    const a = await socialLogin('google');
+    const kid = { firstName: 'Kit', lastName: 'Example', dob: `${new Date().getFullYear() - 5}-01-15`, sameAddress: true };
+    const noAttest = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', child: kid });
+    expect(noAttest.status).toBe(400);
+    expect(Object.keys((await noAttest.json()).errors)).toContain('guardianAttestation');
+    const teen = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: { ...kid, dob: `${new Date().getFullYear() - 15}-01-15` } });
+    expect(Object.keys((await teen.json()).errors)).toContain('childDob');
+    const selfWithChild = await api('POST', '/api/optouts/signup', a, { ...good, child: kid });
+    expect(Object.keys((await selfWithChild.json()).errors)).toContain('submitter');
+    const ok = await api('POST', '/api/optouts/signup', a, { ...good, submitter: 'child', guardianAttestation: true, child: kid });
+    expect(ok.status).toBe(200);
+    const { id } = await ok.json();
+    const p = await env.DB.prepare('SELECT payload_enc FROM pii_payloads WHERE request_id = ?1').bind(id).first();
+    expect(String(p.payload_enc)).not.toContain('Kit');
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    expect(exp.optouts.find((o) => o.id === id).pii).toMatchObject({ v: 2, submitter: 'child', guardianAttestation: true, child: { firstName: 'Kit', sameAddress: true } });
+  });
+  it('v1 records (fullName/mailingAddress, no v key) still read through export', async () => {
+    const a = await socialLogin('google');
+    const r = await api('POST', '/api/optouts/signup', a, good);
+    const { id } = await r.json();
+    const v1 = { fullName: 'Old Record', mailingAddress: '2 Elm St, Town, TX 75002', email: 'old@example.test', texasResident: true, jurisdiction: 'TDPSA', nonTexasFlag: false };
+    const { blob, version } = await encryptPii(env, JSON.stringify(v1), `pii:${id}`);
+    await env.DB.prepare('UPDATE pii_payloads SET payload_enc = ?1, key_version = ?2 WHERE request_id = ?3').bind(blob, version, id).run();
+    const exp = await (await api('POST', '/api/account/export', a)).json();
+    expect(exp.optouts.find((o) => o.id === id).pii).toMatchObject({ v: 1, fullName: 'Old Record', mailingAddress: '2 Elm St, Town, TX 75002', submitter: 'self', child: null, phone: null, firstName: null });
   });
   it('opt-out rows are per-user', async () => {
     const a = await socialLogin('google', { sub: 'one' });
@@ -867,6 +1041,72 @@ describe('pre-deploy: handoff scrubbing, purge, 429 cookie clear', () => {
     expect(Number(r.headers.get('Retry-After'))).toBeGreaterThan(0);
     expect(Number(r.headers.get('Retry-After'))).toBeLessThanOrEqual(600);
     expect((await env.RECORDS.list({ prefix: 'rl:' })).keys.length).toBe(0);
+  });
+});
+
+describe('every Location and Set-Cookie on the redirecting/cookie routes (landing proxy filter contract)', () => {
+  // Self-contained: each test resets SEEN and drives every redirecting route itself (no dependence on test order).
+  const exercise = async () => {
+    SEEN.length = 0;
+    for (const p of ['google', 'microsoft']) await socialLogin(p);           // apex start, accounts start + callback, apex complete
+    const a = await socialLogin('google');
+    let r = await api('POST', '/api/auth/google/stepup', a, {});              // __Host-login on stepup
+    let b = await bound(r);                                                   // accounts /oauth/{p}/bound
+    nextClaims.google = claimsFor('google', { nonce: b.loc.searchParams.get('nonce'), auth_time: t0() });
+    await callback('google', { state: b.state, oauth: b.oauth, cookie: a.sid });
+    r = await api('POST', '/api/account/identities/microsoft/link', a, {});  // __Host-login on link
+    b = await bound(r);
+    nextClaims.microsoft = claimsFor('microsoft', { nonce: b.loc.searchParams.get('nonce') });
+    await callback('microsoft', { state: b.state, oauth: b.oauth, cookie: a.sid });
+    await callback('google', { state: 'bad', oauth: null });                  // accounts failure redirect -> app /start?auth_error
+    await SELF.fetch(`${BASE}/api/auth/complete?code=bad`, { redirect: 'manual' }); // apex failure redirect
+    await SELF.fetch(`${ACC}/`, { redirect: 'manual' });                      // accounts "/" -> /signin
+    await api('POST', '/api/auth/logout', a);                                 // clears __Host-sid
+    const d = await socialLogin('google');
+    await api('POST', '/api/account/delete', d, {});                          // clears __Host-sid (or step-up error)
+  };
+  const apex = () => SEEN.filter((x) => x.url.origin === BASE);
+  const acc = () => SEEN.filter((x) => x.url.origin === ACC);
+  it('Location: apex = same-origin path or the accounts-host /oauth/{p}/start; accounts = app handoff or provider authorize', async () => {
+    await exercise();
+    const routes = new Set();
+    for (const x of SEEN.filter((y) => y.location !== null)) {
+      const kind = x.url.origin === BASE ? 'app' : 'accounts';
+      expect(locationAllowed(env, kind, x.location), `${x.url.pathname} -> ${x.location.slice(0, 60)}`).toBe(true);
+      routes.add(`${kind} ${x.url.pathname.replace(/(google|microsoft)/, '{p}')}`);
+      if (kind === 'app' && !x.location.startsWith('/')) expect(x.location).toMatch(/^https:\/\/accounts\.test\/oauth\/(google|microsoft)\/start\?st=/);
+      if (kind === 'accounts' && !x.location.startsWith('/')) {
+        const u = new URL(x.location);
+        expect([BASE, 'https://accounts.google.com', 'https://login.microsoftonline.com']).toContain(u.origin);
+      }
+    }
+    // every redirecting route was exercised
+    for (const r of ['app /api/auth/{p}/start', 'app /api/auth/complete', 'accounts /oauth/{p}/start', 'accounts /oauth/{p}/callback', 'accounts /oauth/{p}/bound']) expect(routes).toContain(r);
+  });
+  it('locationAllowed rejects open redirects', () => {
+    for (const bad of ['//evil.example', '/\\evil.example', 'https://evil.example/', 'https://accounts.test.evil/oauth/google/start?st=x',
+      'https://accounts.test/oauth/google/callback', 'https://accounts.google.com.evil/o/oauth2/v2/auth', 'javascript:alert(1)', '/ok\r\nSet-Cookie: x=1']) {
+      expect(locationAllowed(env, 'app', bad)).toBe(false);
+      expect(locationAllowed(env, 'accounts', bad)).toBe(false);
+    }
+    expect(locationAllowed(env, 'app', 'https://accounts.google.com/o/oauth2/v2/auth?x=1')).toBe(false); // apex never sends the browser to a provider
+  });
+  it('apex (proxied) Set-Cookie: only __Host-sid and __Host-login, host-only, Path=/, Secure, HttpOnly, SameSite=Lax', async () => {
+    await exercise();
+    const names = new Set();
+    for (const x of apex()) for (const c of x.cookies) {
+      const [nv, ...attrs] = c.split(';').map((p) => p.trim());
+      const name = nv.split('=')[0]; names.add(name);
+      expect(['__Host-sid', '__Host-login']).toContain(name);
+      const a = attrs.map((p) => p.toLowerCase());
+      expect(a.some((p) => p.startsWith('domain'))).toBe(false);
+      expect(a).toContain('path=/'); expect(a).toContain('secure'); expect(a).toContain('httponly'); expect(a).toContain('samesite=lax');
+    }
+    expect(names).toEqual(new Set(['__Host-sid', '__Host-login']));
+  });
+  it('accounts host Set-Cookie: only __Host-oauth (never __Host-sid)', async () => {
+    await exercise();
+    for (const x of acc()) for (const c of x.cookies) expect(c.split('=')[0]).toBe('__Host-oauth');
   });
 });
 

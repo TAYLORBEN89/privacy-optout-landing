@@ -4,13 +4,14 @@ import { log, logError, routeOf } from './log.js';
 import { handleApp, isAppPath, allowedOrigins, corsHeaders, purge, expireAudit, inactiveAccounts } from './app.js';
 import { handleApi } from './api.js';
 import { handleAccounts } from './accounts.js';
+import { guardLocation } from './location.js';
 
 // Every response (accounts host, legacy KV routes, 403/OPTIONS early returns, app/API, 500s) gets exactly one
 // request log line via src/log.js: method, normalized route, status, ms, and which surface served it. Nothing else.
 async function route(req, env, pathname, hostname) {
   // accounts.droptexas.com (ACCOUNTS_HOST) is the sign-in host: its own routes, origin rule and security headers.
   if (env.ACCOUNTS_HOST && hostname === env.ACCOUNTS_HOST) {
-    try { return [await handleAccounts(req, env), 'accounts']; } catch (e) {
+    try { return [guardLocation(env, 'accounts', await handleAccounts(req, env)), 'accounts']; } catch (e) {
       logError('accounts_error', e, { method: req.method, route: routeOf(pathname) }); // no stack/message: may carry values
       return [new Response('internal error', { status: 500, headers: { 'Cache-Control': 'no-store' } }), 'accounts'];
     }
@@ -23,7 +24,7 @@ async function route(req, env, pathname, hostname) {
   if (req.method === 'OPTIONS') return [new Response(null, { status: 204, headers: corsHeaders(env, origin) }), 'app'];
   const surface = pathname.startsWith('/api/') ? 'api' : 'app';
   try {
-    return [surface === 'api' ? await handleApi(req, env) : await handleApp(req, env), surface];
+    return [guardLocation(env, 'app', surface === 'api' ? await handleApi(req, env) : await handleApp(req, env)), surface];
   } catch (e) {
     logError('app_error', e, { method: req.method, route: routeOf(pathname) }); // error name only
     return [new Response(JSON.stringify({ error: 'internal error' }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders(env, origin) } }), surface];

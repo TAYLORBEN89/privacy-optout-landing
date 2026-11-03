@@ -4,6 +4,7 @@ import {
   randomToken, sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptStr, decryptStr,
   encryptPii, decryptPii, hashPassword,
 } from './crypto.js';
+import { readSignupPayload } from './signupPayload.js';
 import { reserve, refund, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
 import { log, logError } from './log.js';
 
@@ -43,17 +44,9 @@ export function json(ctx, body, status = 200, extra = {}) {
 const INVALID = (ctx) => json(ctx, { error: 'invalid credentials' }, 401);
 const UNAUTH = (ctx) => json(ctx, { error: 'unauthorized' }, 401);
 
-// SESSION_COOKIE_SAMESITE: "Strict" (default) when dashboard and API share a site (droptexas.com + api.droptexas.com).
-// "None" only for the cross-site pages.dev/workers.dev setup; then Partitioned (CHIPS) is added.
-// Either way CSRF protection also comes from the per-session X-CSRF-Token + strict Origin allowlist.
-// "Lax" (production, same-origin plan): required because the OAuth callback is a top-level cross-site navigation;
-// a Strict cookie would not be sent on the redirect back from the provider.
-const cookieAttrs = (env) => {
-  const v = String(env.SESSION_COOKIE_SAMESITE || 'Strict').toLowerCase();
-  if (v === 'none') return 'Path=/; HttpOnly; Secure; SameSite=None; Partitioned';
-  if (v === 'lax') return 'Path=/; HttpOnly; Secure; SameSite=Lax';
-  return 'Path=/; HttpOnly; Secure; SameSite=Strict';
-};
+// __Host-sid is always host-only (no Domain), Path=/, Secure, HttpOnly, SameSite=Lax. Lax because the OAuth handoff
+// ends in a top-level navigation; SESSION_COOKIE_SAMESITE is no longer read.
+const cookieAttrs = () => 'Path=/; HttpOnly; Secure; SameSite=Lax';
 export const setCookie = (env, token, maxAge) => `${COOKIE}=${token}; ${cookieAttrs(env)}; Max-Age=${maxAge}`;
 export const clearCookie = (env) => `${COOKIE}=; ${cookieAttrs(env)}; Max-Age=0`;
 function readCookie(req) {
@@ -431,7 +424,7 @@ async function getOptoutPii(ctx, cur, id) {
     'SELECT p.payload_enc, p.key_version, p.purge_after FROM pii_payloads p JOIN optout_requests o ON o.id = p.request_id WHERE p.request_id = ?1 AND o.user_id = ?2',
   ).bind(id, cur.session.user_id).first();
   if (!r) return json(ctx, { error: 'not found' }, 404);
-  const pii = JSON.parse(await decryptPii(ctx.env, r.payload_enc, r.key_version, `pii:${id}`));
+  const pii = readSignupPayload(JSON.parse(await decryptPii(ctx.env, r.payload_enc, r.key_version, `pii:${id}`)));
   return json(ctx, { pii, purge_after: r.purge_after });
 }
 

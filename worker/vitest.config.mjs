@@ -28,6 +28,8 @@ export default defineWorkersConfig(async () => {
               OAUTH_COOKIE_KEY: 'AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=',
               OAUTH_REDIRECT_URIS: 'https://accounts.test/oauth/google/callback,https://accounts.test/oauth/microsoft/callback',
               ACCOUNTS_HOST: 'accounts.test', APP_ORIGIN: 'https://api.test',
+              // Test-only keys (k1, k2 for rotation; 'short' is under 32 bytes, 'vec' is the published test-vector key: both refused at load).
+              INTERNAL_PROXY_KEYS: JSON.stringify({ k1: 'QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=', k2: 'ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=', short: 'AAECAwQFBgcICQoLDA0ODw==', vec: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=' }),
             },
             kvNamespaces: ['RECORDS'],
             d1Databases: ['DB'],

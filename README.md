@@ -69,9 +69,10 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 | `MICROSOFT_CLIENT_SECRET` | Microsoft Entra client secret (the secret **Value**, not its ID) | Entra > Certificates & secrets |
 | `OAUTH_COOKIE_KEY` | seals the `__Host-oauth` state cookie and the single-use start token | `openssl rand -base64 32` |
 | `TOTP_ENC_KEY` | encrypts TOTP secrets at rest | `openssl rand -base64 32` |
-| `PII_ENC_KEY` | encrypts signup/PII payloads (name, address, email, phone) | `openssl rand -base64 32` (separate from TOTP_ENC_KEY) |
+| `PII_ENC_KEY` | encrypts signup/PII payloads (name, DOB, address, email, phone, and a child signup's name, DOB and address) | `openssl rand -base64 32` (separate from TOTP_ENC_KEY) |
 | `API_TOKEN` | shared bearer key for the legacy KV `/records`, `/txrequests`, `/settings` API | `openssl rand -base64 32` |
 | `ADMIN_BOOTSTRAP_TOKEN` | optional, **off by default**: enables `POST /admin/bootstrap` while it is set | `openssl rand -base64 48` (>=32 chars); delete after use |
+| `INTERNAL_PROXY_KEYS` | JSON map `{"<kid>": "<base64 key>"}` of HMAC keys shared with the landing Worker for `X-Internal-Auth` (see Landing proxy contract). Each key >= 32 random bytes and distinct from `PII_ENC_KEY`/`SIGNUP_PII_KEY` and every other secret; shorter or reused keys are dropped at load | `openssl rand -base64 32` per key; kid `[a-z0-9]{1,16}` |
 | `PII_ENC_KEY_PREV` | optional, only during PII key rotation (old key, readable with `PII_PREV_KEY_VERSION`) | the previous `PII_ENC_KEY` |
 
 ### 4. Vars (`[vars]` in `wrangler.toml`)
@@ -81,7 +82,7 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 - `OAUTH_REDIRECT_URIS` – comma-separated exact allowlist, e.g. `https://accounts.droptexas.com/oauth/google/callback,https://accounts.droptexas.com/oauth/microsoft/callback`. Must match the provider consoles exactly.
 - `ALLOWED_ORIGIN` – comma-separated CORS origins, production only (`npm run check:origins` enforces this). Dev origins go in `.dev.vars`.
 - `ACCOUNTS_HOST` (sign-in host) and `APP_ORIGIN` (origin that receives the handoff and the `__Host-sid` cookie).
-- Sessions: `SESSION_COOKIE_SAMESITE` (Lax), `SESSION_IDLE_SECONDS` (43200), `SESSION_ABSOLUTE_SECONDS` (604800), `PREAUTH_SECONDS` (300).
+- Sessions (`__Host-sid` is always SameSite=Lax; `SESSION_COOKIE_SAMESITE` is no longer read): `SESSION_IDLE_SECONDS` (43200), `SESSION_ABSOLUTE_SECONDS` (604800), `PREAUTH_SECONDS` (300).
 - Retention (days): `PII_RETENTION_DAYS` 30, `PII_HARD_MAX_DAYS` 90, `SESSION_PURGE_DAYS` 7, `FINISHED_RECORD_RETENTION_DAYS` 730, `TX_RECORD_RETENTION_DAYS` 1095, `AUDIT_RETENTION_DAYS` 365 (minimum 365).
 - `PII_KEY_VERSION` (and `PII_PREV_KEY_VERSION` during rotation).
 
@@ -135,11 +136,61 @@ App origin (`/api`, JSON, cookie session `__Host-sid`; state-changing requests n
 - `GET|PUT /api/profile`: same-origin alias of `/profile` below (step-up gated; same body and errors).
 - `POST /api/account/identities/{p}/link`, `DELETE /api/account/identities/{p}`.
 - `GET|PATCH /api/account/profile`, `GET /api/account/optouts`, `GET /api/account/sessions`, `POST /api/account/sessions/{id}/revoke`, `POST /api/account/export`, `POST /api/account/delete`.
-- `POST /api/optouts/signup` – `{fullName, mailingAddress, email, texasResident, phone?}`. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted with the rest of the signup PII.
+- `POST /api/optouts/signup` – v2 payload (landing PR #12 `shared/signup.ts`, copied byte-identical to `worker/src/shared/signup.ts`): `{firstName, middleName?, lastName, dob, addressLine1, addressLine2?, city, state, zip, email, phone?, texasResident, submitter?, child?, guardianAttestation?}`. `submitter` is `self` (default) or `child`; a child signup needs `child` and `guardianAttestation: true`. `jurisdiction` and `nonTexasFlag` are derived server-side, never client-set. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted (`pii_payloads`, key `v: 2`). The old v1 body (`{fullName, mailingAddress, ...}`) is now a **400**, so this change must ship together with landing PR #12 (which sends v2); stored v1 records are still readable.
 
 Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/admin/bootstrap`.
 TOTP on the older routes: only **password** sessions need a finished TOTP for `/profile`, `/optouts` (and `/tx-requests` once #9 lands). Google and Microsoft sessions are accepted, matching the newer `/api/*` routes. Before this change, those routes rejected social sessions with `mfa required`. *This is pending Ben's decision and should be reverted if social sessions must stay blocked there.*
 Legacy KV API (`Authorization: Bearer <API_TOKEN>`): `GET|POST /records`, `GET|PUT|DELETE /records/:id`, `/txrequests`, `/settings/profile`.
+
+### Landing proxy contract (droptexas.com Worker -> this API over the `API` service binding)
+Only these routes are forwarded; anything else is a 404 at the landing Worker and never reaches the API.
+
+| Method | Path | Signed (`X-Internal-Auth`) |
+|---|---|---|
+| GET | `/api/me` | yes |
+| GET | `/api/auth/{google\|microsoft}/start` | yes (browser redirect; pass `Location` + `Set-Cookie` back) |
+| GET | `/api/auth/complete` | yes (pass `Set-Cookie` back) |
+| POST | `/api/auth/logout` | yes |
+| POST | `/api/auth/stepup/password` | yes |
+| POST | `/api/auth/{google\|microsoft}/stepup` | yes |
+| GET | `/api/account/profile` | yes |
+| PATCH | `/api/account/profile` | yes |
+| GET | `/api/account/optouts` | yes |
+| GET | `/api/account/sessions` | yes |
+| POST | `/api/account/sessions/{16 hex}/revoke` | yes |
+| POST | `/api/account/export` | yes |
+| POST | `/api/account/delete` | yes |
+| POST | `/api/account/identities/{google\|microsoft}/link` | yes |
+| DELETE | `/api/account/identities/{google\|microsoft}` | yes |
+| POST | `/api/optouts/signup` | yes |
+
+Every route above is signed (GETs included). Request headers the landing Worker sends upstream (build a fresh `Headers`; never copy the client's):
+- `Content-Type`, `Accept` (client values, <= 256 chars).
+- `Cookie: __Host-sid=<value>` only. The session is still required: the internal header does not authenticate a user.
+- `Origin: https://droptexas.com` (the landing Worker's own origin; must be in this API's `ALLOWED_ORIGIN`).
+- `CF-Connecting-IP`: the client IP. On a verified signed call the API takes the client IP **only** from this signed value and ignores `request.cf` and every other edge header (`True-Client-IP`, `X-Forwarded-For`, `X-Real-IP`). `request.cf` + `CF-Connecting-IP` are trusted only on unsigned direct traffic. A service-binding call without valid auth never uses the forwarded header; all such calls share one bucket.
+- `X-Internal-Auth: v1.<kid>.<ts>.<sig>` **instead of** `X-CSRF-Token` (never forward the client's CSRF token or any client `X-Internal-Auth`).
+  - `kid`: `[a-z0-9]{1,16}`. The landing side picks the active kid (`INTERNAL_PROXY_ACTIVE_KID`); the API accepts any kid present in `INTERNAL_PROXY_KEYS`.
+  - `ts`: Unix seconds, decimal. Accepted within +/-60 s.
+  - `sig`: base64url without padding of HMAC-SHA256(key[kid], canonical), where canonical is
+    `"v1\n" + kid + "\n" + METHOD + "\n" + pathname+search + "\n" + ts + "\n" + ip + "\n" + hex(SHA-256(body))`;
+    `ip` = the exact `CF-Connecting-IP` header value sent ("" if absent); empty body = SHA-256("") = `e3b0c442...b855`.
+  - Body cap 64 KB (same as the landing side), checked before any hashing: larger = `413 {"error":"payload too large"}`.
+  - A request that carries `X-Internal-Auth` never falls back to CSRF: bad format, unknown kid, skew, route, method, path, query, body, IP or signature = `403 {"error":"forbidden"}` (constant-time compare; an unknown kid does the same HMAC work against a dummy key, so unknown kid and bad signature give byte-identical 403s, and the 413 never names a kid). Unsigned requests get the normal Origin + `X-CSRF-Token` checks, for direct traffic only.
+  - Test vector (published, test-only key, **refused at load** if present in `INTERNAL_PROXY_KEYS`, as are keys under 32 bytes or equal to another secret: `AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=`, kid `k1`, ts `1800000000`, ip `203.0.113.9`, `POST /api/account/export?x=1`, body `{"a":1}`): `v1.k1.1800000000.-uCux05nB_YSHLfLwqUuzii9ePuZ2QyIxdgq1kQRCZQ`.
+- Rotation: add the new key under a new kid on the API, then switch `INTERNAL_PROXY_ACTIVE_KID` on the landing Worker, wait > 60 s, then remove the old kid from both.
+- Because the signature replaces CSRF, the landing Worker owns CSRF for these calls: it must sign only requests whose browser `Origin` (or `Sec-Fetch-Site: same-origin`) is its own origin.
+- Browser calls straight to `accounts.droptexas.com` never use this header and keep the normal Origin + `X-CSRF-Token` checks.
+- Response: pass status, body, `Content-Type`, `Set-Cookie`, `Location`, `Retry-After`, `Content-Disposition` through; `redirect: "manual"`.
+- `Location` values on these routes: a same-origin path (`/start...`, `/account`), or `https://accounts.droptexas.com/oauth/{google|microsoft}/start?st=<token>` (only from `GET /api/auth/{p}/start`). Any other value becomes a 500. The accounts host (not proxied) also redirects to `https://droptexas.com/api/auth/complete?code=...`, `https://droptexas.com/start...`, `https://accounts.google.com/o/oauth2/v2/auth?...` and `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?...`.
+- `Set-Cookie` on these routes: only `__Host-sid` (set by `/api/auth/complete` on login; cleared by `/api/auth/logout` and `/api/account/delete`) and `__Host-login` (set by `/api/auth/{p}/start`, `/api/auth/{p}/stepup`, `/api/account/identities/{p}/link`; cleared by `/api/auth/complete`). Both always `Path=/; HttpOnly; Secure; SameSite=Lax`, no `Domain`. `__Host-oauth` exists only on the accounts host.
+- Revoke ids are lowercase hex only (`[0-9a-f]{16}`).
+
+**`__Host-sid` is SameSite=Lax by design.** That is safe only because no GET changes account state. GET writes that do exist (audited):
+- every session GET: `UPDATE sessions SET last_seen_at` (idle timer), idle/expiry `revoke`, and refresh-token reuse detection (revoke all + `session.reuse_detected` audit). Bookkeeping/defensive only; a forced top-level GET can at most keep an idle session alive.
+- `reserve()` rate-limit rows on GET `/api/auth/complete`, `/oauth/{p}/start`, `/oauth/{p}/callback`.
+- OAuth flow GETs: `/oauth/{p}/start` (single-use start token `oauth_states_used`), `/oauth/{p}/callback` (`oauth_states_used`, new `users`/`user_identities`, `last_login_at`, handoff row, audit), `/api/auth/complete` (claims the handoff; login creates a session and revokes any prior one; step-up sets `stepped_up_at`; link inserts `user_identities`; audit rows).
+- Login CSRF on `/api/auth/complete` is blocked by: `__Host-login` (random, set by the apex start/stepup/link on this browser) whose SHA-256 is sealed into the start token, carried in `__Host-oauth` state, stored as `auth_handoffs.browser_hash`, and compared in constant time at complete (`browser_mismatch` otherwise); plus the OAuth `state` (sealed cookie, constant-time match, single use) and PKCE verifier at the callback; the handoff code is single-use, 60 s. Step-up/link additionally require the same session (`session_hash`).
 
 ### Tests and checks
 ```bash
