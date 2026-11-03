@@ -32,7 +32,7 @@ describe("privacy page", () => {
     expect(html.indexOf("An account phone number is kept while your account is active", phoneKeptAt + 1)).toBe(-1);
     expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
     expect(html).toContain(
-      "Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers.",
+      "Nothing is stored yet. Planned, not live yet: storage in Cloudflare D1 or Workers KV, which Cloudflare encrypts at rest, and our own AES-GCM encryption of identifiers.",
     );
     expect(html).not.toContain("Saved information is stored in Cloudflare D1 and Workers KV");
     expect(html).toContain("Coming soon");

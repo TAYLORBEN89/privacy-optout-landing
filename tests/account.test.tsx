@@ -75,7 +75,7 @@ describe("opt-out status labels", () => {
 
   it("shows Not completed for denied, and No record found when sub_status is no_record", () => {
     const source = readFileSync("src/api/account.ts", "utf8");
-    expect(source).not.toContain("TODO: label for denied needs Ben's decision");
+    expect(source).not.toContain("TODO: label for denied needs Alex Rivera's decision");
     expect(optOutLabel({ status: "denied", sub_status: null })).toBe("Not completed");
     expect(optOutLabel({ status: "denied" })).toBe("Not completed");
     expect(optOutLabel({ status: "denied", sub_status: "no_record" })).toBe("No record found");

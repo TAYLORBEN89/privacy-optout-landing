@@ -17,7 +17,9 @@ export function SecurityPage() {
       <h2>Encryption in transit</h2>
       <p>Sign-in and form submissions are sent over HTTPS.</p>
       <h2>Planned, not live yet</h2>
-      <p>Per-user accounts, TOTP two-factor sign-in, D1 storage, AES-GCM encryption of identifiers, daily automatic deletion, CSRF protection and rate limiting, a security audit log, and Workers Logs are planned. They are not live yet.</p>
+      <p>Per-user accounts, TOTP two-factor sign-in, D1 storage, AES-GCM encryption of identifiers, daily automatic deletion, CSRF protection and rate limiting, and a security audit log are planned. They are not live yet.</p>
+      <h2>Workers Logs</h2>
+      <p>Workers Logs are on. They are kept for Cloudflare's default retention period and never include request bodies or personal information.</p>
       <h2>No selling</h2>
       <p>We do not sell your data.</p>
       <h2>Standards</h2>

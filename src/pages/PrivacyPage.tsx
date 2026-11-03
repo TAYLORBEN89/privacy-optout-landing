@@ -36,7 +36,7 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
     id: "rest",
     title: "Encryption at rest",
-    paragraphs: ["Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers."],
+    paragraphs: ["Nothing is stored yet. Planned, not live yet: storage in Cloudflare D1 or Workers KV, which Cloudflare encrypts at rest, and our own AES-GCM encryption of identifiers."],
   },
   {
     id: "coming-soon",

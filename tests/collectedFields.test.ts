@@ -19,7 +19,7 @@ describe("collected fields", () => {
     }
   });
 
-  it("uses Ben's yellow-band body and does not add an at-rest claim", () => {
+  it("uses Alex Rivera's yellow-band body and does not add an at-rest claim", () => {
     const page = readFileSync("src/pages/HomePage.tsx", "utf8").replace(/\s+/g, " ");
     expect(page).toContain("Your information is encrypted in transit and never sold.");
     expect(page).toContain("We ask only for your name, date of birth, address,");

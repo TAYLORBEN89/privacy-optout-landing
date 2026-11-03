@@ -50,6 +50,9 @@ describe("copy claims", () => {
     expect(html).toContain("Planned, not live yet");
     expect(html).toContain("Per-user accounts");
     expect(html).toContain("They are not live yet.");
+    expect(html).toContain("Workers Logs are on.");
+    expect(html).toContain("default retention period and never include request bodies or personal information.");
+    expect(html).not.toContain("Workers Logs are planned");
     expect(html).toContain("built to SOC 2 standards");
     expect(html).toContain("That is not a certification claim.");
     expect(html).not.toMatch(/verified deletion|we send for you|Apple/i);
