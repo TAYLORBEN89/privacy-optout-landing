@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: SQL-safety check self-test
+        run: node --test scripts/check-sql.test.mjs
+
       - name: SQL-safety check (no interpolated or concatenated D1 SQL)
         run: node scripts/check-sql.mjs
 
