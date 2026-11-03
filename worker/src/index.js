@@ -3,13 +3,14 @@ import legacy from './legacy.js';
 import { handleApp, isAppPath, allowedOrigins, corsHeaders, purge, expireAudit } from './app.js';
 import { handleApi } from './api.js';
 import { handleAccounts } from './accounts.js';
+import { guardLocation } from './location.js';
 
 export default {
   async fetch(req, env) {
     const { pathname, hostname } = new URL(req.url);
     // accounts.droptexas.com (ACCOUNTS_HOST) is the sign-in host: its own routes, origin rule and security headers.
     if (env.ACCOUNTS_HOST && hostname === env.ACCOUNTS_HOST) {
-      try { return await handleAccounts(req, env); } catch (e) {
+      try { return guardLocation(env, 'accounts', await handleAccounts(req, env)); } catch (e) {
         console.error('accounts error', JSON.stringify({ name: e?.name || 'Error', code: typeof e?.code === 'string' ? e.code.slice(0, 64) : undefined }));
         return new Response('internal error', { status: 500, headers: { 'Cache-Control': 'no-store' } });
       }
@@ -21,7 +22,7 @@ export default {
     if (origin && !allowedOrigins(env).includes(origin)) return new Response('Forbidden origin', { status: 403 });
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(env, origin) });
     try {
-      return pathname.startsWith('/api/') ? await handleApi(req, env) : await handleApp(req, env);
+      return guardLocation(env, 'app', pathname.startsWith('/api/') ? await handleApi(req, env) : await handleApp(req, env));
     } catch (e) {
       // Log only the error class/code: no stack, message text, request data, IP, UA, tokens or PII.
       console.error('app error', JSON.stringify({ name: e?.name || 'Error', code: typeof e?.code === 'string' ? e.code.slice(0, 64) : undefined }));

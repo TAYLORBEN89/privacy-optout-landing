@@ -5,7 +5,7 @@ import {
   checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
-import { reserve, refund, clientIp, retryHeaders } from './ratelimit.js';
+import { reserve, refund, clientIp, retryHeaders, trustForwardedIp } from './ratelimit.js';
 import {
   PROVIDERS, redirectUriFor, client, authorizationUrl, newFlowSecrets, exchange, verifyIdToken, IdTokenError,
   sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo, sealStart, openStart,
@@ -13,7 +13,7 @@ import {
 } from './oauth.js';
 import { validateSignup } from './shared/signup.ts';
 import { toStoredSignup, readSignupPayload } from './signupPayload.js';
-import { INTERNAL_HEADER, verifyInternal } from './internalAuth.js';
+import { INTERNAL_HEADER, TOO_LARGE, verifyInternal } from './internalAuth.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const NO_PASSWORD = '!';            // sentinel pw_hash for social-only users; verifyPassword() never accepts it
@@ -519,6 +519,14 @@ export async function handleApi(req, env) {
   // Only Google and Microsoft are supported; Apple sign-in was removed, so /api/auth/apple/* is a plain 404.
   if (/^\/api\/(auth|account\/identities)\/apple(\/|$)/.test(path)) return json(ctx, { error: 'not found' }, 404);
   if (STATE_CHANGING.has(m) && !(origin && allowedOrigins(env).includes(origin))) return FORBIDDEN(ctx);
+  // Signed landing-proxy call (X-Internal-Auth): must verify, or it is the uniform 403. On success the forwarded
+  // CF-Connecting-IP (bound in the signature) is trusted for rate limits, and the CSRF token is not required.
+  if (req.headers.has(INTERNAL_HEADER)) {
+    const v = await verifyInternal(req, env, path);
+    if (v === TOO_LARGE) return json(ctx, { error: 'payload too large' }, 413);
+    if (v !== true) return FORBIDDEN(ctx);
+    ctx.internal = true; trustForwardedIp(req);
+  }
 
   if (LEGACY_AUTH_ALIASES.has(path)) {
     const u = new URL(req.url); u.pathname = path.slice(4);
@@ -533,13 +541,8 @@ export async function handleApi(req, env) {
 
   const cur = await requireSession(ctx);
   if (!cur) return UNAUTH(ctx);
-  // Landing Worker calls over the service binding carry a signed X-Internal-Auth header instead of the CSRF token.
-  // If the header is present it must verify (route allowlist, +/-60 s, HMAC); there is no fallback to CSRF.
-  if (STATE_CHANGING.has(m)) {
-    const ok = req.headers.has(INTERNAL_HEADER) ? await verifyInternal(req, env, path)
-      : timingSafeEqual(req.headers.get('X-CSRF-Token') || '', cur.session.csrf || '');
-    if (!ok) return FORBIDDEN(ctx);
-  } else if (req.headers.has(INTERNAL_HEADER)) return FORBIDDEN(ctx); // internal auth is only for the write routes
+  // Landing Worker calls verified above skip the CSRF token; everyone else (direct accounts/app traffic) needs it.
+  if (STATE_CHANGING.has(m) && !ctx.internal && !timingSafeEqual(req.headers.get('X-CSRF-Token') || '', cur.session.csrf || '')) return FORBIDDEN(ctx);
 
   if (m === 'GET' && path === '/api/me') return me(ctx, cur);
   if (m === 'POST' && path === '/api/auth/logout') return logout(ctx, cur);

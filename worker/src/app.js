@@ -43,17 +43,9 @@ export function json(ctx, body, status = 200, extra = {}) {
 const INVALID = (ctx) => json(ctx, { error: 'invalid credentials' }, 401);
 const UNAUTH = (ctx) => json(ctx, { error: 'unauthorized' }, 401);
 
-// SESSION_COOKIE_SAMESITE: "Strict" (default) when dashboard and API share a site (droptexas.com + api.droptexas.com).
-// "None" only for the cross-site pages.dev/workers.dev setup; then Partitioned (CHIPS) is added.
-// Either way CSRF protection also comes from the per-session X-CSRF-Token + strict Origin allowlist.
-// "Lax" (production, same-origin plan): required because the OAuth callback is a top-level cross-site navigation;
-// a Strict cookie would not be sent on the redirect back from the provider.
-const cookieAttrs = (env) => {
-  const v = String(env.SESSION_COOKIE_SAMESITE || 'Strict').toLowerCase();
-  if (v === 'none') return 'Path=/; HttpOnly; Secure; SameSite=None; Partitioned';
-  if (v === 'lax') return 'Path=/; HttpOnly; Secure; SameSite=Lax';
-  return 'Path=/; HttpOnly; Secure; SameSite=Strict';
-};
+// __Host-sid is always host-only (no Domain), Path=/, Secure, HttpOnly, SameSite=Lax. Lax because the OAuth handoff
+// ends in a top-level navigation; SESSION_COOKIE_SAMESITE is no longer read.
+const cookieAttrs = () => 'Path=/; HttpOnly; Secure; SameSite=Lax';
 export const setCookie = (env, token, maxAge) => `${COOKIE}=${token}; ${cookieAttrs(env)}; Max-Age=${maxAge}`;
 export const clearCookie = (env) => `${COOKIE}=; ${cookieAttrs(env)}; Max-Age=0`;
 function readCookie(req) {

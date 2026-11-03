@@ -28,7 +28,8 @@ export default defineWorkersConfig(async () => {
               OAUTH_COOKIE_KEY: 'AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=',
               OAUTH_REDIRECT_URIS: 'https://accounts.test/oauth/google/callback,https://accounts.test/oauth/microsoft/callback',
               ACCOUNTS_HOST: 'accounts.test', APP_ORIGIN: 'https://api.test',
-              INTERNAL_PROXY_KEY: 'test-internal-proxy-key-placeholder',
+              // Test-only keys: k1 is Cybersecurity's fixed test vector key, k2 a second key for the rotation test.
+              INTERNAL_PROXY_KEYS: JSON.stringify({ k1: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=', k2: 'ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=', short: 'AAECAwQFBgcICQoLDA0ODw==' }),
             },
             kvNamespaces: ['RECORDS'],
             d1Databases: ['DB'],

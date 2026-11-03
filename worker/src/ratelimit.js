@@ -62,4 +62,12 @@ export const purgeRateLimitsStmt = (env, at) => env.DB.prepare('DELETE FROM rate
 // Retry-After header for 429 responses (bodies stay the per-scope uniform messages).
 export const retryHeaders = (secs, extra = {}) => ({ 'Retry-After': String(secs), ...extra });
 
-export const clientIp = (req) => req.headers.get('CF-Connecting-IP') || 'unknown';
+// CF-Connecting-IP is set by Cloudflare's edge on public requests (req.cf present). On a service-binding call the
+// caller writes it, so it is trusted only after X-Internal-Auth verified (the IP is bound in the signature);
+// otherwise all such calls share one 'service-binding' bucket.
+const trustedIp = new WeakSet();
+export const trustForwardedIp = (req) => { trustedIp.add(req); };
+export const clientIp = (req) => {
+  if (trustedIp.has(req) || req.cf) return req.headers.get('CF-Connecting-IP') || 'unknown';
+  return 'service-binding';
+};
