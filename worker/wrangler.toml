@@ -37,6 +37,17 @@ OAUTH_REDIRECT_URIS = "https://accounts.droptexas.com/oauth/google/callback,http
 ACCOUNTS_HOST = "accounts.droptexas.com"
 APP_ORIGIN = "https://droptexas.com"
 
+INACTIVE_WARN_DAYS = "700"                # warning email at ~23 months without sign-in
+INACTIVE_DELETE_DAYS = "730"              # account deleted at 24 months (only after a warning)
+INACTIVE_MIN_NOTICE_DAYS = "14"
+# MAIL_FROM = "notifications@example.com"    # STUB: set once Email Service sending is verified for droptexas.com
+
+# Cloudflare Email Service binding (STUB, not enabled: no domain onboarding, no DNS/MX changes made).
+# Uncomment after the owner onboards droptexas.com for Email Service sending.
+# [[send_email]]
+# name = "MAILER"
+# remote = true
+
 [[kv_namespaces]]
 binding = "RECORDS"
 # KV namespace privacy-dashboard-api-RECORDS (legacy records; rate limits moved to D1 in 0008)

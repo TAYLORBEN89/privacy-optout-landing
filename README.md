@@ -51,8 +51,9 @@ npx wrangler d1 create privacy-dashboard            # paste database_id into [[d
 | `0004_audit_append_only.sql` | append-only triggers on audit_log, the expiry gate and maintenance_log (idempotent) |
 | `0007_social_auth.sql` | user_identities (google/microsoft), oauth_states_used, auth_handoffs, step-up columns, audit ip/user_agent |
 | `0008_rate_limits.sql` | strongly consistent fixed-window rate-limit counters (replaces the old KV limiter) |
+| `0010_inactive_accounts.sql` | `users.last_active_at` + `users.inactivity_warned_at` for the inactive-account lifecycle (backfills `last_active_at = created_at`) |
 
-There are no 0005/0006 files (numbers were skipped). Wrangler applies whatever is unapplied, in file order:
+There are no 0005/0006 files (numbers were skipped), and 0009 is reserved for the planned email work. Wrangler applies whatever is unapplied, in file order:
 ```bash
 npm run db:migrate:local                                  # = wrangler d1 migrations apply DB --local
 npx wrangler d1 migrations apply DB --remote              # production; only with the owner's approval
@@ -72,6 +73,8 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 | `PII_ENC_KEY_PREV` | optional, only during PII key rotation (old key, readable with `PII_PREV_KEY_VERSION`) | the previous `PII_ENC_KEY` |
 
 ### 4. Vars (`[vars]` in `wrangler.toml`)
+- `INACTIVE_WARN_DAYS` (default `700`, about 23 months), `INACTIVE_DELETE_DAYS` (default `730`, 24 months), `INACTIVE_MIN_NOTICE_DAYS` (default `14`) – inactive-account lifecycle, see below.
+- `MAIL_FROM` – sender address for account mail. **Stub**: commented out until Email Sending is enabled for the Worker.
 - `GOOGLE_CLIENT_ID`, `MICROSOFT_CLIENT_ID` – public client IDs (placeholders in the repo; set yours at deploy).
 - `OAUTH_REDIRECT_URIS` – comma-separated exact allowlist, e.g. `https://accounts.droptexas.com/oauth/google/callback,https://accounts.droptexas.com/oauth/microsoft/callback`. Must match the provider consoles exactly.
 - `ALLOWED_ORIGIN` – comma-separated CORS origins, production only (`npm run check:origins` enforces this). Dev origins go in `.dev.vars`.
@@ -169,3 +172,13 @@ Checklist categories now also include People-search sites, Search & apps, and Sp
 
 ## Social sign-in
 Provider console setup for Google and Microsoft sign-in: see [docs/oauth-setup.md](docs/oauth-setup.md).
+
+## Inactive accounts (24-month deletion)
+- `last_active_at` is set whenever a session is created (password/MFA login, social sign-in, refresh), in the same D1 batch as the session INSERT, and a new sign-in clears any pending warning.
+- A daily cron job (`inactiveAccounts`, alongside `purge` and `expireAudit`) sends **one** warning email to accounts inactive for `INACTIVE_WARN_DAYS`. The email text states the actual number of months and the days left, derived from the config.
+- At `INACTIVE_DELETE_DAYS` the account is deleted, **but only if** a warning was recorded at least `INACTIVE_MIN_NOTICE_DAYS` earlier. Deleting the `users` row cascades to sessions, identities, handoffs, backup codes, profile, opt-out requests, confirmations and encrypted PII payloads. `audit_log` rows keep only the user id and expire on their own schedule.
+- **Mailer stub**: the `[[send_email]] MAILER` binding and `MAIL_FROM` are commented out in `wrangler.toml`. Without them nobody is warned, so nobody is deleted.
+- **Backlog**: each run warns at most 100 accounts (`LIMIT 100`). A larger backlog drains over the following daily runs, and each account still gets the full notice period after its own warning, so a backlog delays deletions and never shortens notice. A failed send is skipped (no address logged) and retried next run.
+- **Deadline in the email**: deletion happens at the later of last activity + `INACTIVE_DELETE_DAYS` and warning + `INACTIVE_MIN_NOTICE_DAYS`. The email states that real per-account deadline (days left and a UTC date): about 29-30 days for an on-time warning, 14 days for a late one. Signing in at any point before deletion resets `last_active_at` and clears the warning, so the next run cannot delete the account.
+- Social-only accounts store a placeholder `users.email` (`<id>@users.invalid`); the job skips those addresses. Warning them needs the real (encrypted) identity email, which is part of the email work.
+- The public privacy policy should state this 24-month inactivity deletion; that page lives in the landing site repo.
