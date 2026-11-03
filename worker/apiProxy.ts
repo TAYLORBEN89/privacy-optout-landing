@@ -5,8 +5,12 @@ import { internalAuthHeader, type ProxySigner } from "./internalAuth";
 export const UPSTREAM_ORIGIN = "https://droptexas.com";
 export const MAX_PROXY_BODY_BYTES = 65_536;
 /** Set-Cookie names passed back to the browser. Backend may add __Host-oauth / __Host-login later. */
-export const ALLOWED_RESPONSE_COOKIES: readonly string[] = ["__Host-sid"];
-const ALLOWED_LOCATION_PREFIXES = ["https://accounts.google.com/", "https://login.microsoftonline.com/"];
+export const ALLOWED_RESPONSE_COOKIES: readonly string[] = ["__Host-sid", "__Host-login"];
+/** Absolute redirect targets (origin + pathname, exact; any query allowed). */
+export const ALLOWED_LOCATION_TARGETS: readonly string[] = [
+  "https://accounts.droptexas.com/oauth/google/start",
+  "https://accounts.droptexas.com/oauth/microsoft/start",
+];
 const PASS_HEADERS = ["content-type", "location", "retry-after", "content-disposition"];
 
 const P = "(google|microsoft)";
@@ -23,8 +27,8 @@ const ROUTES: ReadonlyArray<{ methods: readonly string[]; path: RegExp }> = [
   { methods: ["POST"], path: /^\/api\/account\/sessions\/[0-9a-f]{16}\/revoke$/ },
   { methods: ["POST"], path: /^\/api\/account\/export$/ },
   { methods: ["POST"], path: /^\/api\/account\/delete$/ },
-  { methods: ["POST", "DELETE"], path: new RegExp(`^/api/account/identities/${P}$`) },
-  { methods: ["POST", "DELETE"], path: new RegExp(`^/api/account/identities/${P}/link$`) },
+  { methods: ["DELETE"], path: new RegExp(`^/api/account/identities/${P}$`) },
+  { methods: ["POST"], path: new RegExp(`^/api/account/identities/${P}/link$`) },
   { methods: ["POST"], path: /^\/api\/optouts\/signup$/ },
 ];
 
@@ -153,7 +157,8 @@ function locationAllowed(location: string, ownUrl: string): boolean {
     return false;
   }
   if (resolved.origin === new URL(ownUrl).origin) return true;
-  return ALLOWED_LOCATION_PREFIXES.some((prefix) => resolved.href.startsWith(prefix));
+  return resolved.username === "" && resolved.password === "" && resolved.hash === "" &&
+    ALLOWED_LOCATION_TARGETS.includes(resolved.origin + resolved.pathname);
 }
 
 /** Passes only status, body and the contract headers back to the browser. */
@@ -167,7 +172,14 @@ export function filterResponse(response: Response, ownUrl: string): Response {
   }
   for (const cookie of response.headers.getSetCookie()) {
     const name = cookie.split("=", 1)[0]?.trim() ?? "";
-    if (ALLOWED_RESPONSE_COOKIES.includes(name)) headers.append("set-cookie", cookie);
+    if (ALLOWED_RESPONSE_COOKIES.includes(name) && cookieAttributesOk(cookie)) headers.append("set-cookie", cookie);
   }
   return new Response(response.body, { status: response.status, headers });
+}
+
+/** __Host- rules: Path=/, Secure, HttpOnly, and no Domain. */
+export function cookieAttributesOk(cookie: string): boolean {
+  const attrs = cookie.split(";").slice(1).map((a) => a.trim().toLowerCase());
+  const names = attrs.map((a) => a.split("=", 1)[0]!.trim());
+  return attrs.includes("path=/") && names.includes("secure") && names.includes("httponly") && !names.includes("domain");
 }

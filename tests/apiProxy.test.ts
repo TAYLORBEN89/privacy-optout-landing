@@ -38,10 +38,8 @@ describe("allowlist", () => {
       ["POST", "/api/account/sessions/0123456789abcdef/revoke"],
       ["POST", "/api/account/export"],
       ["POST", "/api/account/delete"],
-      ["POST", "/api/account/identities/google"],
       ["DELETE", "/api/account/identities/microsoft"],
       ["POST", "/api/account/identities/google/link"],
-      ["DELETE", "/api/account/identities/google/link"],
       ["POST", "/api/optouts/signup"],
     ];
     for (const [method, path] of ok) {
@@ -60,6 +58,9 @@ describe("allowlist", () => {
       ["POST", "/api/account/sessions/0123456789abcdef0/revoke"],
       ["POST", "/api/account/sessions/../../x/revoke"],
       ["POST", "/api/account/identities/apple/link"],
+      ["POST", "/api/account/identities/google"],
+      ["DELETE", "/api/account/identities/google/link"],
+      ["GET", "/api/account/identities/google"],
       ["DELETE", "/api/me"],
       ["GET", "/api/records"],
       ["GET", "/api/admin/bootstrap"],
@@ -101,6 +102,31 @@ describe("request headers", () => {
     expect(h.get("x-forwarded-for")).toBeNull();
     expect(h.get("x-internal-auth")).toMatch(/^v1\.k1\.\d+\.[A-Za-z0-9_-]{43}$/);
     expect(await upstream!.text()).toBe('{"phone":null}');
+  });
+
+  it("builds a fresh upstream Request: not the incoming object, no cf, manual redirect", async () => {
+    const incoming = new Request(`${OWN}/api/account/profile`, {
+      method: "PATCH",
+      headers: { origin: OWN, "content-type": "application/json" },
+      body: "{}",
+    });
+    Object.defineProperty(incoming, "cf", { value: { country: "US", asn: 1 } });
+    let upstream: Request | null = null;
+    await handleRequest(incoming, {
+      fetchAsset: async () => new Response("asset"),
+      forwardApi: async (r) => {
+        upstream = r;
+        return new Response("{}");
+      },
+      proxySigner: testSigner,
+    });
+    const up = upstream as unknown as Request & { cf?: unknown };
+    expect(up).not.toBeNull();
+    expect(up).not.toBe(incoming);
+    expect(up.cf).toBeUndefined();
+    expect("cf" in up).toBe(false);
+    expect(up.redirect).toBe("manual");
+    expect(up.url).toBe(`${OWN}/api/account/profile`);
   });
 
   it("signs GETs too, and drops a malformed session cookie", async () => {
@@ -217,7 +243,26 @@ describe("response filtering", () => {
     return new Response("body", { status: 302, headers: h });
   };
 
-  it("keeps only contract headers and __Host-sid cookies", async () => {
+  it("keeps __Host-sid and __Host-login only with Path=/, Secure, HttpOnly and no Domain", () => {
+    const res = filterResponse(
+      upstream([
+        ["set-cookie", "__Host-login=st; Path=/; HttpOnly; Secure; SameSite=Lax"],
+        ["set-cookie", "__Host-sid=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"],
+        ["set-cookie", "__Host-sid=a; Path=/x; HttpOnly; Secure"],
+        ["set-cookie", "__Host-sid=b; Path=/; HttpOnly"],
+        ["set-cookie", "__Host-sid=c; Path=/; Secure"],
+        ["set-cookie", "__Host-login=d; Path=/; HttpOnly; Secure; Domain=droptexas.com"],
+        ["set-cookie", "__Host-oauth=e; Path=/; HttpOnly; Secure"],
+      ]),
+      `${OWN}/api/auth/google/start`,
+    );
+    expect(res.headers.getSetCookie()).toEqual([
+      "__Host-login=st; Path=/; HttpOnly; Secure; SameSite=Lax",
+      "__Host-sid=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0",
+    ]);
+  });
+
+  it("keeps only contract headers and allowed cookies", async () => {
     const res = filterResponse(
       upstream([
         ["set-cookie", "__Host-sid=abc; Path=/; HttpOnly; Secure; SameSite=Lax"],
@@ -244,8 +289,16 @@ describe("response filtering", () => {
     const loc = (l: string) => filterResponse(upstream([["location", l]]), `${OWN}/api/auth/google/start`).headers.get("location");
     expect(loc("/account")).toBe("/account");
     expect(loc("https://droptexas.com/account")).toBe("https://droptexas.com/account");
-    expect(loc("https://accounts.google.com/o/oauth2/v2/auth?x=1")).toContain("accounts.google.com");
-    expect(loc("https://login.microsoftonline.com/common/oauth2")).toContain("login.microsoftonline.com");
+    expect(loc("/start?x=1")).toBe("/start?x=1");
+    expect(loc("https://accounts.droptexas.com/oauth/google/start?st=abc")).toBe("https://accounts.droptexas.com/oauth/google/start?st=abc");
+    expect(loc("https://accounts.droptexas.com/oauth/microsoft/start")).toBe("https://accounts.droptexas.com/oauth/microsoft/start");
+    expect(loc("https://accounts.droptexas.com/oauth/google/start/x")).toBeNull();
+    expect(loc("https://accounts.droptexas.com/oauth/apple/start")).toBeNull();
+    expect(loc("http://accounts.droptexas.com/oauth/google/start")).toBeNull();
+    expect(loc("https://u:p@accounts.droptexas.com/oauth/google/start")).toBeNull();
+    expect(loc("https://accounts.droptexas.com:8443/oauth/google/start")).toBeNull();
+    expect(loc("https://accounts.google.com/o/oauth2/v2/auth?x=1")).toBeNull();
+    expect(loc("https://login.microsoftonline.com/common/oauth2")).toBeNull();
     expect(loc("https://evil.example/")).toBeNull();
     expect(loc("//evil.example/x")).toBeNull();
     expect(loc("https://accounts.google.com.evil.example/")).toBeNull();

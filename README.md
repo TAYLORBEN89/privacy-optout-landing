@@ -83,8 +83,8 @@ The Worker forwards only allowlisted `/api` routes to the API Worker (`env.API` 
 | POST | `/api/account/sessions/{16 lowercase hex}/revoke` |
 | POST | `/api/account/export` |
 | POST | `/api/account/delete` |
-| POST, DELETE | `/api/account/identities/{google\|microsoft}` |
-| POST, DELETE | `/api/account/identities/{google\|microsoft}/link` |
+| POST | `/api/account/identities/{google\|microsoft}/link` |
+| DELETE | `/api/account/identities/{google\|microsoft}` |
 | POST | `/api/optouts/signup` |
 
 **Landing CSRF (unsafe methods):** `Origin` must exactly equal the Worker's own origin; if `Origin` is absent, `Sec-Fetch-Site: same-origin` is required. Otherwise a uniform 403. Request bodies are capped at 64 KB (413).
@@ -103,7 +103,9 @@ sig = base64url (no padding) of HMAC-SHA256(key[kid], canonical)
 
 Test vector (in `tests/apiProxy.test.ts`; the key is a test-only constant, bytes 0x00..0x1f): kid `k1`, ts `1800000000`, ip `203.0.113.9`, `POST /api/account/export?x=1`, body `{"a":1}` → `v1.k1.1800000000.-uCux05nB_YSHLfLwqUuzii9ePuZ2QyIxdgq1kQRCZQ`.
 
-**Responses:** fetched with `redirect: 'manual'`; only status, body, `Content-Type`, `Set-Cookie`, `Location`, `Retry-After` and `Content-Disposition` pass through. `Set-Cookie` is limited to the names in `ALLOWED_RESPONSE_COOKIES` (`__Host-sid` today). An absolute `Location` is dropped unless it is same-origin or starts with `https://accounts.google.com/` or `https://login.microsoftonline.com/`.
+**Responses:** fetched with `redirect: 'manual'`; only status, body, `Content-Type`, `Set-Cookie`, `Location`, `Retry-After` and `Content-Disposition` pass through. `Set-Cookie` is limited to the names in `ALLOWED_RESPONSE_COOKIES` (`__Host-sid`, `__Host-login`), and any such cookie without `Path=/`, `Secure` and `HttpOnly`, or with a `Domain`, is dropped. `Location` is kept only for a same-origin path or an absolute URL whose origin+pathname is exactly `https://accounts.droptexas.com/oauth/google/start` or `https://accounts.droptexas.com/oauth/microsoft/start` (query allowed); anything else is dropped.
+
+**Upstream request:** always a freshly built `new Request(url, { method, headers, body, redirect: "manual" })`, never derived from the incoming `Request`, so it carries no `cf` (the API treats `request.cf` as edge traffic).
 
 ### INTERNAL_PROXY_KEYS
 

@@ -442,14 +442,14 @@ describe("POST /api/signup", () => {
         return Promise.resolve(
           new Response(JSON.stringify({ user: { email: "ada@example.com" }, csrf: "tok" }), {
             status: 200,
-            headers: { "set-cookie": "__Host-sid=abc; HttpOnly", "content-type": "application/json" },
+            headers: { "set-cookie": "__Host-sid=abc; Path=/; HttpOnly; Secure", "content-type": "application/json" },
           }),
         );
       },
     });
     expect(forwarded).not.toBeNull();
     expect(forwarded!.headers.get("cookie")).toBeNull();
-    expect(response.headers.get("set-cookie")).toBe("__Host-sid=abc; HttpOnly");
+    expect(response.headers.get("set-cookie")).toBe("__Host-sid=abc; Path=/; HttpOnly; Secure");
     expect(response.status).toBe(200);
   });
 
