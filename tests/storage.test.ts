@@ -73,7 +73,7 @@ describe("D1SignupStore", () => {
 
   it("refuses to save without the SIGNUP_PII_KEY secret", async () => {
     const db = { prepare() { return { bind() { return { async run() { return { success: true }; } }; } }; } };
-    await expect(new D1SignupStore(db).save(record)).rejects.toThrow("signup_key_missing");
+    await expect(new D1SignupStore(db).save(record)).rejects.toMatchObject({ name: "signup_key_missing" });
   });
 
   it("stores a child request as JSON in the last bound value", async () => {

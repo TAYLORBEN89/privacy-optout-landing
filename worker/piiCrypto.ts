@@ -45,7 +45,7 @@ export async function importPiiKeys(secret: string | undefined): Promise<PiiKeys
   const raw = unb64(text);
   if (raw.byteLength !== 32) throw new SignupKeyError("signup_key_invalid");
   const master = await crypto.subtle.importKey("raw", raw, "HKDF", false, ["deriveKey"]);
-  const derive = (info: string, alg: AesKeyGenParams | HmacImportParams, usages: KeyUsage[]) =>
+  const derive = (info: string, alg: { name: string; length: number; hash?: string }, usages: ("encrypt" | "decrypt" | "sign")[]) =>
     crypto.subtle.deriveKey(
       { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(new ArrayBuffer(0)), info: new TextEncoder().encode(info) },
       master,
