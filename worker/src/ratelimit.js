@@ -67,4 +67,13 @@ export const purgeRateLimitsStmt = (env, at) => env.DB.prepare('DELETE FROM rate
 // Retry-After header for 429 responses (bodies stay the per-scope uniform messages).
 export const retryHeaders = (secs, extra = {}) => ({ 'Retry-After': String(secs), ...extra });
 
-export const clientIp = (req) => req.headers.get('CF-Connecting-IP') || 'unknown';
+// Signed landing-proxy call (X-Internal-Auth verified): the client IP is ONLY the signed ip field; request.cf and every
+// other edge header are ignored. Unsigned direct traffic: CF-Connecting-IP, which Cloudflare's edge sets (request.cf
+// present). A service-binding call without valid auth has no edge IP, so all such calls share one bucket.
+const signedIp = new WeakMap();
+export const trustSignedIp = (req, ip) => { signedIp.set(req, ip); };
+export const clientIp = (req) => {
+  if (signedIp.has(req)) return signedIp.get(req) || 'unknown';
+  if (req.cf) return req.headers.get('CF-Connecting-IP') || 'unknown';
+  return 'service-binding';
+};

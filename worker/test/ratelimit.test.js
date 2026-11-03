@@ -17,8 +17,10 @@ async function makeUser(password = 'correct horse battery') {
     .bind(crypto.randomUUID(), email, await hashPassword(password), await encryptStr(env, secret)).run();
   return { email, password, secret };
 }
+// Simulates a public edge request (request.cf set), where Cloudflare writes CF-Connecting-IP.
+const EDGE = { country: 'US' };
 const post = (path, body, IP) => SELF.fetch(BASE + path, {
-  method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ORIGIN, 'CF-Connecting-IP': IP }, body: JSON.stringify(body),
+  method: 'POST', cf: EDGE, headers: { 'Content-Type': 'application/json', Origin: ORIGIN, 'CF-Connecting-IP': IP }, body: JSON.stringify(body),
 });
 const login = (u, IP, password = 'wrong password') => post('/auth/login', { email: u.email, password }, IP);
 

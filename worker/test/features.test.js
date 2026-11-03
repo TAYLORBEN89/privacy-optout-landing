@@ -269,13 +269,15 @@ describe('first-user bootstrap', () => {
 });
 
 describe('cookie SameSite mode', () => {
-  it('SESSION_COOKIE_SAMESITE=None adds Partitioned for the cross-site setup', async () => {
+  it('__Host-sid is always host-only, Path=/, Secure, HttpOnly, SameSite=Lax (SESSION_COOKIE_SAMESITE ignored)', async () => {
     const u = await makeUser({ totp: false });
-    const r = await worker.fetch(new Request(BASE + '/auth/login', { method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json', 'CF-Connecting-IP': IP }, body: JSON.stringify({ email: u.email, password: u.password }) }), { ...env, SESSION_COOKIE_SAMESITE: 'None' });
-    const sc = r.headers.get('Set-Cookie');
-    expect(sc).toContain('SameSite=None');
-    expect(sc).toContain('Partitioned');
+    for (const mode of ['None', 'Strict', undefined]) {
+      const r = await worker.fetch(new Request(BASE + '/auth/login', { method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json', 'CF-Connecting-IP': IP }, body: JSON.stringify({ email: u.email, password: u.password }) }), { ...env, SESSION_COOKIE_SAMESITE: mode });
+      const sc = r.headers.get('Set-Cookie');
+      expect(sc).toMatch(/^__Host-sid=[A-Za-z0-9_-]+; Path=\/; HttpOnly; Secure; SameSite=Lax; Max-Age=\d+$/);
+    }
   });
+
 });
 
 describe('in_progress status + retention clock', () => {

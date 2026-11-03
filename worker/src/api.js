@@ -5,13 +5,15 @@ import {
   checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS, rotate, sessionResponse, isBackupShape, useBackupCode,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
-import { reserve, refund, clientIp, retryHeaders } from './ratelimit.js';
+import { reserve, refund, clientIp, retryHeaders, trustSignedIp } from './ratelimit.js';
 import {
   PROVIDERS, redirectUriFor, client, authorizationUrl, newFlowSecrets, exchange, verifyIdToken, IdTokenError,
   sealState, openState, oauthCookie, clearOauthCookie, readOauthCookie, safeReturnTo, sealStart, openStart,
   loginCookie, clearLoginCookie, readLoginCookie,
 } from './oauth.js';
 import { validateSignup } from './shared/signup.ts';
+import { toStoredSignup, readSignupPayload } from './signupPayload.js';
+import { INTERNAL_HEADER, TOO_LARGE, verifyInternal } from './internalAuth.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const NO_PASSWORD = '!';            // sentinel pw_hash for social-only users; verifyPassword() never accepts it
@@ -474,7 +476,7 @@ async function exportAccount(ctx, cur) {
   const opts = (await env.DB.prepare('SELECT * FROM optout_requests WHERE user_id = ?1 ORDER BY created_at').bind(uid).all()).results;
   const pii = (await env.DB.prepare('SELECT p.request_id, p.payload_enc, p.key_version FROM pii_payloads p JOIN optout_requests o ON o.id = p.request_id WHERE o.user_id = ?1').bind(uid).all()).results;
   const piiById = {};
-  for (const p of pii) piiById[p.request_id] = JSON.parse(await decryptPii(env, p.payload_enc, p.key_version, `pii:${p.request_id}`));
+  for (const p of pii) piiById[p.request_id] = readSignupPayload(JSON.parse(await decryptPii(env, p.payload_enc, p.key_version, `pii:${p.request_id}`)));
   const events = (await env.DB.prepare('SELECT action, target, at FROM audit_log WHERE user_id = ?1 ORDER BY at LIMIT 5000').bind(uid).all()).results;
   await audit(ctx, uid, 'account.export');
   const body = {
@@ -518,7 +520,9 @@ async function signup(ctx, cur) {
   if (!v.ok) return json(ctx, v, 400); // static messages only; submitted values are never echoed
   const id = crypto.randomUUID();
   const t = now();
-  const pii = { ...v.value, jurisdiction: 'TDPSA', nonTexasFlag: !v.value.texasResident };
+  // v2 payload (landing PR 12 shape); jurisdiction/nonTexasFlag are derived by validateSignup, never client-set.
+  // Child signups carry the child's name, DOB and (optional) address: encrypted like every other field, never logged.
+  const pii = toStoredSignup(v.value);
   const { blob, version } = await encryptPii(ctx.env, JSON.stringify(pii), `pii:${id}`);
   const hardMax = (Number(ctx.env.PII_HARD_MAX_DAYS) > 0 ? Number(ctx.env.PII_HARD_MAX_DAYS) : 90) * 86400;
   await ctx.env.DB.batch([
@@ -544,6 +548,14 @@ export async function handleApi(req, env) {
   // Only Google and Microsoft are supported; Apple sign-in was removed, so /api/auth/apple/* is a plain 404.
   if (/^\/api\/(auth|account\/identities)\/apple(\/|$)/.test(path)) return json(ctx, { error: 'not found' }, 404);
   if (STATE_CHANGING.has(m) && !(origin && allowedOrigins(env).includes(origin))) return FORBIDDEN(ctx);
+  // Signed landing-proxy call (X-Internal-Auth): must verify, or it is the uniform 403. On success the forwarded
+  // CF-Connecting-IP (bound in the signature) is trusted for rate limits, and the CSRF token is not required.
+  if (req.headers.has(INTERNAL_HEADER)) {
+    const v = await verifyInternal(req, env, path);
+    if (v === TOO_LARGE) return json(ctx, { error: 'payload too large' }, 413);
+    if (!v || typeof v !== 'object') return FORBIDDEN(ctx);
+    ctx.internal = true; trustSignedIp(req, v.ip);
+  }
 
   // Same-origin aliases for the session routes the dashboard uses: /api/profile -> /profile (step-up gated there)
   // and /api/tx-requests[/:id] -> /tx-requests[/:id].
@@ -560,7 +572,8 @@ export async function handleApi(req, env) {
 
   const cur = await requireSession(ctx);
   if (!cur) return UNAUTH(ctx);
-  if (STATE_CHANGING.has(m) && !timingSafeEqual(req.headers.get('X-CSRF-Token') || '', cur.session.csrf || '')) return FORBIDDEN(ctx);
+  // Landing Worker calls verified above skip the CSRF token; everyone else (direct accounts/app traffic) needs it.
+  if (STATE_CHANGING.has(m) && !ctx.internal && !timingSafeEqual(req.headers.get('X-CSRF-Token') || '', cur.session.csrf || '')) return FORBIDDEN(ctx);
 
   if (m === 'GET' && path === '/api/me') return me(ctx, cur);
   if (m === 'POST' && path === '/api/auth/logout') return logout(ctx, cur);

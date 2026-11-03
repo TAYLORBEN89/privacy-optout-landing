@@ -20,7 +20,7 @@ head_sampling_rate = 1
 # Production origins only. Dev/preview origins (localhost, pages.dev) go in .dev.vars (see .dev.vars.example).
 # `npm run check:origins` fails if anything else appears here.
 ALLOWED_ORIGIN = "https://droptexas.com,https://www.droptexas.com"
-SESSION_COOKIE_SAMESITE = "Lax"       # Lax: OAuth callbacks are top-level cross-site navigations (Strict would drop the cookie). "None" only for a cross-site pages.dev setup.
+# SESSION_COOKIE_SAMESITE is no longer read: __Host-sid is always SameSite=Lax (OAuth handoff is a top-level navigation).
 SESSION_IDLE_SECONDS = "43200"        # 12h idle
 SESSION_ABSOLUTE_SECONDS = "604800"   # 7d absolute cap (approved)
 PREAUTH_SECONDS = "300"
@@ -85,5 +85,5 @@ custom_domain = true
 # Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
 # ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists).
 # Social sign-in secrets: GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET,
-# OAUTH_COOKIE_KEY (base64 32 bytes). See docs/oauth-setup.md. Optional during PII key rotation: PII_ENC_KEY_PREV + PII_PREV_KEY_VERSION.
+# OAUTH_COOKIE_KEY (base64 32 bytes). INTERNAL_PROXY_KEYS: JSON {kid: base64 key>=32 bytes} shared with the landing Worker (X-Internal-Auth, see README). See docs/oauth-setup.md. Optional during PII key rotation: PII_ENC_KEY_PREV + PII_PREV_KEY_VERSION.
 # Local dev values go in .dev.vars (gitignored).
