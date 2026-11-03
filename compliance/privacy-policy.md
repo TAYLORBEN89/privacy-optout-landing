@@ -1,6 +1,6 @@
 # DROP Texas — Privacy Policy (DRAFT)
 
-**Operator:** Benjamin Taylor, Texas · **Site:** droptexas.com (planned; domain not yet live)
+**Operator:** DROP Texas, a private enterprise based in Texas · **Site:** droptexas.com (planned; domain not yet live)
 **Privacy contact:** help@droptexas.com (not published until help@droptexas.com is set up as an iCloud Mail custom-domain address and a test message is received)
 **Effective date:** [set on publication]
 **Security statement:** DROP Texas is built to SOC 2 standards. It has not been audited and holds no SOC 2 report or certification.
