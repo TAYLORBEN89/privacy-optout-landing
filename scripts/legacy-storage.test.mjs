@@ -42,7 +42,7 @@ test('offline is read-only in both editors', () => {
   const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
   for (const f of ['src/App.jsx', 'src/TexasBrokers.jsx']) {
     const src = read(f);
-    assert.match(src, /if \(!online\) return;/, f);
+    assert.match(src, /if \((txAuth \|\| )?!online\) return;/, f);
     assert.match(src, /<fieldset disabled=\{!online\}/, f);
   }
   assert.match(read('src/TexasBrokers.jsx'), /readOnly=\{!profileSource\}/);
