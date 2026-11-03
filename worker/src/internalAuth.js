@@ -21,7 +21,6 @@ export const INTERNAL_ROUTES = [
   ['GET', /^\/api\/auth\/(google|microsoft)\/start$/],
   ['GET', /^\/api\/auth\/complete$/],
   ['POST', /^\/api\/auth\/logout$/],
-  ['POST', /^\/api\/auth\/mfa\/verify$/],
   ['POST', /^\/api\/auth\/stepup\/password$/],
   ['POST', /^\/api\/auth\/(google|microsoft)\/stepup$/],
   ['GET', /^\/api\/account\/profile$/],

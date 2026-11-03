@@ -53,3 +53,30 @@ describe('logging helper', () => {
     expect(reqs[0].route).toBe('/records');
   });
 });
+
+describe('blocked redirect (Location guard)', () => {
+  it('logs blocked_redirect at error level with only the kind; the response is a 500 and the Location never reaches the log', async () => {
+    const { guardLocation } = await import('../src/location.js');
+    const out = []; const err = [];
+    vi.spyOn(console, 'log').mockImplementation((...a) => out.push(a.join(' ')));
+    vi.spyOn(console, 'error').mockImplementation((...a) => err.push(a.join(' ')));
+    const bad = 'https://evil.example/steal?token=S3cr3tSessionTokenValueAAAAAAAAAAAA';
+    const env = { ACCOUNTS_HOST: 'accounts.test', APP_ORIGIN: 'https://app.test' };
+    for (const kind of ['app', 'accounts']) {
+      const r = guardLocation(env, kind, new Response(null, { status: 302, headers: { Location: bad } }));
+      expect(r.status).toBe(500);
+      expect(r.headers.get('Location')).toBeNull();
+    }
+    expect(out).toEqual([]);
+    expect(err.map((l) => JSON.parse(l))).toEqual([{ event: 'blocked_redirect', kind: 'app' }, { event: 'blocked_redirect', kind: 'accounts' }]);
+    expect(err.join('\n')).not.toContain('evil');
+    // An allowed Location passes untouched and logs nothing.
+    const ok = guardLocation(env, 'app', new Response(null, { status: 303, headers: { Location: '/account' } }));
+    expect(ok.status).toBe(303); expect(err).toHaveLength(2);
+  });
+  it("'kind' is allowlisted; other fields are still dropped", () => {
+    const lines = capture();
+    log('x', { kind: 'app', location: 'https://evil.example' });
+    expect(JSON.parse(lines[0])).toEqual({ event: 'x', kind: 'app' });
+  });
+});

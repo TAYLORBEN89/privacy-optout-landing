@@ -1,0 +1,309 @@
+diff --git a/scripts/backfill-signup-pii.ts b/scripts/backfill-signup-pii.ts
+new file mode 100644
+index 0000000..9f21234
+--- /dev/null
++++ b/scripts/backfill-signup-pii.ts
+@@ -0,0 +1,64 @@
++/**
++ * CLI for worker/backfillSignupPii.ts against a D1 database over the Cloudflare REST API (parameterized /query).
++ * Dry run by default: counts plaintext rows and proves the encrypt/decrypt round-trip, writes nothing.
++ *   npx vite-node scripts/backfill-signup-pii.ts            # dry run
++ *   npx vite-node scripts/backfill-signup-pii.ts -- --apply # writes; records a Time Travel bookmark first
++ * Env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, D1_DATABASE_ID, SIGNUP_PII_KEY (placeholders; never commit values).
++ * Production runs need Ben's explicit approval. Output is counts and the bookmark only; never field values.
++ */
++import { backfillSignupPii, type BackfillDb } from "../worker/backfillSignupPii";
++
++const need = (k: string) => {
++  const v = process.env[k];
++  if (!v) throw new Error(`${k} is not set`);
++  return v;
++};
++
++export function restDb(fetchImpl: typeof fetch, account: string, database: string, token: string): BackfillDb {
++  const base = `https://api.cloudflare.com/client/v4/accounts/${account}/d1/database/${database}`;
++  const query = async (sql: string, params: unknown[]) => {
++    const r = await fetchImpl(`${base}/query`, {
++      method: "POST",
++      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
++      body: JSON.stringify({ sql, params }),
++    });
++    const j = (await r.json()) as { success: boolean; result?: { results: unknown[]; meta?: { changes?: number } }[] };
++    if (!r.ok || !j.success || !j.result?.[0]) throw new Error(`d1_query_failed_${r.status}`); // no SQL/params echoed
++    return j.result[0];
++  };
++  return {
++    prepare: (sql) => ({
++      bind: (...params) => ({
++        all: async <T,>() => ({ results: (await query(sql, params)).results as T[] }),
++        run: async () => ({ success: true, meta: (await query(sql, params)).meta }),
++      }),
++    }),
++  };
++}
++
++export async function bookmarkNow(fetchImpl: typeof fetch, account: string, database: string, token: string): Promise<string> {
++  const r = await fetchImpl(`https://api.cloudflare.com/client/v4/accounts/${account}/d1/database/${database}/time_travel/bookmark`, {
++    headers: { Authorization: `Bearer ${token}` },
++  });
++  const j = (await r.json()) as { success: boolean; result?: { bookmark?: string } };
++  if (!r.ok || !j.success || !j.result?.bookmark) throw new Error(`bookmark_failed_${r.status}`);
++  return j.result.bookmark;
++}
++
++async function main() {
++  const apply = process.argv.includes("--apply");
++  const token = need("CLOUDFLARE_API_TOKEN");
++  const account = need("CLOUDFLARE_ACCOUNT_ID");
++  const database = need("D1_DATABASE_ID");
++  const db = restDb(fetch, account, database, token);
++  const report = await backfillSignupPii(db, process.env.SIGNUP_PII_KEY, {
++    dryRun: !apply,
++    bookmark: () => bookmarkNow(fetch, account, database, token),
++  });
++  console.log(JSON.stringify(report));
++  if (report.bookmark) console.log(`restore if needed: wrangler d1 time-travel restore <DB> --bookmark=${report.bookmark}`);
++}
++
++if (process.argv[1]?.endsWith("backfill-signup-pii.ts")) {
++  main().catch((e) => { console.error(e instanceof Error ? e.message : "backfill_failed"); process.exit(1); });
++}
+diff --git a/tests/backfillSignupPii.test.ts b/tests/backfillSignupPii.test.ts
+new file mode 100644
+index 0000000..ea3e269
+--- /dev/null
++++ b/tests/backfillSignupPii.test.ts
+@@ -0,0 +1,108 @@
++import { DatabaseSync } from "node:sqlite";
++import { readFileSync, readdirSync } from "node:fs";
++import { describe, expect, it } from "vitest";
++import { backfillSignupPii, type BackfillDb } from "../worker/backfillSignupPii";
++import { decryptField, emailIndex, importPiiKeys } from "../worker/piiCrypto";
++import { bookmarkNow, restDb } from "../scripts/backfill-signup-pii";
++
++// Test-only key (not a real secret).
++const KEY = btoa(String.fromCharCode(...Array.from({ length: 32 }, (_, i) => 255 - i)));
++
++function freshDb() {
++  const s = new DatabaseSync(":memory:");
++  for (const f of readdirSync("migrations").sort()) s.exec(readFileSync(`migrations/${f}`, "utf8"));
++  const writes: string[] = [];
++  const db: BackfillDb & { raw: DatabaseSync; writes: string[] } = {
++    raw: s, writes,
++    prepare(sql) {
++      const st = s.prepare(sql);
++      return {
++        bind: (...p) => ({
++          all: async () => ({ results: st.all(...(p as never[])) as never[] }),
++          run: async () => { writes.push(sql.trim().split(/\s+/)[0]); const r = st.run(...(p as never[])); return { success: true, meta: { changes: Number(r.changes) } }; },
++        }),
++      };
++    },
++  };
++  return db;
++}
++const INSERT = `INSERT INTO signups (id, received_at, first_name, middle_name, last_name, dob, address_line1, address_line2, city, state, zip,
++  email, phone, texas_resident, jurisdiction, non_texas_flag, submitter, guardian_attestation, child_json, user_id, pii_enc, email_hmac)
++  VALUES (?, '2026-10-30T00:00:00Z', ?, NULL, ?, ?, ?, NULL, ?, 'TX', ?, ?, ?, 1, 'TDPSA', 0, 'self', 0, ?, NULL, ?, NULL)`;
++const legacy = (db: ReturnType<typeof freshDb>, id = "old-1", child: string | null = null) =>
++  db.raw.prepare(INSERT).run(id, "Ada", "Lovelace", "1990-01-15", "1 Main St", "Austin", "78701", "Ada@Example.com", "+15125550100", child, null);
++const modern = (db: ReturnType<typeof freshDb>) => db.raw.prepare(INSERT).run("new-1", "", "", "", "", "", "", "", null, null, "v1.x.y");
++const plaintextCount = (db: ReturnType<typeof freshDb>) =>
++  (db.raw.prepare("SELECT COUNT(*) AS c FROM signups WHERE first_name <> '' OR email <> '' OR dob <> '' OR child_json IS NOT NULL").get() as { c: number }).c;
++
++describe("backfillSignupPii", () => {
++  it("dry run by default: counts and round-trips, writes nothing, needs no bookmark", async () => {
++    const db = freshDb(); legacy(db); modern(db);
++    const r = await backfillSignupPii(db, KEY);
++    expect(r).toEqual({ dryRun: true, bookmark: null, plaintextBefore: 1, encrypted: 0, scrubbed: 0, skippedMismatch: 0, plaintextAfter: 1 });
++    expect(db.writes).toEqual([]);
++    expect(JSON.stringify(r)).not.toMatch(/Ada|Lovelace|1990|Main|5550100/);
++  });
++  it("apply: bookmark first, encrypt, verified decrypt, then scrub; row kept; plaintext count 0", async () => {
++    const db = freshDb(); legacy(db, "old-1", JSON.stringify({ firstName: "Kit", dob: "2015-01-01" })); modern(db);
++    const order: string[] = [];
++    const orig = db.prepare.bind(db);
++    db.prepare = (sql) => { if (/^UPDATE/.test(sql.trim())) order.push("write"); return orig(sql); };
++    const r = await backfillSignupPii(db, KEY, { dryRun: false, bookmark: async () => { order.push("bookmark"); return "bm-0001"; } });
++    expect(order[0]).toBe("bookmark");
++    expect(r).toMatchObject({ dryRun: false, bookmark: "bm-0001", plaintextBefore: 1, encrypted: 1, scrubbed: 1, skippedMismatch: 0, plaintextAfter: 0 });
++    expect(plaintextCount(db)).toBe(0);
++    const row = db.raw.prepare("SELECT * FROM signups WHERE id = 'old-1'").get() as Record<string, string>;
++    expect(row.state).toBe("TX");
++    const keys = await importPiiKeys(KEY);
++    expect(JSON.parse(await decryptField(keys.enc, row.pii_enc, "signups:old-1:pii"))).toEqual({
++      v: 1, firstName: "Ada", middleName: null, lastName: "Lovelace", dob: "1990-01-15", addressLine1: "1 Main St", addressLine2: null,
++      city: "Austin", zip: "78701", email: "Ada@Example.com", phone: "+15125550100", child: { firstName: "Kit", dob: "2015-01-01" },
++    });
++    expect(row.email_hmac).toBe(await emailIndex(keys, "ada@example.com"));
++    expect((db.raw.prepare("SELECT COUNT(*) AS c FROM signups").get() as { c: number }).c).toBe(2); // never deleted
++    expect((db.raw.prepare("SELECT pii_enc FROM signups WHERE id = 'new-1'").get() as { pii_enc: string }).pii_enc).toBe("v1.x.y"); // untouched
++  });
++  it("idempotent: a second apply is a no-op; a crash after encrypt is verified and scrubbed on re-run", async () => {
++    const db = freshDb(); legacy(db);
++    const bm = { bookmark: async () => "bm" , dryRun: false };
++    await backfillSignupPii(db, KEY, bm);
++    const snap = JSON.stringify(db.raw.prepare("SELECT * FROM signups").all());
++    expect(await backfillSignupPii(db, KEY, bm)).toMatchObject({ plaintextBefore: 0, encrypted: 0, scrubbed: 0, bookmark: null });
++    expect(JSON.stringify(db.raw.prepare("SELECT * FROM signups").all())).toBe(snap);
++    // crash simulation: pii_enc written, plaintext still there
++    const d2 = freshDb(); legacy(d2);
++    const orig = d2.prepare.bind(d2);
++    d2.prepare = (sql) => { if (sql.includes("child_json = NULL WHERE")) throw new Error("crash"); return orig(sql); };
++    await expect(backfillSignupPii(d2, KEY, bm)).rejects.toThrow("crash");
++    d2.prepare = orig;
++    const r = await backfillSignupPii(d2, KEY, bm);
++    expect(r).toMatchObject({ encrypted: 0, scrubbed: 1, plaintextAfter: 0 });
++  });
++  it("never scrubs when the stored ciphertext does not decrypt to the plaintext", async () => {
++    const db = freshDb(); legacy(db);
++    db.raw.prepare("UPDATE signups SET pii_enc = 'v1.AAAAAAAAAAAAAAAA.AAAA'").run();
++    await expect(backfillSignupPii(db, KEY, { dryRun: false, bookmark: async () => "bm" })).rejects.toThrow("plaintext_remaining");
++    expect(plaintextCount(db)).toBe(1);
++  });
++  it("apply refuses to run without a bookmark, and a missing/invalid key fails closed before any read", async () => {
++    const db = freshDb(); legacy(db);
++    await expect(backfillSignupPii(db, KEY, { dryRun: false })).rejects.toThrow("bookmark_required");
++    await expect(backfillSignupPii(db, KEY, { dryRun: false, bookmark: async () => "" })).rejects.toThrow("bookmark_required");
++    await expect(backfillSignupPii(db, undefined)).rejects.toThrow();
++    expect(db.writes).toEqual([]);
++    expect(plaintextCount(db)).toBe(1);
++  });
++  it("REST adapter sends parameterized {sql, params} and reads the bookmark", async () => {
++    const calls: { url: string; body?: string }[] = [];
++    const f = (async (url: string, init?: RequestInit) => {
++      calls.push({ url, body: init?.body as string });
++      if (url.endsWith("/time_travel/bookmark")) return new Response(JSON.stringify({ success: true, result: { bookmark: "00000001-abc" } }));
++      return new Response(JSON.stringify({ success: true, result: [{ results: [{ c: 0 }], meta: { changes: 0 } }] }));
++    }) as typeof fetch;
++    const db = restDb(f, "ACCOUNT_ID", "DATABASE_ID", "TOKEN_PLACEHOLDER");
++    expect((await db.prepare("SELECT ? AS c").bind(7).all()).results).toEqual([{ c: 0 }]);
++    expect(JSON.parse(calls[0].body!)).toEqual({ sql: "SELECT ? AS c", params: [7] });
++    expect(await bookmarkNow(f, "ACCOUNT_ID", "DATABASE_ID", "TOKEN_PLACEHOLDER")).toBe("00000001-abc");
++  });
++});
+diff --git a/worker/backfillSignupPii.ts b/worker/backfillSignupPii.ts
+new file mode 100644
+index 0000000..9e51b1a
+--- /dev/null
++++ b/worker/backfillSignupPii.ts
+@@ -0,0 +1,119 @@
++/**
++ * One-off backfill for signups rows written before 0004 (pii_enc IS NULL, PII in the legacy plaintext columns).
++ * For each such row, in order:
++ *   1. encrypt the same fields saveSignup() puts in pii_enc (v: 1 shape, AAD "signups:<id>:pii") plus email_hmac;
++ *   2. write pii_enc/email_hmac only (WHERE pii_enc IS NULL, so a re-run or a race never overwrites);
++ *   3. read the row back, decrypt pii_enc and compare it field-by-field with the plaintext columns;
++ *   4. only if that round-trip matches, replace the plaintext columns with '' (NOT NULL) or NULL.
++ * The row is never deleted. Idempotent: a row already encrypted but not yet scrubbed (crash between 2 and 4) is
++ * verified and scrubbed on the next run; a fully migrated row is skipped. Dry run (the default) writes nothing.
++ * Prepared statements only. Never logs field values: the report holds counts and row-count-free codes only.
++ */
++import { decryptField, emailIndex, encryptField, importPiiKeys } from "./piiCrypto";
++
++export interface BackfillDb {
++  prepare(query: string): {
++    bind(...values: unknown[]): {
++      all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
++      run(): Promise<{ success: boolean; meta?: { changes?: number } }>;
++    };
++  };
++}
++
++export interface BackfillReport {
++  dryRun: boolean;
++  bookmark: string | null;
++  plaintextBefore: number;
++  encrypted: number;
++  scrubbed: number;
++  skippedMismatch: number;
++  plaintextAfter: number;
++}
++
++// A row still holds plaintext if any legacy PII column is non-empty.
++export const PLAINTEXT_WHERE = `(first_name <> '' OR COALESCE(middle_name, '') <> '' OR last_name <> '' OR dob <> ''
++  OR address_line1 <> '' OR COALESCE(address_line2, '') <> '' OR city <> '' OR zip <> '' OR email <> ''
++  OR COALESCE(phone, '') <> '' OR child_json IS NOT NULL)`;
++
++const COUNT_PLAINTEXT = `SELECT COUNT(*) AS c FROM signups WHERE ${PLAINTEXT_WHERE}`;
++const SELECT_PLAINTEXT = `SELECT id, first_name, middle_name, last_name, dob, address_line1, address_line2, city, zip,
++  email, phone, child_json, pii_enc FROM signups WHERE ${PLAINTEXT_WHERE} ORDER BY id`;
++const SET_ENC = "UPDATE signups SET pii_enc = ?, email_hmac = ? WHERE id = ? AND pii_enc IS NULL";
++const READ_ENC = "SELECT pii_enc FROM signups WHERE id = ?";
++const SCRUB = `UPDATE signups SET first_name = '', middle_name = NULL, last_name = '', dob = '', address_line1 = '',
++  address_line2 = NULL, city = '', zip = '', email = '', phone = NULL, child_json = NULL WHERE id = ? AND pii_enc = ?`;
++
++type Row = {
++  id: string; first_name: string; middle_name: string | null; last_name: string; dob: string; address_line1: string;
++  address_line2: string | null; city: string; zip: string; email: string; phone: string | null; child_json: string | null;
++  pii_enc: string | null;
++};
++
++const nul = (v: string | null) => (v === null || v === "" ? null : v);
++
++/** Same shape as storage.ts sensitiveFields(). */
++export function payloadOf(r: Row) {
++  return {
++    v: 1,
++    firstName: r.first_name,
++    middleName: nul(r.middle_name),
++    lastName: r.last_name,
++    dob: r.dob,
++    addressLine1: r.address_line1,
++    addressLine2: nul(r.address_line2),
++    city: r.city,
++    zip: r.zip,
++    email: r.email,
++    phone: nul(r.phone),
++    child: r.child_json ? JSON.parse(r.child_json) : null,
++  };
++}
++
++const count = async (db: BackfillDb) =>
++  Number((await db.prepare(COUNT_PLAINTEXT).bind().all<{ c: number }>()).results[0]?.c ?? 0);
++
++export async function backfillSignupPii(
++  db: BackfillDb,
++  secret: string | undefined,
++  opts: { dryRun?: boolean; bookmark?: () => Promise<string> } = {},
++): Promise<BackfillReport> {
++  const dryRun = opts.dryRun !== false;
++  const keys = await importPiiKeys(secret); // fails closed before anything else
++  const plaintextBefore = await count(db);
++  const report: BackfillReport = {
++    dryRun, bookmark: null, plaintextBefore, encrypted: 0, scrubbed: 0, skippedMismatch: 0, plaintextAfter: plaintextBefore,
++  };
++  if (plaintextBefore === 0) return report;
++  if (!dryRun) {
++    if (!opts.bookmark) throw new Error("bookmark_required");
++    report.bookmark = await opts.bookmark(); // recorded before the first write
++    if (!report.bookmark) throw new Error("bookmark_required");
++  }
++  const rows = (await db.prepare(SELECT_PLAINTEXT).bind().all<Row>()).results;
++  for (const r of rows) {
++    const expected = JSON.stringify(payloadOf(r));
++    const aad = `signups:${r.id}:pii`;
++    if (dryRun) {
++      // Prove the round-trip works without writing.
++      const t = await encryptField(keys.enc, expected, aad);
++      if ((await decryptField(keys.enc, t, aad)) !== expected) report.skippedMismatch += 1;
++      continue;
++    }
++    if (r.pii_enc === null) {
++      const enc = await encryptField(keys.enc, expected, aad);
++      const res = await db.prepare(SET_ENC).bind(enc, await emailIndex(keys, r.email), r.id).run();
++      if (res.meta?.changes ?? 1) report.encrypted += 1;
++    }
++    const stored = (await db.prepare(READ_ENC).bind(r.id).all<{ pii_enc: string | null }>()).results[0]?.pii_enc ?? null;
++    let ok = false;
++    if (stored) {
++      try { ok = (await decryptField(keys.enc, stored, aad)) === expected; } catch { ok = false; }
++    }
++    if (!ok) { report.skippedMismatch += 1; continue; } // plaintext kept; investigate (no values reported)
++    await db.prepare(SCRUB).bind(r.id, stored).run();
++    report.scrubbed += 1;
++  }
++  report.plaintextAfter = await count(db);
++  if (!dryRun && report.plaintextAfter !== 0) throw Object.assign(new Error("plaintext_remaining"), { report });
++  return report;
++}

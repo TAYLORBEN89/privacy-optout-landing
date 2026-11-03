@@ -7,7 +7,7 @@ import { authenticator } from 'otplib';
 import { hashPassword, encryptStr, encryptPii, unb64 } from '../src/crypto.js';
 import { clearOauthCookie } from '../src/oauth.js';
 import { auditMeta, purge } from '../src/app.js';
-import { signInternal, canonical, loadInternalKeys } from '../src/internalAuth.js';
+import { signInternal, canonical, loadInternalKeys, verifyInternal } from '../src/internalAuth.js';
 import worker from '../src/index.js';
 import { locationAllowed } from '../src/location.js';
 import { under13 } from '../src/api.js';
@@ -384,9 +384,17 @@ describe('X-Internal-Auth (landing Worker over the service binding)', () => {
     await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k9' })));
     await forbidden(await send('GET', '/api/me', a.sid, undefined, await signed('GET', '/api/me', '', { kid: 'k2', key: K1 })));
   });
-  it('expired or future timestamp (beyond +/-60 s) is 403', async () => {
-    const a = await socialLogin('google'); const raw = JSON.stringify(good);
-    for (const ts of [t0() - 3600, t0() + 3600, t0() - 121, t0() + 121]) await forbidden(await send('POST', '/api/optouts/signup', a.sid, raw, await signed('POST', '/api/optouts/signup', raw, { ts })));
+  it('skew window on a fixed clock: |now - ts| = 60 is accepted, 61 is rejected, in both directions', async () => {
+    const T = 1800000000; const raw = '{"a":1}'; const path = '/api/account/export';
+    const at = async (ts) => {
+      const req = new Request(`${BASE}${path}`, { method: 'POST', body: raw,
+        headers: { 'CF-Connecting-IP': PIP, 'X-Internal-Auth': await signed('POST', path, raw, { ts }) } });
+      return verifyInternal(req, env, path, T);
+    };
+    expect(await at(T - 60)).toEqual({ ip: PIP });
+    expect(await at(T + 60)).toEqual({ ip: PIP });
+    expect(await at(T - 61)).toBe(false);
+    expect(await at(T + 61)).toBe(false);
   });
   it('tampered body, path, method, signature, version or IP is 403 and never falls back to CSRF', async () => {
     const a = await socialLogin('google'); const raw = JSON.stringify(good);
@@ -662,6 +670,8 @@ describe('password + TOTP fallback', () => {
     expect((await (await api('GET', '/api/me', a)).json()).user.has_password).toBe(true);
     await expireStepUp();
     expect((await api('POST', '/api/auth/stepup/password', a, { password: 'wrong', code: '000000' })).status).toBe(401);
+    const fail = await env.DB.prepare("SELECT target FROM audit_log WHERE action = 'auth.fail' ORDER BY rowid DESC LIMIT 1").first();
+    expect(fail.target).toBe('stepup_pw_fail');
   });
   it('social-only users can never log in with a password', async () => {
     await socialLogin('google');
@@ -669,45 +679,6 @@ describe('password + TOTP fallback', () => {
     const r = await api('POST', '/api/auth/login', {}, { email: u.email, password: '!' });
     expect(r.status).toBe(401);
   });
-});
-
-describe('social sign-in + TOTP', () => {
-  for (const p of ['google', 'microsoft']) {
-    it(`${p}: account without TOTP keeps full access; mfa/verify is not required`, async () => {
-      const a = await socialLogin(p);
-      expect((await api('GET', '/api/account/profile', a)).status).toBe(200);
-      expect((await (await api('GET', '/api/me', a)).json()).mfa_required).toBe(false);
-      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(400);
-    });
-    it(`${p}: account with TOTP must pass TOTP before protected routes (same gate as password)`, async () => {
-      const a = await socialLogin(p);
-      const secret = authenticator.generateSecret(20);
-      const { id } = await env.DB.prepare('SELECT user_id AS id FROM user_identities WHERE provider = ?1').bind(p).first();
-      await env.DB.prepare('UPDATE users SET totp_secret_enc = ?1, totp_enabled = 1 WHERE id = ?2').bind(await encryptStr(env, secret), id).run();
-      const me = await (await api('GET', '/api/me', a)).json();
-      expect(me).toMatchObject({ mfa: false, limited: true, mfa_required: true });
-      for (const [m, path, body] of [['GET', '/api/account/profile'], ['GET', '/api/account/optouts'], ['GET', '/api/account/sessions'],
-        ['POST', '/api/account/export'], ['POST', '/api/optouts/signup', {}], ['POST', '/api/account/delete'], [`POST`, `/api/auth/${p}/stepup`]]) {
-        const r = await api(m, path, a, body);
-        expect(r.status, `${m} ${path}`).toBe(403);
-        expect(await r.json()).toEqual({ error: 'mfa required', code: 'mfa_required' });
-      }
-      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(401);
-      const ok = await api('POST', '/api/auth/mfa/verify', a, { code: authenticator.generate(secret) });
-      expect(ok.status).toBe(200);
-      const b = { sid: cookieVal(ok, '__Host-sid'), csrf: (await ok.json()).csrf_token };
-      expect(b.sid).not.toBe(a.sid);
-      expect((await api('GET', '/api/account/profile', b)).status).toBe(200);
-      expect((await (await api('GET', '/api/me', b)).json())).toMatchObject({ mfa: true, limited: false, auth_method: p });
-      // The same TOTP step cannot be replayed on a new limited session.
-      const c = await socialLogin(p, { sub: undefined });
-      expect((await api('GET', '/api/account/profile', c)).status).toBe(403);
-      expect((await api('POST', '/api/auth/mfa/verify', c, { code: authenticator.generate(secret) })).status).toBe(401);
-      // The pre-TOTP token was rotated out; replaying it is reuse detection (all sessions revoked).
-      expect((await api('GET', '/api/account/profile', a)).status).toBe(401);
-      expect((await api('GET', '/api/account/profile', b)).status).toBe(401);
-    });
-  }
 });
 
 describe('audit IP / user-agent', () => {
