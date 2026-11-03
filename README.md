@@ -67,7 +67,7 @@ After deploy, both hostnames should resolve through Cloudflare to this Worker. T
 
 `VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session.
 
-`VITE_ACCOUNTS_LIVE` defaults to off in dev and tests. The production build sets it to `true`, so the live site shows Sign in, the account page, and the gate redirect to the accounts host. A direct request to `/signin` on the Worker redirects to that host.
+`VITE_ACCOUNTS_LIVE` comes from the environment. When it is unset, `/account` shows Coming soon. Set it once the backend and the API binding are live. A direct request to `/signin` on the Worker still redirects to the accounts host.
 
 Sign-in is hosted at `accounts.droptexas.com`, like a separate accounts site. `ACCOUNTS_ORIGIN` defaults to `https://accounts.droptexas.com` and can be overridden with `VITE_ACCOUNTS_ORIGIN`. The header Sign in link, the sign-in gate, and any other sign-in control leave this site with a full page load to `${ACCOUNTS_ORIGIN}/signin?return_to=/start` or `return_to=/account`. `return_to` must be a same-site path that starts with `/` and not `//`. A local visit to `/signin` redirects there and keeps a valid `return_to`.
 
