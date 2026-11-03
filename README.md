@@ -27,7 +27,29 @@ npm run build
 npx wrangler dev
 ```
 
-`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. This repo has no secrets to configure.
+`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. It needs one Worker secret. See **Signup PII encryption** below.
+
+## Signup PII encryption
+
+Signup PII is encrypted in the Worker with AES-256-GCM before it is written to D1. That covers name, date of birth, street address, city, ZIP, email, phone and child details. An HMAC-SHA-256 blind index of the lowercased email (`email_hmac`) allows equality lookups, such as deletion requests, without storing the email. Both keys are derived with HKDF-SHA-256 from one secret. `state`, `jurisdiction` and the flags stay in plaintext.
+
+- **Secret name:** `SIGNUP_PII_KEY`. Never commit it, put it in `wrangler.jsonc`, or log it.
+- **Format:** exactly 32 random bytes, encoded as standard base64 (RFC 4648 `+ /` alphabet, with `=` padding). That's 44 characters ending in one `=`. Surrounding whitespace and a trailing newline are ignored. Hex, base64url and unpadded base64 are rejected.
+- **Generate:** `openssl rand -base64 32` produces exactly this format and works as-is.
+- **Production:** `npx wrangler secret put SIGNUP_PII_KEY`. Wrangler prompts for the value. Don't pass it on the command line.
+- **Local dev:** put `SIGNUP_PII_KEY=<base64>` in `.dev.vars`, which is gitignored. Use a different key from production.
+- **Wrong or missing key:** `/api/signup` fails closed. It stores nothing, returns a generic 500, and logs the error code `signup_key_missing` or `signup_key_invalid` (never the value).
+- **Losing the key** makes stored PII unreadable, so keep a copy in the password manager. Rotating it needs a re-encryption job, which is not built yet.
+
+### Before deploy (needs Ben's approval)
+
+1. Set `SIGNUP_PII_KEY` as described above.
+2. Apply migration `0004_encrypt_sensitive_signup_fields.sql`, which adds `pii_enc`, `email_hmac` and an index. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`.
+3. Rows written before 0004 still hold plaintext. Check with `SELECT COUNT(*) FROM signups WHERE pii_enc IS NULL;`. Then do one of these:
+   - **Purge:** delete those rows and their `optout_requests` if they are test data. This is the preferred option before launch.
+   - **Backfill:** run a one-off script that writes `pii_enc` and `email_hmac` with the same key, then blanks the plaintext columns.
+4. Confirm the count above returns 0 before going live.
+5. A later migration can drop the legacy plaintext columns.
 
 ## Deploy
 

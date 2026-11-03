@@ -35,7 +35,7 @@ export default {
         },
         {
           fetchAsset: () => env.ASSETS.fetch(request),
-          forwardApi: api ? () => api.fetch(request) : undefined,
+          forwardApi: api ? (upstream) => api.fetch(upstream) : undefined,
           callApi: api,
           signupLimiter: new D1SignupLimiter(env.DB),
           signupStore: new D1SignupStore(env.DB, (env as Env & { SIGNUP_PII_KEY?: string }).SIGNUP_PII_KEY),

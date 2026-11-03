@@ -435,8 +435,8 @@ describe("POST /api/signup", () => {
     let forwarded: Request | null = null;
     const response = await handleRequest(original, {
       ...assets(),
-      forwardApi: () => {
-        forwarded = original;
+      forwardApi: (upstream) => {
+        forwarded = upstream;
         return Promise.resolve(
           new Response(JSON.stringify({ user: { email: "ada@example.com" }, csrf: "tok" }), {
             status: 200,
@@ -445,8 +445,8 @@ describe("POST /api/signup", () => {
         );
       },
     });
-    expect(forwarded).toBe(original);
-    expect(original.headers.get("cookie")).toBe("sid=1");
+    expect(forwarded).not.toBeNull();
+    expect(forwarded!.headers.get("cookie")).toBeNull();
     expect(response.headers.get("set-cookie")).toBe("session=abc; HttpOnly");
     expect(response.status).toBe(200);
   });
@@ -479,12 +479,12 @@ describe("POST /api/signup", () => {
       "/api/account/export",
       "/api/account/identities/google/link",
       "/api/auth/microsoft/stepup",
-      "/api/optouts/signup",
     ];
     for (const path of paths) {
       let usedAsset = false;
       let forwarded = false;
-      const response = await handleRequest(new Request(`https://droptexas.com${path}`), {
+      const method = path.includes("/link") ? "POST" : "GET";
+      const response = await handleRequest(new Request(`https://droptexas.com${path}`, { method }), {
         fetchAsset: async () => {
           usedAsset = true;
           return new Response("<!doctype html>", { headers: { "content-type": "text/html" } });
