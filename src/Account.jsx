@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import * as api from './authApi.js';
 import AccountArea from './AccountArea.jsx';
+import { resolveMe, canVerify } from './meFlow.js';
 
 const errText = (e) => (e?.status === 429 ? 'Too many attempts. Wait 15 minutes and try again.'
   : e?.status === 401 ? 'Invalid credentials.' : e?.message || 'Something went wrong.');
@@ -60,10 +61,24 @@ export default function Account() {
   const [codes, setCodes] = useState([]);
   const [user, setUser] = useState(null);
   const [err, setErr] = useState('');
+  const [mfaAsk, setMfaAsk] = useState(null); // { message, resolve } while a TOTP upgrade prompt is open
+  const [mfaCode, setMfaCode] = useState('');
+
+  // 403 mfa_required -> prompt for a TOTP or backup code; authApi verifies it and retries the request. The prompt is
+  // registered only while the session can actually verify (can_mfa_verify); limited password sessions never see it.
+  const askMfa = (message) => new Promise((resolve) => { setMfaCode(''); setMfaAsk({ message, resolve }); });
+  useEffect(() => () => api.setMfaPrompt(null), []);
+  const answerMfa = (value) => { const a = mfaAsk; setMfaAsk(null); setMfaCode(''); a?.resolve(value); };
 
   const refreshMe = async () => {
-    try { const u = await api.me(); setUser(u); setStage(u.limited ? 'enroll' : 'signed-in'); }
-    catch { setStage('password'); }
+    try {
+      const r = await resolveMe({
+        me: async () => { const u = await api.me(); api.setMfaPrompt(canVerify(u) ? askMfa : null); return u; },
+        probe: () => api.sessions(),
+      });
+      api.setMfaPrompt(null);
+      setUser(r.user); setStage(r.stage);
+    } catch { api.setMfaPrompt(null); setStage('password'); }
   };
   useEffect(() => { refreshMe(); }, []);
 
@@ -94,7 +109,17 @@ export default function Account() {
         <div><h1>DROP Texas</h1><p className="sub">DROP Texas · Free privacy opt-out for Texans</p></div>
         {import.meta.env.VITE_API_URL && <div className="header-actions"><a className="link-btn" href="#/">Legacy dashboard (access key)</a></div>}
       </header>
-      {stage === 'loading' && <p>Loading…</p>}
+      {mfaAsk && (
+        <form className="key-prompt" onSubmit={(e) => { e.preventDefault(); answerMfa(mfaCode); }}>
+          <h2>Two-factor code</h2>
+          <p className="sub">Your account uses two-step verification. Enter the 6-digit code from your authenticator app, or one of your backup codes.</p>
+          {mfaAsk.message && <div className="badge-red">{mfaAsk.message}</div>}
+          <input autoComplete="one-time-code" placeholder="123456 or xxxx-xxxx-xxxx-xxxx" value={mfaCode} onChange={(e) => setMfaCode(e.target.value)} autoFocus />
+          <button className="toggle" type="submit">Verify</button>
+          <button className="link-btn" type="button" onClick={() => answerMfa(null)}>Cancel</button>
+        </form>
+      )}
+      {stage === 'loading' && !mfaAsk && <p>Loading…</p>}
       {stage === 'password' && (
         <form className="key-prompt" onSubmit={doLogin}>
           <h2>Sign in</h2>

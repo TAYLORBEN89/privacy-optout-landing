@@ -4,7 +4,7 @@ import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { authenticator } from 'otplib';
-import { hashPassword, encryptStr, encryptPii, unb64 } from '../src/crypto.js';
+import { hashPassword, encryptStr, sha256Hex, encryptPii, unb64 } from '../src/crypto.js';
 import { clearOauthCookie } from '../src/oauth.js';
 import { auditMeta, purge } from '../src/app.js';
 import { signInternal, canonical, loadInternalKeys, verifyInternal } from '../src/internalAuth.js';
@@ -649,6 +649,97 @@ describe('account API + step-up', () => {
 
   it('/api/me is 401 without a session', async () => {
     expect((await api('GET', '/api/me')).status).toBe(401);
+  });
+});
+
+describe('social sign-in + TOTP (same gate as password)', () => {
+  const legacyGet = (path, { sid }) => SELF.fetch(BASE + path, { headers: H({ Cookie: sid }) });
+  for (const p of ['google', 'microsoft']) {
+    it(`${p}: account without TOTP passes on /api and the older routes; mfa/verify is not required`, async () => {
+      const a = await socialLogin(p);
+      expect((await api('GET', '/api/account/profile', a)).status).toBe(200);
+      expect((await legacyGet('/optouts', a)).status).toBe(200);
+      expect((await legacyGet('/tx-requests', a)).status).toBe(200);
+      expect((await (await api('GET', '/api/me', a)).json()).mfa_required).toBe(false);
+      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(400);
+    });
+    it(`${p}: account with TOTP enrolled is blocked until TOTP is verified`, async () => {
+      const a = await socialLogin(p);
+      const secret = authenticator.generateSecret(20);
+      const { id } = await env.DB.prepare('SELECT user_id AS id FROM user_identities WHERE provider = ?1').bind(p).first();
+      await env.DB.prepare('UPDATE users SET totp_secret_enc = ?1, totp_enabled = 1 WHERE id = ?2').bind(await encryptStr(env, secret), id).run();
+      expect(await (await api('GET', '/api/me', a)).json()).toMatchObject({ mfa: false, limited: true, mfa_required: true, can_mfa_verify: true });
+      for (const [m, path, body] of [['GET', '/api/account/profile'], ['GET', '/api/account/optouts'], ['GET', '/api/account/sessions'],
+        ['POST', '/api/account/export'], ['POST', '/api/optouts/signup', {}], ['POST', '/api/account/delete'], ['POST', `/api/auth/${p}/stepup`]]) {
+        const r = await api(m, path, a, body);
+        expect(r.status, `${m} ${path}`).toBe(403);
+        expect(await r.json()).toEqual({ error: 'mfa required', code: 'mfa_required' });
+      }
+      for (const path of ['/optouts', '/tx-requests', '/brokers']) {
+        const r = await legacyGet(path, a);
+        expect(r.status, path).toBe(403);
+        expect((await r.json()).code).toBe('mfa_required');
+      }
+      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(401);
+      const totp = authenticator.generate(secret); // one code reused below, so the replay check is not a 30 s step race
+      const ok = await api('POST', '/api/auth/mfa/verify', a, { code: totp });
+      expect(ok.status).toBe(200);
+      const b = { sid: cookieVal(ok, '__Host-sid'), csrf: (await ok.json()).csrf_token };
+      expect(b.sid).not.toBe(a.sid);
+      expect((await api('GET', '/api/account/profile', b)).status).toBe(200);
+      expect((await legacyGet('/optouts', b)).status).toBe(200);
+      expect(await (await api('GET', '/api/me', b)).json()).toMatchObject({ mfa: true, limited: false, auth_method: p });
+      // Replaying the same TOTP step on a new limited session fails.
+      const c = await socialLogin(p);
+      expect((await api('POST', '/api/auth/mfa/verify', c, { code: totp })).status).toBe(401);
+    });
+  }
+  describe('social session upgrade via POST /api/auth/mfa/verify', () => {
+    const enrollTotp = async () => {
+      const secret = authenticator.generateSecret(20);
+      const { id } = await env.DB.prepare('SELECT user_id AS id FROM user_identities WHERE provider = ?1').bind('google').first();
+      await env.DB.prepare('UPDATE users SET totp_secret_enc = ?1, totp_enabled = 1 WHERE id = ?2').bind(await encryptStr(env, secret), id).run();
+      return { id, secret };
+    };
+    it('a backup code upgrades the session once; the same code is refused afterwards', async () => {
+      const a = await socialLogin('google');
+      const { id } = await enrollTotp();
+      const code = 'abcd-efgh-ijkm-npqr'; // placeholder
+      await env.DB.prepare('INSERT INTO backup_codes (user_id, code_hash, created_at) VALUES (?1, ?2, ?3)')
+        .bind(id, await sha256Hex(code.replace(/-/g, '')), Math.floor(Date.now() / 1000)).run();
+      const ok = await api('POST', '/api/auth/mfa/verify', a, { code: code.toUpperCase() });
+      expect(ok.status).toBe(200);
+      const b = { sid: cookieVal(ok, '__Host-sid'), csrf: (await ok.json()).csrf_token };
+      expect(await (await api('GET', '/api/me', b)).json()).toMatchObject({ mfa: true, limited: false });
+      expect((await api('GET', '/api/account/sessions', b)).status).toBe(200);
+      const used = await env.DB.prepare('SELECT used_at FROM backup_codes WHERE user_id = ?1').bind(id).first();
+      expect(used.used_at).not.toBeNull();
+      const c = await socialLogin('google');
+      expect((await api('POST', '/api/auth/mfa/verify', c, { code })).status).toBe(401);
+      expect((await api('GET', '/api/account/sessions', c)).status).toBe(403);
+    });
+    it('repeated bad codes hit 429 (with Retry-After), and then even a valid code is refused', async () => {
+      const a = await socialLogin('google');
+      const { secret } = await enrollTotp();
+      const statuses = [];
+      for (let i = 0; i < 6; i++) statuses.push((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status);
+      expect(statuses.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
+      expect(statuses[5]).toBe(429);
+      const r = await api('POST', '/api/auth/mfa/verify', a, { code: authenticator.generate(secret) });
+      expect(r.status).toBe(429);
+      expect(Number(r.headers.get('Retry-After'))).toBeGreaterThan(0);
+      expect((await api('GET', '/api/account/sessions', a)).status).toBe(403);
+    });
+  });
+  it('password session is unchanged: limited until TOTP on /api and the older routes; mfa/verify does not apply', async () => {
+    const a = await socialLogin('google');
+    await env.DB.prepare("UPDATE sessions SET mfa = 0, auth_method = 'password'").run();
+    expect((await api('GET', '/api/account/profile', a)).status).toBe(403);
+    expect((await legacyGet('/optouts', a)).status).toBe(403);
+    expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(400);
+    expect(await (await api('GET', '/api/me', a)).json()).toMatchObject({ limited: true, can_mfa_verify: false });
+    await env.DB.prepare("UPDATE sessions SET mfa = 1 WHERE auth_method = 'password'").run();
+    expect((await api('GET', '/api/account/profile', a)).status).toBe(200);
   });
 });
 

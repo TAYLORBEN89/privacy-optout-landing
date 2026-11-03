@@ -7,6 +7,11 @@ import { sha256Hex } from './crypto.js';
 export const LIMITS = {
   login: { max: 5, windowSec: 900 },    // 5 failures / 15 min per IP+account (password, TOTP/backup code, step-up, bootstrap); backup-code regen counts every call
   optout: { max: 30, windowSec: 3600 }, // 30 writes / hour per user
+  // Texas broker request edits (PUT /tx-requests/:id) have their own bucket: a full pass over the 445-broker registry
+  // is ~445 status changes plus some notes. Owner decision 2026-11-02: 60/hour per account (was 1000). Each broker's
+  // edits are debounced (800 ms) into one PUT, so a full 445-broker pass is >= 445 PUTs: ~7.4 hours at 60/hour.
+  // Nothing is lost on 429: the client keeps edits pending and retries after Retry-After (src/txSaver.js).
+  tx: { max: 60, windowSec: 3600 },
   oauth_start: { max: 30, windowSec: 600 }, // OAuth flow starts / 10 min per IP
   oauth_cb: { max: 30, windowSec: 600 },    // OAuth callbacks / 10 min per IP
   handoff: { max: 30, windowSec: 600 },     // handoff code redemptions / 10 min per IP

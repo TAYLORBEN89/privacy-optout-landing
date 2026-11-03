@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "npm run -s test:labels && npm run -s test:storage && npm run -s test:tx && npm run -s test:mfa && npm --prefix worker test",
     "test:labels": "node --test scripts/status-labels.test.mjs",
     "test:storage": "node --test scripts/legacy-storage.test.mjs scripts/profile-storage.test.mjs",
     "preview": "vite preview",
-    "check:no-legacy": "bash scripts/check-no-legacy.sh"
+    "check:no-legacy": "bash scripts/check-no-legacy.sh",
+    "test:tx": "node --test scripts/tx-storage.test.mjs",
+    "test:mfa": "node --test scripts/mfa-upgrade.test.mjs"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
