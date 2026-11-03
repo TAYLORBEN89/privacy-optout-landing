@@ -1,3 +1,5 @@
+import { signedUpstream } from "./apiProxy";
+import type { ProxySigner } from "./internalAuth";
 import type { SignupInput } from "../shared/signup";
 
 /**
@@ -23,49 +25,80 @@ export function accountSignupBody(input: SignupInput): {
   };
 }
 
+/**
+ * Keeps only the session cookie. Other cookies (analytics, preferences) are
+ * never forwarded upstream. Returns "" when there is no valid session cookie.
+ */
+export function sessionCookieOnly(cookieHeader: string): string {
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("__Host-sid=")) {
+      const value = trimmed.slice("__Host-sid=".length);
+      if (/^[A-Za-z0-9._~+/=-]{1,512}$/.test(value)) return `__Host-sid=${value}`;
+      return "";
+    }
+  }
+  return "";
+}
+
 export interface AccountApi {
   fetch(request: Request): Promise<Response>;
 }
 
 /**
  * Asks the accounts API to store this signup on the signed-in person.
+ * Signed with X-Internal-Auth; the client's CSRF token is never forwarded.
  * No session, or a refusal, leaves the local row in place. Never logs field values.
  */
 export async function linkSignupToAccount(
   requestUrl: string,
   cookie: string,
-  csrf: string,
-  origin: string,
+  ip: string,
   input: SignupInput,
   api: AccountApi,
+  signer: ProxySigner,
 ): Promise<"linked" | "skipped" | "refused"> {
-  if (cookie.length === 0 || csrf.length === 0) return "skipped";
-  const url = new URL("/api/optouts/signup", requestUrl);
-  const response = await api.fetch(
-    new Request(url, {
+  if (sessionCookieOnly(cookie).length === 0) return "skipped";
+  const body = new TextEncoder().encode(JSON.stringify(accountSignupBody(input)));
+  const upstream = await signedUpstream(
+    {
+      url: new URL("/api/optouts/signup", requestUrl).href,
       method: "POST",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        cookie,
-        origin,
-        "x-csrf-token": csrf,
-      },
-      body: JSON.stringify(accountSignupBody(input)),
-    }),
+      body,
+      contentType: "application/json",
+      accept: "application/json",
+      cookieHeader: cookie,
+      ip,
+    },
+    signer,
   );
+  const response = await api.fetch(upstream);
   if (response.status === 200 || response.status === 201) return "linked";
   return "refused";
 }
 
 /** Reads only the user id from GET /api/me. Discards the rest of the body. */
-export async function sessionUserId(requestUrl: string, cookie: string, api: AccountApi): Promise<string | null> {
-  if (!cookie.includes("__Host-sid=")) return null;
+export async function sessionUserId(
+  requestUrl: string,
+  cookie: string,
+  ip: string,
+  api: AccountApi,
+  signer: ProxySigner,
+): Promise<string | null> {
+  if (sessionCookieOnly(cookie).length === 0) return null;
   const response = await api.fetch(
-    new Request(new URL("/api/me", requestUrl), {
-      method: "GET",
-      headers: { accept: "application/json", cookie },
-    }),
+    await signedUpstream(
+      {
+        url: new URL("/api/me", requestUrl).href,
+        method: "GET",
+        body: new Uint8Array(0),
+        contentType: null,
+        accept: "application/json",
+        cookieHeader: cookie,
+        ip,
+      },
+      signer,
+    ),
   );
   if (response.status !== 200) return null;
   let body: unknown;

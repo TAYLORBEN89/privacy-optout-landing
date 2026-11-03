@@ -27,7 +27,101 @@ npm run build
 npx wrangler dev
 ```
 
-`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. This repo has no secrets to configure.
+`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. It needs one Worker secret (see **Signup PII encryption**) and two migrations, 0004 and 0005 (see **Before deploy**).
+
+## Signup PII encryption
+
+Signup PII is encrypted in the Worker with AES-256-GCM before it is written to D1. That covers name, date of birth, street address, city, ZIP, email, phone and child details. An HMAC-SHA-256 blind index of the lowercased email (`email_hmac`) allows equality lookups, such as deletion requests, without storing the email. Both keys are derived with HKDF-SHA-256 from one secret. `state`, `jurisdiction` and the flags stay in plaintext.
+
+- **Secret name:** `SIGNUP_PII_KEY`. Never commit it, put it in `wrangler.jsonc`, or log it.
+- **Format:** exactly 32 random bytes, encoded as standard base64 (RFC 4648 `+ /` alphabet, with `=` padding). That's 44 characters ending in one `=`. Surrounding whitespace and a trailing newline are ignored. Hex, base64url and unpadded base64 are rejected.
+- **Generate:** `openssl rand -base64 32` produces exactly this format and works as-is.
+- **Production:** `npx wrangler secret put SIGNUP_PII_KEY`. Wrangler prompts for the value. Don't pass it on the command line.
+- **Local dev:** put `SIGNUP_PII_KEY=<base64>` in `.dev.vars`, which is gitignored. Use a different key from production.
+- **Wrong or missing key:** `/api/signup` fails closed. It stores nothing, returns a generic 500, and logs the error code `signup_key_missing` or `signup_key_invalid` (never the value).
+- **Losing the key** makes stored PII unreadable, so keep a copy in the password manager. Rotating it needs a re-encryption job, which is not built yet.
+
+## Signup rate limit
+
+`POST /api/signup` is rate limited in D1, in the `rate_limits` table from migration 0005. No new binding is used.
+
+- **Limits:** 5 per 10 minutes and 20 per day, per hashed client IP. The key is sha256 of the scope and `CF-Connecting-IP`; raw IPs are never stored.
+- **What counts:** only submissions that pass validation. A request that's already over the limit doesn't increment either counter, because the UPSERT is conditional and earlier slots are refunded. Retrying doesn't use up the daily cap.
+- **Over the limit:** a uniform `429` with `{"form":{"code":"rate_limited","message":"Too many requests. Try again later."}}`, a `Retry-After` header (seconds until the window resets) and `cache-control: no-store`. No counts, scopes or IPs are returned.
+- **Limiter unavailable:** if the D1 write fails, it fails closed with a generic `503`. The signup would need the same database anyway.
+- **Missing `CF-Connecting-IP`:** Cloudflare always sets it in production, so a request without it gets a generic `400` rather than sharing one bucket. On `localhost` and `127.0.0.1`, a dev-only key is used instead.
+- **Cleanup:** expired rows are deleted on about 2% of allowed requests. It's best-effort: a failure is logged as `rate_limit_cleanup_failed`, with no PII, and the signup continues.
+
+### Before deploy (needs the operator's approval)
+
+1. Set `SIGNUP_PII_KEY` as described above.
+2. Apply migration `0004_encrypt_sensitive_signup_fields.sql`, which adds `pii_enc`, `email_hmac` and an index. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`.
+3. Rows written before 0004 still hold plaintext. Check with `SELECT COUNT(*) FROM signups WHERE pii_enc IS NULL;`. Then do one of these:
+   - **Purge:** delete those rows and their `optout_requests` if they are test data. This is the preferred option before launch.
+   - **Backfill:** run a one-off script that writes `pii_enc` and `email_hmac` with the same key, then blanks the plaintext columns.
+4. Confirm the count above returns 0 before going live.
+5. A later migration can drop the legacy plaintext columns.
+6. **Required:** apply migration `0005_rate_limits.sql`, which creates `rate_limits`. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`. Without it, every signup returns 503.
+
+## Landing /api proxy contract
+
+The Worker forwards only allowlisted `/api` routes to the API Worker (`env.API` service binding). **The binding stays off in `wrangler.jsonc`** until the API Worker ships with the same contract; with it off every proxied route returns 404.
+
+**Allowlist** (anything else is 404, never forwarded):
+
+| Method | Path |
+| --- | --- |
+| GET | `/api/me` |
+| GET | `/api/auth/{google\|microsoft}/start` |
+| GET | `/api/auth/complete` |
+| POST | `/api/auth/logout` |
+| POST | `/api/auth/stepup/password` |
+| POST | `/api/auth/{google\|microsoft}/stepup` |
+| GET, PATCH | `/api/account/profile` |
+| GET | `/api/account/optouts` |
+| GET | `/api/account/sessions` |
+| POST | `/api/account/sessions/{16 lowercase hex}/revoke` |
+| POST | `/api/account/export` |
+| POST | `/api/account/delete` |
+| POST | `/api/account/identities/{google\|microsoft}/link` |
+| DELETE | `/api/account/identities/{google\|microsoft}` |
+| POST | `/api/optouts/signup` |
+
+**Landing CSRF (unsafe methods):** `Origin` must exactly equal the Worker's own origin; if `Origin` is absent, `Sec-Fetch-Site: same-origin` is required. Otherwise a uniform 403. Request bodies are capped at 64 KB (413).
+
+**Upstream request headers are built fresh:** `Content-Type` and `Accept` (max 256 chars each, else 400), `Cookie` containing only a validated `__Host-sid`, `Origin: https://droptexas.com`, `CF-Connecting-IP` copied from the incoming request, and `X-Internal-Auth`. The client's `X-CSRF-Token`, `X-Internal-Auth`, `Authorization`, `Cookie` and `Origin` are never forwarded.
+
+**X-Internal-Auth** (every proxied request, GETs included):
+
+```
+X-Internal-Auth: v1.<kid>.<ts>.<sig>
+kid = [a-z0-9]{1,16}; ts = unix seconds
+canonical = "v1\n" + kid + "\n" + METHOD + "\n" + pathname+search + "\n" + ts + "\n" + ip + "\n" + hex(sha256(body))
+ip  = exact CF-Connecting-IP forwarded, or "" if absent
+sig = base64url (no padding) of HMAC-SHA256(key[kid], canonical)
+```
+
+Test vector (in `tests/apiProxy.test.ts`; the key is a test-only constant, bytes 0x00..0x1f): kid `k1`, ts `1800000000`, ip `203.0.113.9`, `POST /api/account/export?x=1`, body `{"a":1}` → `v1.k1.1800000000.-uCux05nB_YSHLfLwqUuzii9ePuZ2QyIxdgq1kQRCZQ`.
+
+**Responses:** fetched with `redirect: 'manual'`; only status, body, `Content-Type`, `Set-Cookie`, `Location`, `Retry-After` and `Content-Disposition` pass through, and every proxied response gets `Cache-Control: no-store`. `Set-Cookie` is limited to the names in `ALLOWED_RESPONSE_COOKIES` (`__Host-sid`, `__Host-login`), and any such cookie without `Path=/`, `Secure` and `HttpOnly`, or with a `Domain`, is dropped. `Location` is kept only for a same-origin path or an absolute URL whose origin+pathname is exactly `https://accounts.droptexas.com/oauth/google/start` or `https://accounts.droptexas.com/oauth/microsoft/start` (query allowed); anything else is dropped.
+
+**Upstream request:** always a freshly built `new Request(url, { method, headers, body, redirect: "manual" })`, never derived from the incoming `Request`, so it carries no `cf` (the API treats `request.cf` as edge traffic).
+
+### INTERNAL_PROXY_KEYS
+
+- **Secret** `INTERNAL_PROXY_KEYS`: JSON object `{"<kid>": "<standard base64 key>"}`; kid matches `[a-z0-9]{1,16}`, each key decodes to at least 32 bytes.
+- **Plain var** `INTERNAL_PROXY_ACTIVE_KID`: the kid used to sign.
+- Bad JSON, a missing active kid, a bad kid, a short key, or a key equal to `SIGNUP_PII_KEY` fails closed: proxied routes return a generic 503 and only the error code is logged (never key material).
+- The API Worker must hold the **same** map. The key must differ from `SIGNUP_PII_KEY`.
+
+Generate and store (never commit or paste a value):
+
+```sh
+openssl rand -base64 32        # one key; put it in the JSON under a new kid
+npx wrangler secret put INTERNAL_PROXY_KEYS   # paste {"<kid>":"<key>"} at the prompt
+```
+
+Rotation: (1) add the new kid to the map in both Workers, (2) switch `INTERNAL_PROXY_ACTIVE_KID` to the new kid, (3) once traffic is on it, remove the old kid from both maps.
 
 ## Deploy
 
@@ -73,7 +167,7 @@ Sign-in is hosted at `accounts.droptexas.com`, like a separate accounts site. `A
 
 After sign-in, the browser returns to `https://droptexas.com/api/auth/complete?code=...`. That request is under `/api/*` (`run_worker_first`), so the Worker forwards it through the API binding and does not serve the SPA shell.
 
-`/api/me`, `/api/account/*`, and `/api/optouts/signup` stay on this origin. `POST /api/signup` is still handled in this Worker. Other `/api` paths forward to the `API` service binding when it is uncommented in `wrangler.jsonc`. Until then they return JSON 404. Logout stays `POST /api/auth/logout` on this origin.
+`/api/me`, `/api/account/*`, and `/api/optouts/signup` stay on this origin. `POST /api/signup` is still handled in this Worker. Only the routes in the proxy allowlist (see "Landing /api proxy contract") are forwarded to the `API` service binding, and only when it is uncommented in `wrangler.jsonc`; until then they return JSON 404. Every other `/api` path returns 404 and is never forwarded. Logout stays `POST /api/auth/logout` on this origin.
 
 ## Tests
 
@@ -85,7 +179,7 @@ npm test
 
 ## What the form does
 
-The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Accepted submissions are written to D1, then one pending broker row is recorded for each name in the broker list. When the request has a session cookie and `X-CSRF-Token`, the Worker also posts the signup to `POST /api/optouts/signup` so it belongs to that account, and stores the user id on the signup row. A failure of that account post does not undo the saved signup, and the form still returns success. The Worker does not log field values.
+The form collects your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. A checked box and an unchecked box both use jurisdiction `TDPSA`. An unchecked box also sets `nonTexasFlag` to true. Accepted submissions are written to D1, then one pending broker row is recorded for each name in the broker list. When the `API` binding is on, the request passes the landing Worker's own CSRF check (`Origin` equal to this origin, or no `Origin` and `Sec-Fetch-Site: same-origin`), and `INTERNAL_PROXY_KEYS` / `INTERNAL_PROXY_ACTIVE_KID` load, the Worker also posts the signup to `POST /api/optouts/signup` so it belongs to the signed-in account, and stores the user id from `GET /api/me` on the signup row. Those calls forward only a validated `__Host-sid` cookie and carry the `X-Internal-Auth` v1 signature; the client's `X-CSRF-Token` (and any other cookie, `Authorization` or `Origin`) is dropped. If the CSRF check fails, there is no session, or the key config is missing or invalid, account linking is skipped silently: nothing is logged and the signup is still saved and returns success. A failure of that account post does not undo the saved signup, and the form still returns success. The Worker does not log field values.
 
 `STORAGE_LIVE` in `worker/storage.ts` is true while `saveSignup()` writes those rows. The page then uses `STORAGE_LIVE_NOTE`. Set the constant to false only if writes are turned off.
 

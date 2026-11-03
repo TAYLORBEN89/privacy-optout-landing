@@ -1,4 +1,6 @@
 import { handleRequest } from "./handle";
+import { loadProxySigner } from "./internalAuth";
+import { D1SignupLimiter } from "./rateLimit";
 import { D1SignupStore } from "./storage";
 
 /**
@@ -34,9 +36,14 @@ export default {
         },
         {
           fetchAsset: () => env.ASSETS.fetch(request),
-          forwardApi: api ? () => api.fetch(request) : undefined,
+          forwardApi: api ? (upstream) => api.fetch(upstream) : undefined,
           callApi: api,
-          signupStore: new D1SignupStore(env.DB),
+          signupLimiter: new D1SignupLimiter(env.DB),
+          proxySigner: () => {
+            const e = env as Env & { INTERNAL_PROXY_KEYS?: string; INTERNAL_PROXY_ACTIVE_KID?: string; SIGNUP_PII_KEY?: string };
+            return loadProxySigner(e.INTERNAL_PROXY_KEYS, e.INTERNAL_PROXY_ACTIVE_KID, e.SIGNUP_PII_KEY);
+          },
+          signupStore: new D1SignupStore(env.DB, (env as Env & { SIGNUP_PII_KEY?: string }).SIGNUP_PII_KEY),
         },
       );
     } catch (error) {

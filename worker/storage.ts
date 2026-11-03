@@ -1,4 +1,5 @@
 import type { SignupInput } from "../shared/signup";
+import { emailIndex, encryptField, importPiiKeys } from "./piiCrypto";
 import { BROKER_SENDS, brokerSendById, type OptOutBlockCode } from "./brokerSends";
 
 /**
@@ -118,38 +119,66 @@ const INSERT_SIGNUP = `INSERT INTO signups (
   id, received_at, first_name, middle_name, last_name, dob,
   address_line1, address_line2, city, state, zip, email, phone,
   texas_resident, jurisdiction, non_texas_flag, submitter,
-  guardian_attestation, child_json, user_id
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  guardian_attestation, child_json, user_id, pii_enc, email_hmac
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+/** Fields that only ever reach D1 inside pii_enc. */
+function sensitiveFields(record: SignupRecord) {
+  return {
+    v: 1,
+    firstName: record.firstName,
+    middleName: record.middleName,
+    lastName: record.lastName,
+    dob: record.dob,
+    addressLine1: record.addressLine1,
+    addressLine2: record.addressLine2,
+    city: record.city,
+    zip: record.zip,
+    email: record.email,
+    phone: record.phone,
+    child: record.child ?? null,
+  };
+}
 
 /** D1 store. Never log `record` or any of its fields. */
 export class D1SignupStore implements SignupStore {
-  constructor(private readonly db: SignupDatabase) {}
+  /** piiKey is the SIGNUP_PII_KEY secret. Saving fails closed without it. */
+  constructor(
+    private readonly db: SignupDatabase,
+    private readonly piiKey?: string,
+  ) {}
 
   async save(record: SignupRecord): Promise<string> {
     const id = crypto.randomUUID();
+    const keys = await importPiiKeys(this.piiKey);
+    const piiEnc = await encryptField(keys.enc, JSON.stringify(sensitiveFields(record)), `signups:${id}:pii`);
+    const emailHmac = await emailIndex(keys, record.email);
     const result = await this.db
       .prepare(INSERT_SIGNUP)
       .bind(
         id,
         record.receivedAt,
-        record.firstName,
-        record.middleName,
-        record.lastName,
-        record.dob,
-        record.addressLine1,
-        record.addressLine2,
-        record.city,
+        // Legacy plaintext columns: '' for NOT NULL, NULL otherwise. The values are in pii_enc.
+        "",
+        null,
+        "",
+        "",
+        "",
+        null,
+        "",
         record.state,
-        record.zip,
-        record.email,
-        record.phone,
+        "",
+        "",
+        null,
         record.texasResident ? 1 : 0,
         record.jurisdiction,
         record.nonTexasFlag ? 1 : 0,
         record.submitter,
         record.guardianAttestation ? 1 : 0,
-        record.child ? JSON.stringify(record.child) : null,
+        null,
         record.userId ?? null,
+        piiEnc,
+        emailHmac,
       )
       .run();
     if (!result.success) {
