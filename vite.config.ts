@@ -1,13 +1,16 @@
 import react from "@vitejs/plugin-react";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  // Production presents sign-in. Tests and local dev leave VITE_ACCOUNTS_LIVE unset.
-  define:
-    mode === "production"
-      ? { "import.meta.env.VITE_ACCOUNTS_LIVE": JSON.stringify("true") }
-      : undefined,
+  // VITE_ACCOUNTS_LIVE comes from the environment (.env.<mode> or the build env).
+  // Off unless it is exactly "true". Production stays off until approved.
+  define: {
+    "import.meta.env.VITE_ACCOUNTS_LIVE": JSON.stringify(
+      (process.env.VITE_ACCOUNTS_LIVE ?? loadEnv(mode, process.cwd(), "VITE_").VITE_ACCOUNTS_LIVE) === "true" ? "true" : "",
+    ),
+  },
   server: {
     port: 5173,
     proxy: {

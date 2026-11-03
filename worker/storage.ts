@@ -1,4 +1,5 @@
 import type { SignupInput } from "../shared/signup";
+import { encryptField, importPiiKey } from "./piiCrypto";
 import { BROKER_SENDS, brokerSendById, type OptOutBlockCode } from "./brokerSends";
 
 /**
@@ -118,15 +119,22 @@ const INSERT_SIGNUP = `INSERT INTO signups (
   id, received_at, first_name, middle_name, last_name, dob,
   address_line1, address_line2, city, state, zip, email, phone,
   texas_resident, jurisdiction, non_texas_flag, submitter,
-  guardian_attestation, child_json, user_id
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  guardian_attestation, child_json, user_id, dob_enc, child_enc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 /** D1 store. Never log `record` or any of its fields. */
 export class D1SignupStore implements SignupStore {
-  constructor(private readonly db: SignupDatabase) {}
+  /** piiKey is the SIGNUP_PII_KEY secret. Saving fails closed without it. */
+  constructor(
+    private readonly db: SignupDatabase,
+    private readonly piiKey?: string,
+  ) {}
 
   async save(record: SignupRecord): Promise<string> {
     const id = crypto.randomUUID();
+    const key = await importPiiKey(this.piiKey);
+    const dobEnc = await encryptField(key, record.dob, `signups:${id}:dob`);
+    const childEnc = record.child ? await encryptField(key, JSON.stringify(record.child), `signups:${id}:child`) : null;
     const result = await this.db
       .prepare(INSERT_SIGNUP)
       .bind(
@@ -135,7 +143,7 @@ export class D1SignupStore implements SignupStore {
         record.firstName,
         record.middleName,
         record.lastName,
-        record.dob,
+        "",
         record.addressLine1,
         record.addressLine2,
         record.city,
@@ -148,8 +156,10 @@ export class D1SignupStore implements SignupStore {
         record.nonTexasFlag ? 1 : 0,
         record.submitter,
         record.guardianAttestation ? 1 : 0,
-        record.child ? JSON.stringify(record.child) : null,
+        null,
         record.userId ?? null,
+        dobEnc,
+        childEnc,
       )
       .run();
     if (!result.success) {
