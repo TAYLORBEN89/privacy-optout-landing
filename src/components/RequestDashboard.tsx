@@ -50,15 +50,25 @@ export function RequestDashboard({ optouts }: { optouts: readonly OptOutRecord[]
             {shown.map((broker) => {
               const record = recordFor(broker, optouts);
               return (
-                <li key={broker.id}>
-                  <span className="broker-name">{broker.name}</span>
+                <li key={broker.id} className="broker-row">
+                  <span className="broker-row-name">{broker.name}</span>
                   {record ? <span className="broker-status">{optOutLabel(record)}</span> : null}
                   {broker.url ? (
-                    <a href={broker.url} target="_blank" rel="noopener noreferrer">
-                      {broker.name} page
+                    <a
+                      className="broker-optout"
+                      href={broker.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Opt-out page for ${broker.name}`}
+                    >
+                      Opt-out page
                     </a>
                   ) : null}
-                  {broker.optOutEmail ? <a href={`mailto:${broker.optOutEmail}`}>{broker.optOutEmail}</a> : null}
+                  {broker.optOutEmail ? (
+                    <a className="broker-mail" href={`mailto:${broker.optOutEmail}`}>
+                      {broker.optOutEmail}
+                    </a>
+                  ) : null}
                 </li>
               );
             })}

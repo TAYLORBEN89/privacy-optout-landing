@@ -6,7 +6,7 @@
 -- New rows write '' (NOT NULL columns) or NULL into the legacy plaintext columns.
 -- state, jurisdiction and flags stay plaintext (no direct identifier).
 -- 0001-0003 are left unchanged because they may already be applied.
--- Before deploy (Ben's approval): backfill-encrypt or purge older plaintext rows.
+-- Before deploy (the operator's approval): backfill-encrypt or purge older plaintext rows.
 -- See README "Signup PII encryption".
 ALTER TABLE signups ADD COLUMN pii_enc TEXT;
 ALTER TABLE signups ADD COLUMN email_hmac TEXT;

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { accountsLive, authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
-import { RequestDashboard } from "./components/RequestDashboard";
-import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE } from "./copy";
 import { Header } from "./Header";
 import { SiteFooter } from "./Footer";
 import {
@@ -13,6 +11,7 @@ import {
   SpamBenefitPage,
   TimeBenefitPage,
 } from "./pages/benefits";
+import { AccountComingSoon } from "./pages/AccountComingSoon";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { BrokersPage } from "./pages/BrokersPage";
@@ -99,13 +98,7 @@ export function App() {
     page = <StartPage action={pageAction} csrfToken={session.status === "in" ? session.me.csrf_token : null} />;
   }
   else if (path === "/account" && !accountsLive()) {
-    page = (
-      <article className="panel">
-        <h1>{ACCOUNTS_COMING_SOON_TITLE}</h1>
-        <p>{ACCOUNTS_COMING_SOON}</p>
-        <RequestDashboard optouts={[]} />
-      </article>
-    );
+    page = <AccountComingSoon />;
   } else if (path === "/account") {
     page = (
       <AccountPage

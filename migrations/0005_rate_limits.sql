@@ -1,6 +1,6 @@
 -- Same schema as the accounts Worker's 0008_rate_limits.sql (PRs #22/#23).
 -- Fixed windows: one row per (key, window_start). key = sha256(scope|ip); IPs are never stored raw.
--- Not applied. Apply only with Ben's approval.
+-- Not applied. Apply only with the operator's approval.
 CREATE TABLE IF NOT EXISTS rate_limits (
   key          TEXT    NOT NULL,
   window_start INTEGER NOT NULL,

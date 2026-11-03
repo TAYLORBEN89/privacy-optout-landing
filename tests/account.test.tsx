@@ -1,7 +1,6 @@
 /**
  * @vitest-environment happy-dom
  */
-import { readFileSync } from "node:fs";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -74,10 +73,9 @@ describe("opt-out status labels", () => {
   });
 
   it("shows Not completed for denied, and No record found when sub_status is no_record", () => {
-    const source = readFileSync("src/api/account.ts", "utf8");
-    expect(source).not.toContain("TODO: label for denied needs Ben's decision");
     expect(optOutLabel({ status: "denied", sub_status: null })).toBe("Not completed");
     expect(optOutLabel({ status: "denied" })).toBe("Not completed");
+    expect(optOutLabel({ status: "denied", sub_status: "refused" })).toBe("Not completed");
     expect(optOutLabel({ status: "denied", sub_status: "no_record" })).toBe("No record found");
   });
 });
@@ -583,9 +581,15 @@ describe("accounts coming soon", () => {
     expect(window.location.pathname).toBe("/account");
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Coming soon" })).toBeTruthy();
+    expect(screen.getByRole("main", { name: "Coming soon" })).toBeTruthy();
+    expect(screen.getByText("Until then, email help@droptexas.com to see or delete your data.")).toBeTruthy();
+    expect(screen.queryByText(/secure session cookies/)).toBeNull();
+    expect(screen.getByRole("link", { name: "Start my opt-out" }).getAttribute("href")).toBe("/start");
     expect(screen.queryByRole("heading", { name: "Your account" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Registered brokers" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Delete my account" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Export my data" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Google|Microsoft|Apple/ })).toBeNull();
     (window as unknown as { happyDOM: { setURL: (url: string) => void } }).happyDOM.setURL(
       "http://localhost/",
     );
