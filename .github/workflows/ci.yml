@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+
+      - name: SQL-safety check self-test
+        run: node --test scripts/check-sql.test.mjs
+
+      - name: SQL-safety check (no interpolated or concatenated D1 SQL)
+        run: node scripts/check-sql.mjs
+
+      # Root app (skipped until the app code is on this branch)
+      - name: Install (root)
+        if: hashFiles('package.json') != ''
+        run: npm ci
+      - name: Test (root, if a test script exists)
+        if: hashFiles('package.json') != ''
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then npm test; else echo "No test script; skipping."; fi
+      - name: Build (root)
+        if: hashFiles('package.json') != ''
+        run: npm run build
+      - name: npm audit (root)
+        if: hashFiles('package.json') != ''
+        run: npm audit --audit-level=high
+
+      # Worker package
+      - name: Install (worker)
+        if: hashFiles('worker/package.json') != ''
+        working-directory: worker
+        run: npm ci
+      - name: Test (worker, if a test script exists)
+        if: hashFiles('worker/package.json') != ''
+        working-directory: worker
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then npm test; else echo "No test script; skipping."; fi
+      - name: npm audit (worker)
+        if: hashFiles('worker/package.json') != ''
+        working-directory: worker
+        run: npm audit --audit-level=high
