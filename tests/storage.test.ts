@@ -25,6 +25,9 @@ const record: SignupRecord = {
   receivedAt: "2026-11-01T00:00:00.000Z",
 };
 
+// Test-only all-zero AES key (not a real secret).
+const TEST_KEY = btoa(String.fromCharCode(...new Uint8Array(32)));
+
 describe("D1SignupStore", () => {
   it("inserts with bound parameters and does not interpolate field values into SQL", async () => {
     let sql = "";
@@ -44,17 +47,33 @@ describe("D1SignupStore", () => {
         };
       },
     };
-    const id = await new D1SignupStore(db).save(record);
+    const id = await new D1SignupStore(db, TEST_KEY).save(record);
     expect(id).toBe(binds[0]);
     expect(sql).toContain("INSERT INTO signups");
     expect(sql).not.toContain(String(id));
     expect(sql).not.toContain("Ada");
     expect(sql).not.toContain("ada@example.com");
-    expect(sql.match(/\?/g)?.length).toBe(20);
-    expect(binds[2]).toBe("Ada");
-    expect(binds[12]).toBe("+15125550100");
+    expect(sql.match(/\?/g)?.length).toBe(22);
+    expect(binds[5]).toBe("");
+    expect(String(binds[20])).toMatch(/^v1\./);
+    expect(String(binds[21])).toMatch(/^[0-9a-f]{64}$/);
+    const { decryptField, importPiiKeys, emailIndex } = await import("../worker/piiCrypto");
+    const keys = await importPiiKeys(TEST_KEY);
+    const pii = JSON.parse(await decryptField(keys.enc, String(binds[20]), `signups:${String(binds[0])}:pii`));
+    expect(pii.firstName).toBe("Ada");
+    expect(pii.phone).toBe("+15125550100");
+    expect(binds[21]).toBe(await emailIndex(keys, " ADA@example.com "));
+    for (const i of [2, 4, 5, 6, 8, 10, 11]) expect(binds[i]).toBe("");
+    expect(binds[3]).toBeNull();
+    expect(binds[12]).toBeNull();
+    expect(JSON.stringify(binds)).not.toMatch(/Ada|ada@example\.com|5125550100|1990/);
     expect(binds[18]).toBeNull();
     expect(binds[19]).toBeNull();
+  });
+
+  it("refuses to save without the SIGNUP_PII_KEY secret", async () => {
+    const db = { prepare() { return { bind() { return { async run() { return { success: true }; } }; } }; } };
+    await expect(new D1SignupStore(db).save(record)).rejects.toMatchObject({ name: "signup_key_missing" });
   });
 
   it("stores a child request as JSON in the last bound value", async () => {
@@ -73,7 +92,7 @@ describe("D1SignupStore", () => {
         };
       },
     };
-    await new D1SignupStore(db).save({
+    await new D1SignupStore(db, TEST_KEY).save({
       ...record,
       submitter: "child",
       guardianAttestation: true,
@@ -85,7 +104,10 @@ describe("D1SignupStore", () => {
         sameAddress: true,
       },
     });
-    expect(JSON.parse(String(binds[18]))).toEqual({
+    expect(binds[18]).toBeNull();
+    const { decryptField, importPiiKeys } = await import("../worker/piiCrypto");
+    const keys = await importPiiKeys(TEST_KEY);
+    expect(JSON.parse(await decryptField(keys.enc, String(binds[20]), `signups:${String(binds[0])}:pii`)).child).toEqual({
       firstName: "Grace",
       middleName: null,
       lastName: "Hopper",

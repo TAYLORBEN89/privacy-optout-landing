@@ -23,6 +23,22 @@ export function accountSignupBody(input: SignupInput): {
   };
 }
 
+/**
+ * Keeps only the session cookie. Other cookies (analytics, preferences) are
+ * never forwarded upstream. Returns "" when there is no valid session cookie.
+ */
+export function sessionCookieOnly(cookieHeader: string): string {
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("__Host-sid=")) {
+      const value = trimmed.slice("__Host-sid=".length);
+      if (/^[A-Za-z0-9._~+/=-]{1,512}$/.test(value)) return `__Host-sid=${value}`;
+      return "";
+    }
+  }
+  return "";
+}
+
 export interface AccountApi {
   fetch(request: Request): Promise<Response>;
 }
@@ -39,7 +55,10 @@ export async function linkSignupToAccount(
   input: SignupInput,
   api: AccountApi,
 ): Promise<"linked" | "skipped" | "refused"> {
-  if (cookie.length === 0 || csrf.length === 0) return "skipped";
+  const sid = sessionCookieOnly(cookie);
+  if (sid.length === 0 || csrf.length === 0 || csrf.length > 256) return "skipped";
+  // Origin is this Worker's own origin, never a client-supplied value.
+  void origin;
   const url = new URL("/api/optouts/signup", requestUrl);
   const response = await api.fetch(
     new Request(url, {
@@ -47,8 +66,8 @@ export async function linkSignupToAccount(
       headers: {
         accept: "application/json",
         "content-type": "application/json",
-        cookie,
-        origin,
+        cookie: sid,
+        origin: new URL(requestUrl).origin,
         "x-csrf-token": csrf,
       },
       body: JSON.stringify(accountSignupBody(input)),
@@ -60,11 +79,12 @@ export async function linkSignupToAccount(
 
 /** Reads only the user id from GET /api/me. Discards the rest of the body. */
 export async function sessionUserId(requestUrl: string, cookie: string, api: AccountApi): Promise<string | null> {
-  if (!cookie.includes("__Host-sid=")) return null;
+  const sid = sessionCookieOnly(cookie);
+  if (sid.length === 0) return null;
   const response = await api.fetch(
     new Request(new URL("/api/me", requestUrl), {
       method: "GET",
-      headers: { accept: "application/json", cookie },
+      headers: { accept: "application/json", cookie: sid },
     }),
   );
   if (response.status !== 200) return null;

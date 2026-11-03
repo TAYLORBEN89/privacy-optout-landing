@@ -28,9 +28,9 @@
       "migrations_dir": "migrations"
     }
   ],
-  "services": [
-    { "binding": "API", "service": "privacy-dashboard-api" }
-  ],
+  // The env.API service binding (privacy-dashboard-api) stays off until PR #24
+  // lands and is approved. Without it the Worker keeps signups local only.
+  // Secret (set with `wrangler secret put`, never committed): SIGNUP_PII_KEY.
   "observability": {
     "enabled": true,
     "logs": {
