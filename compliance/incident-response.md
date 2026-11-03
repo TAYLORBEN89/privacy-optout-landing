@@ -4,7 +4,7 @@
 
 **Roles:** The operator handles everything: incident lead, technical fixes, communications, legal notifications.
 **Primary contact: email** help@droptexas.com (not published until help@droptexas.com is set up as an iCloud Mail custom-domain address and a test message is received). No phone number is listed.
-**Security reports:** researchers email help@droptexas.com with "Security" in the subject; acknowledge within **3 business days** (confirmed by Ben 2026-10-31), then triage with the severity levels below.
+**Security reports:** researchers email help@droptexas.com with "Security" in the subject; acknowledge within **3 business days** (confirmed by the operator 2026-10-31), then triage with the severity levels below.
 External: Cloudflare support (dashboard) and the Texas AG Data Breach Report form (texasattorneygeneral.gov/consumer-protection/data-breach-reporting).
 
 **Severity**
