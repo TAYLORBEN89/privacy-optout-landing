@@ -1,6 +1,7 @@
 import { accountsSignInUrl } from "../shared/accounts";
 import { validateSignup, type FieldIssue, type SignupInput, type SignupIssues } from "../shared/signup";
-import { proxyAllowed, upstreamRequest } from "./apiProxy";
+import { csrfOk, filterResponse, prepareProxy, proxyAllowed } from "./apiProxy";
+import type { ProxySigner } from "./internalAuth";
 import { linkSignupToAccount, sessionUserId, type AccountApi } from "./accountLink";
 import { dispatchOptOuts } from "./optouts";
 import { clientIp, type SignupLimiter } from "./rateLimit";
@@ -32,6 +33,20 @@ export interface RequestDeps {
   signupStore?: SignupStore;
   /** D1 limiter for POST /api/signup. The Worker entry always provides it. */
   signupLimiter?: SignupLimiter;
+  /** Loads the X-Internal-Auth signer (INTERNAL_PROXY_KEYS + INTERNAL_PROXY_ACTIVE_KID). Throws when invalid. */
+  proxySigner?: () => Promise<ProxySigner>;
+}
+
+const noSigner = async (): Promise<ProxySigner> => {
+  throw new Error("proxy_keys_missing");
+};
+
+async function trySigner(get: () => Promise<ProxySigner>): Promise<ProxySigner | null> {
+  try {
+    return await get();
+  } catch {
+    return null;
+  }
 }
 
 interface ErrorBody {
@@ -125,13 +140,15 @@ async function attachAccount(
   request: IncomingHttpRequest,
   input: SignupInput,
   api: AccountApi | undefined,
+  getSigner: () => Promise<ProxySigner>,
 ): Promise<void> {
-  if (!api) return;
+  if (!api || !csrfOk(request)) return;
+  const signer = await trySigner(getSigner);
+  if (!signer) return;
   const cookie = request.headers.get("cookie") ?? "";
-  const csrf = request.headers.get("x-csrf-token") ?? "";
-  const origin = request.headers.get("origin") ?? new URL(request.url).origin;
+  const ip = request.headers.get("cf-connecting-ip") ?? "";
   try {
-    const linked = await linkSignupToAccount(request.url, cookie, csrf, origin, input, api);
+    const linked = await linkSignupToAccount(request.url, cookie, ip, input, api, signer);
     if (linked === "skipped") return;
     logOutcome({
       message: linked === "linked" ? "signup_account_linked" : "signup_account_link_failed",
@@ -170,6 +187,7 @@ async function handleSignup(
   store: SignupStore | undefined,
   api: AccountApi | undefined,
   limiter: SignupLimiter | undefined,
+  getSigner: () => Promise<ProxySigner> = noSigner,
 ): Promise<Response> {
   if (request.method !== "POST") {
     return formError("method_not_allowed", "Use the form on this page to submit.", 405, request);
@@ -264,8 +282,9 @@ async function handleSignup(
       );
     }
     let signupId: string;
-    const userId = api
-      ? await sessionUserId(request.url, request.headers.get("cookie") ?? "", api).catch(() => null)
+    const linkSigner = api && csrfOk(request) ? await trySigner(getSigner) : null;
+    const userId = api && linkSigner
+      ? await sessionUserId(request.url, request.headers.get("cookie") ?? "", request.headers.get("cf-connecting-ip") ?? "", api, linkSigner).catch(() => null)
       : null;
     try {
       signupId = await saveSignup(store, {
@@ -298,7 +317,7 @@ async function handleSignup(
         codes: [error instanceof Error ? error.name : "Error"],
       });
     }
-    await attachAccount(request, result.value, api);
+    await attachAccount(request, result.value, api, getSigner);
   }
 
   logOutcome({
@@ -308,6 +327,18 @@ async function handleSignup(
     status: 200,
   });
   return json({ ok: true }, 200);
+}
+
+const PROXY_ERRORS = {
+  bad_request: { status: 400, message: "We couldn't process that request. Try again." },
+  payload_too_large: { status: 413, message: "That request is too large." },
+  forbidden: { status: 403, message: "Forbidden." },
+  unavailable: { status: 503, message: "Something went wrong. Try again." },
+} as const;
+
+function proxyError(code: keyof typeof PROXY_ERRORS): Response {
+  const { status, message } = PROXY_ERRORS[code];
+  return json({ ok: false, errors: {}, form: { code, message } }, status);
 }
 
 function wwwRedirect(url: URL, method: string): Response | null {
@@ -330,7 +361,7 @@ export async function handleRequest(
   const redirected = wwwRedirect(url, request.method);
   if (redirected) return redirected;
   if (url.pathname === "/api/signup") {
-    return handleSignup(request, deps.signupStore, deps.callApi, deps.signupLimiter);
+    return handleSignup(request, deps.signupStore, deps.callApi, deps.signupLimiter, deps.proxySigner);
   }
   if (url.pathname === "/api/auth/apple" || url.pathname.startsWith("/api/auth/apple/")) {
     return json(
@@ -350,7 +381,9 @@ export async function handleRequest(
   }
   if (url.pathname.startsWith("/api/")) {
     if (deps.forwardApi && proxyAllowed(request.method, url.pathname)) {
-      return deps.forwardApi(upstreamRequest(request));
+      const prepared = await prepareProxy(request, deps.proxySigner ?? noSigner);
+      if (!prepared.ok) return proxyError(prepared.code);
+      return filterResponse(await deps.forwardApi(prepared.upstream), request.url);
     }
     return json(
       { ok: false, errors: {}, form: { code: "not_found", message: "Not found." } },

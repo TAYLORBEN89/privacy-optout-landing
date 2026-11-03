@@ -1,3 +1,4 @@
+import { testSigner } from "./helpers/proxyKeys";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { validateSignup } from "../shared/signup";
 import { BROKER_SENDS } from "../worker/brokerSends";
@@ -435,19 +436,20 @@ describe("POST /api/signup", () => {
     let forwarded: Request | null = null;
     const response = await handleRequest(original, {
       ...assets(),
+      proxySigner: testSigner,
       forwardApi: (upstream) => {
         forwarded = upstream;
         return Promise.resolve(
           new Response(JSON.stringify({ user: { email: "ada@example.com" }, csrf: "tok" }), {
             status: 200,
-            headers: { "set-cookie": "session=abc; HttpOnly", "content-type": "application/json" },
+            headers: { "set-cookie": "__Host-sid=abc; Path=/; HttpOnly; Secure", "content-type": "application/json" },
           }),
         );
       },
     });
     expect(forwarded).not.toBeNull();
     expect(forwarded!.headers.get("cookie")).toBeNull();
-    expect(response.headers.get("set-cookie")).toBe("session=abc; HttpOnly");
+    expect(response.headers.get("set-cookie")).toBe("__Host-sid=abc; Path=/; HttpOnly; Secure");
     expect(response.status).toBe(200);
   });
 
@@ -476,15 +478,15 @@ describe("POST /api/signup", () => {
       "/api/auth/complete?code=abc",
       "/api/me",
       "/api/account/profile",
-      "/api/account/export",
       "/api/account/identities/google/link",
       "/api/auth/microsoft/stepup",
     ];
     for (const path of paths) {
       let usedAsset = false;
       let forwarded = false;
-      const method = path.includes("/link") ? "POST" : "GET";
-      const response = await handleRequest(new Request(`https://droptexas.com${path}`, { method }), {
+      const method = path.includes("/link") || path.endsWith("/stepup") ? "POST" : "GET";
+      const response = await handleRequest(new Request(`https://droptexas.com${path}`, { method, headers: { origin: "https://droptexas.com" } }), {
+        proxySigner: testSigner,
         fetchAsset: async () => {
           usedAsset = true;
           return new Response("<!doctype html>", { headers: { "content-type": "text/html" } });
@@ -515,6 +517,7 @@ describe("POST /api/signup", () => {
 
     let forwarded = false;
     const bound = await handleRequest(new Request("https://droptexas.com/api/auth/complete?code=abc"), {
+      proxySigner: testSigner,
       fetchAsset: async () => {
         usedAsset = true;
         return new Response("<!doctype html>", { headers: { "content-type": "text/html" } });
@@ -570,6 +573,7 @@ describe("POST /api/signup", () => {
       post(valid, { cookie: "__Host-sid=abc", "x-csrf-token": "csrf-1" }),
       {
         ...deps,
+        proxySigner: testSigner,
         callApi: {
           fetch: async (accountRequest) => {
             calls.push(accountRequest);
@@ -589,8 +593,9 @@ describe("POST /api/signup", () => {
     expect(saved[0]?.userId).toBe("user-1");
     const posted = calls.find((accountRequest) => new URL(accountRequest.url).pathname === "/api/optouts/signup");
     expect(posted?.method).toBe("POST");
-    expect(posted?.headers.get("x-csrf-token")).toBe("csrf-1");
-    expect(posted?.headers.get("origin")).toBe("https://optout.example");
+    expect(posted?.headers.get("x-csrf-token")).toBeNull();
+    expect(posted?.headers.get("origin")).toBe("https://droptexas.com");
+    expect(posted?.headers.get("x-internal-auth")).toMatch(/^v1\.k1\./);
     const sent = JSON.parse(await posted!.text()) as { fullName: string; mailingAddress: string };
     expect(sent.fullName).toBe("Ada Lovelace");
     expect(sent.mailingAddress).toContain("123 Main St");
