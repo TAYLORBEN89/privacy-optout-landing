@@ -306,3 +306,85 @@ describe("response filtering", () => {
     expect(loc("javascript:alert(1)")).toBeNull();
   });
 });
+
+describe("drift vs #24 router", () => {
+  it("allowlist equals tests/fixtures/api-routes.json exactly, both ways", async () => {
+    const { proxyRouteTable } = await import("../worker/apiProxy");
+    const fixture = (await import("./fixtures/api-routes.json")).default as unknown as { routes: [string, string][] };
+    const key = ([m, p]: [string, string]) => `${m} ${p}`;
+    const ours = new Set(proxyRouteTable().map(key));
+    const theirs = new Set(fixture.routes.map(key));
+    expect([...ours].filter((r) => !theirs.has(r))).toEqual([]);
+    expect([...theirs].filter((r) => !ours.has(r))).toEqual([]);
+    expect(ours.size).toBe(fixture.routes.length);
+  });
+
+  it("404s the identities routes #24 rejects", async () => {
+    for (const [method, path] of [
+      ["POST", "/api/account/identities/google"],
+      ["POST", "/api/account/identities/microsoft"],
+      ["DELETE", "/api/account/identities/google/link"],
+      ["DELETE", "/api/account/identities/microsoft/link"],
+    ]) {
+      const { response, upstream } = await call(path, { method, headers: sameOrigin });
+      expect(response.status, `${method} ${path}`).toBe(404);
+      expect(upstream).toBeNull();
+    }
+  });
+});
+
+describe("extras", () => {
+  it("413s a body over 64KB without forwarding", async () => {
+    const { response, upstream } = await call("/api/optouts/signup", {
+      method: "POST",
+      headers: { origin: OWN, "content-type": "application/json" },
+      body: "x".repeat(64 * 1024 + 1),
+    });
+    expect(response.status).toBe(413);
+    expect(upstream).toBeNull();
+    const ok = await call("/api/optouts/signup", { method: "POST", headers: { origin: OWN }, body: "x".repeat(64 * 1024) });
+    expect(ok.response.status).toBe(200);
+  });
+
+  it("sets Cache-Control: no-store on proxied responses", async () => {
+    for (const [method, path] of [["GET", "/api/me"], ["POST", "/api/account/export"], ["GET", "/api/account/sessions"]]) {
+      const { response } = await call(path, { method, headers: sameOrigin });
+      expect(response.headers.get("cache-control"), path).toBe("no-store");
+    }
+  });
+
+  it("end to end: upstream carries only the contract headers and a fresh signature", async () => {
+    const forged = "v1.k1.1800000000.-uCux05nB_YSHLfLwqUuzii9ePuZ2QyIxdgq1kQRCZQ";
+    const { upstream } = await call("/api/account/export", {
+      method: "POST",
+      headers: {
+        origin: OWN,
+        cookie: "_ga=GA1.1; __Host-sid=sid_123; __Host-login=x; theme=dark",
+        authorization: "Bearer client-token",
+        "x-csrf-token": "csrf-from-client",
+        "x-internal-auth": forged,
+        "x-forwarded-for": "1.2.3.4",
+        "cf-connecting-ip": "203.0.113.9",
+        "content-type": "application/json",
+        accept: "application/json",
+        "user-agent": "test",
+        referer: "https://evil.example/",
+      },
+      body: '{"a":1}',
+    });
+    const names = [...upstream!.headers.keys()].sort();
+    expect(names).toEqual(["accept", "cf-connecting-ip", "content-type", "cookie", "origin", "x-internal-auth"]);
+    expect(upstream!.headers.get("cookie")).toBe("__Host-sid=sid_123");
+    expect(upstream!.headers.get("origin")).toBe("https://droptexas.com");
+    const auth = upstream!.headers.get("x-internal-auth")!;
+    expect(auth).not.toBe(forged);
+    const ts = Number(auth.split(".")[2]);
+    expect(Math.abs(ts - Date.now() / 1000)).toBeLessThan(5);
+    const expected = await internalAuthHeader(
+      await testSigner(),
+      { method: "POST", pathAndSearch: "/api/account/export", ip: "203.0.113.9", body: new TextEncoder().encode('{"a":1}') },
+      ts,
+    );
+    expect(auth).toBe(expected);
+  });
+});

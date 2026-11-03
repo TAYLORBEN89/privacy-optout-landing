@@ -32,6 +32,11 @@ const ROUTES: ReadonlyArray<{ methods: readonly string[]; path: RegExp }> = [
   { methods: ["POST"], path: /^\/api\/optouts\/signup$/ },
 ];
 
+/** Flattened [METHOD, path regex source] pairs, for the drift test against #24's router. */
+export function proxyRouteTable(): Array<[string, string]> {
+  return ROUTES.flatMap((route) => route.methods.map((m): [string, string] => [m, route.path.source.replace(/\\\//g, "/")]));
+}
+
 export function proxyAllowed(method: string, pathname: string): boolean {
   return ROUTES.some((route) => route.methods.includes(method) && route.path.test(pathname));
 }
@@ -174,6 +179,8 @@ export function filterResponse(response: Response, ownUrl: string): Response {
     const name = cookie.split("=", 1)[0]?.trim() ?? "";
     if (ALLOWED_RESPONSE_COOKIES.includes(name) && cookieAttributesOk(cookie)) headers.append("set-cookie", cookie);
   }
+  // Every proxied /api response is per-user or one-shot (sessions, exports, OAuth handoffs): never cache.
+  headers.set("cache-control", "no-store");
   return new Response(response.body, { status: response.status, headers });
 }
 
