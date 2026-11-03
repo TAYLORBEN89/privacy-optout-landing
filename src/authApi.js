@@ -6,10 +6,10 @@ let csrf = '';
 export const setCsrf = (t) => { csrf = t || ''; };
 
 export class ApiError extends Error {
-  constructor(status, body) { super(body?.error || `API ${status}`); this.status = status; this.body = body; }
+  constructor(status, body, retryAfter = null) { super(body?.error || `API ${status}`); this.status = status; this.body = body; this.retryAfter = retryAfter; }
 }
 
-export async function call(path, { method = 'GET', body } = {}) {
+async function send(path, { method = 'GET', body } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (method !== 'GET') headers['X-CSRF-Token'] = csrf;
   const res = await fetch(API_URL + path, {
@@ -17,8 +17,43 @@ export async function call(path, { method = 'GET', body } = {}) {
   });
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (data?.csrf_token) setCsrf(data.csrf_token);
-  if (!res.ok) throw new ApiError(res.status, data);
+  if (!res.ok) throw new ApiError(res.status, data, Number(res.headers.get('Retry-After')) || null);
   return data;
+}
+
+// TOTP upgrade for a session that is signed in but must still pass TOTP (any sign-in method, once TOTP is
+// enrolled): the server answers 403 {code:'mfa_required'}. The UI registers `ask(message)` -> Promise<code|null>;
+// call() then prompts, POSTs the code to /api/auth/mfa/verify (which rotates the session and CSRF token) and
+// retries the original request once. A bad code and a 429 get the same message and a fresh prompt; null cancels.
+export const MFA_PATH = '/api/auth/mfa/verify';
+export const MFA_RETRY_MESSAGE = "That code didn't work, or there were too many tries. Wait a minute and try again.";
+let askMfa = null;
+let pendingUpgrade = null; // one prompt at a time, shared by concurrent requests
+export const setMfaPrompt = (fn) => { askMfa = fn; };
+export const mfaVerify = (code) => send(MFA_PATH, { method: 'POST', body: { code } });
+const isMfaRequired = (e) => e instanceof ApiError && e.status === 403 && (e.body?.code === 'mfa_required' || e.body?.error === 'mfa required');
+
+async function upgrade() {
+  let message = '';
+  for (;;) {
+    const code = await askMfa(message);
+    if (code == null) return false;
+    try { await mfaVerify(String(code).trim()); return true; }
+    catch (e) {
+      if (e instanceof ApiError && (e.status === 401 || e.status === 429)) { message = MFA_RETRY_MESSAGE; continue; }
+      throw e;
+    }
+  }
+}
+
+export async function call(path, opts = {}) {
+  try { return await send(path, opts); }
+  catch (e) {
+    if (!isMfaRequired(e) || !askMfa || path === MFA_PATH) throw e;
+    pendingUpgrade ||= upgrade().finally(() => { pendingUpgrade = null; });
+    if (!(await pendingUpgrade)) throw e;
+    return send(path, opts); // retried once with the upgraded session
+  }
 }
 
 // Password + TOTP (fallback sign-in), same-origin aliases under /api/auth/*.
