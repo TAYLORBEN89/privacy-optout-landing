@@ -928,6 +928,61 @@ textarea {
   font: 16px/1.4 var(--font);
 }
 
+.account-soon {
+  width: min(640px, 100%);
+  margin: 48px auto 64px;
+  padding: 48px 32px 40px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(16, 16, 16, 0.06);
+  text-align: center;
+}
+
+.account-soon h1 {
+  margin: 0;
+  color: #010101;
+  font-size: clamp(32px, 5vw, 40px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.account-soon h1::after {
+  margin-inline: auto;
+}
+
+.account-soon p {
+  max-width: 36rem;
+  margin: 20px auto 0;
+  color: #333;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.account-soon .cta {
+  width: auto;
+  min-height: 48px;
+  margin-top: 28px;
+}
+
+.account-soon .cta:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .account-soon {
+    margin-top: 24px;
+    margin-bottom: 40px;
+    padding: 32px 20px 28px;
+  }
+
+  .account-soon .cta {
+    width: 100%;
+  }
+}
+
 .form-card {
   width: min(640px, 100%);
   margin-inline: auto;

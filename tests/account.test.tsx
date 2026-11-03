@@ -583,9 +583,14 @@ describe("accounts coming soon", () => {
     expect(window.location.pathname).toBe("/account");
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Coming soon" })).toBeTruthy();
+    expect(screen.getByRole("main", { name: "Coming soon" })).toBeTruthy();
+    expect(screen.getByText(/Sign in with Google or Microsoft, secure session cookies/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Start my opt-out" }).getAttribute("href")).toBe("/start");
     expect(screen.queryByRole("heading", { name: "Your account" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Registered brokers" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Delete my account" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Export my data" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Google|Microsoft|Apple/ })).toBeNull();
     (window as unknown as { happyDOM: { setURL: (url: string) => void } }).happyDOM.setURL(
       "http://localhost/",
     );
