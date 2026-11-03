@@ -1,7 +1,7 @@
 # Privacy Opt-Out Dashboard
 
 DROP Texas: a privacy opt-out tracker for Texans covering direct mail, data brokers, credit freezes, Do Not Call, and paid removal services.
-Vite + React frontend, Cloudflare Worker + D1/KV backend (source of truth), localStorage as an offline cache.
+Vite + React frontend, Cloudflare Worker + D1/KV backend (the only store). Nothing about the user (records, Texas requests, identifiers) is kept in browser storage; plaintext caches left by older versions are wiped on every load.
 
 ## Frontend setup
 ```bash
@@ -10,11 +10,13 @@ cp .env.example .env   # VITE_API_URL: empty for same-origin /api/* (production)
 npm run dev            # http://localhost:5173
 npm run build          # production build to dist/
 ```
-If the API is unreachable, the app falls back to cached data in localStorage and shows "offline (cached)".
+If the API is unreachable, the legacy dashboard shows "offline: read-only, reload to retry" and disables editing, so it can never overwrite server state with defaults. There is no offline cache. `npm run test:storage` checks the cache wipe and the read-only rules.
 
-### Access key
-The access key (the Worker's `API_TOKEN` secret) is **not** built into the bundle. On first load the dashboard asks for it and stores it in this browser's localStorage.
-Use **Forget key** in the header to remove it. If the API ever returns 401, the key is cleared and you are prompted again.
+### Access key (legacy dashboard, dev builds only)
+Identifiers ("Your identifiers" on the Texas tab) load from `GET/PUT /api/profile` on the signed-in session, encrypted in D1. `/api/profile` is a same-origin alias of the step-up-gated `/profile`. `loadProfile` calls `/api/me` first and falls back to the legacy KV route `/settings/profile` **only** on a true no-session `401`, and only when a legacy key exists. An MFA-pending, not-stepped-up or otherwise forbidden session (`403`, see the `code` values below) never falls back. It gets its own note on the page instead. If neither source is available, or the server is unreachable, the editor is read-only.
+
+The access key (the Worker's `API_TOKEN` secret) is **not** built into the bundle. On first load the dashboard asks for it and keeps it in this tab's sessionStorage only (gone when the tab closes). Old copies in localStorage are deleted on load.
+Use **Forget key** in the header to remove it sooner. If the API ever returns 401, the key is cleared and you are prompted again.
 Consider also putting the dashboard behind Cloudflare Access.
 
 ### Deploy frontend (Cloudflare Pages)
@@ -122,13 +124,21 @@ Sign-in host (`ACCOUNTS_HOST`):
 App origin (`/api`, JSON, cookie session `__Host-sid`; state-changing requests need `X-CSRF-Token`):
 - `GET /api/auth/{google|microsoft}/start` – sets `__Host-login`, sends the browser to the sign-in host.
 - `GET /api/auth/complete?code=` – redeems the handoff code, creates the session.
-- `POST /api/auth/{google|microsoft}/stepup`, `POST /api/auth/stepup/password` – re-authentication (valid 10 min). Sensitive routes return `403 {"error":"step_up_required"}` without it.
+- `POST /api/auth/{google|microsoft}/stepup`, `POST /api/auth/stepup/password` – re-authentication (valid 10 min). Sensitive routes return `403 {"error":"step_up_required","code":"step_up_required"}` without it.
+- Auth errors on session routes: no session (or an expired or revoked one) is `401 {"error":"unauthorized"}`. A `403` body carries a `code` field the client branches on:
+  - `mfa_required`: a password session that has not finished TOTP;
+  - `step_up_required`: re-authentication needed;
+  - `forbidden`: a CSRF or Origin failure. Its body is `{"error":"forbidden"}`, and the client treats a 403 with no `code` the same way.
+  
+  These come after the session cookie check, so they reveal nothing about other accounts. The sign-in endpoints keep their uniform messages.
 - `POST /api/auth/logout`, `GET /api/me`.
+- `GET|PUT /api/profile`: same-origin alias of `/profile` below (step-up gated; same body and errors).
 - `POST /api/account/identities/{p}/link`, `DELETE /api/account/identities/{p}`.
 - `GET|PATCH /api/account/profile`, `GET /api/account/optouts`, `GET /api/account/sessions`, `POST /api/account/sessions/{id}/revoke`, `POST /api/account/export`, `POST /api/account/delete`.
 - `POST /api/optouts/signup` – `{fullName, mailingAddress, email, texasResident, phone?}`. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted with the rest of the signup PII.
 
 Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/admin/bootstrap`.
+TOTP on the older routes: only **password** sessions need a finished TOTP for `/profile`, `/optouts` (and `/tx-requests` once #9 lands). Google and Microsoft sessions are accepted, matching the newer `/api/*` routes. Before this change, those routes rejected social sessions with `mfa required`. *This is pending Ben's decision and should be reverted if social sessions must stay blocked there.*
 Legacy KV API (`Authorization: Bearer <API_TOKEN>`): `GET|POST /records`, `GET|PUT|DELETE /records/:id`, `/txrequests`, `/settings/profile`.
 
 ### Tests and checks
