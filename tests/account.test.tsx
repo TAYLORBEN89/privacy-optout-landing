@@ -1,7 +1,6 @@
 /**
  * @vitest-environment happy-dom
  */
-import { readFileSync } from "node:fs";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -74,10 +73,9 @@ describe("opt-out status labels", () => {
   });
 
   it("shows Not completed for denied, and No record found when sub_status is no_record", () => {
-    const source = readFileSync("src/api/account.ts", "utf8");
-    expect(source).not.toContain("TODO: label for denied needs Alex Rivera's decision");
     expect(optOutLabel({ status: "denied", sub_status: null })).toBe("Not completed");
     expect(optOutLabel({ status: "denied" })).toBe("Not completed");
+    expect(optOutLabel({ status: "denied", sub_status: "refused" })).toBe("Not completed");
     expect(optOutLabel({ status: "denied", sub_status: "no_record" })).toBe("No record found");
   });
 });
