@@ -29,14 +29,16 @@ function FooterGroup({ id, title, links }: { id: string; title: string; links: r
       >
         {title}
       </button>
-      <div id={panelId} className="footer-panel" hidden={!open}>
-        <ul>
-          {links.map((link) => (
-            <li key={link.href}>
-              <FooterAnchor link={link} />
-            </li>
-          ))}
-        </ul>
+      <div id={panelId} className={open ? "footer-panel is-open" : "footer-panel"} inert={open ? undefined : true}>
+        <div className="footer-panel-inner">
+          <ul>
+            {links.map((link) => (
+              <li key={link.href}>
+                <FooterAnchor link={link} />
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

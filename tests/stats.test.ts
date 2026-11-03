@@ -21,12 +21,12 @@ describe("stats", () => {
       { ...shown[0], id: "unsourced", sourceUrl: "" },
     ]);
     expect(rejected).toEqual([]);
-    expect(formatStat(750, "", "+", 0)).toBe("750+");
-    expect(formatStat(2514, "~", "", 0)).toBe("~2,514");
-    expect(formatStat(810, "~", "", 0)).toBe("~810");
-    expect(formatStat(307, "~$", "B", 0)).toBe("~$307B");
+    expect(formatStat(750, "+", "", 0)).toBe("+750");
+    expect(formatStat(2514, "", "", 0)).toBe("2,514");
+    expect(formatStat(810, "", "", 0)).toBe("810");
+    expect(formatStat(307, "$", "B", 0)).toBe("$307B");
     expect(formatStat(4.99, "$", "M", 2)).toBe("$4.99M");
-    expect(formatStat(5.6, "", "M+", 1)).toBe("5.6M+");
+    expect(formatStat(5.6, "+", "M", 1)).toBe("+5.6M");
   });
 
   it("matches the published yearly totals after dividing by a common year", () => {

@@ -92,6 +92,7 @@ describe("horizontal overflow", () => {
       "/data-brokers",
       "/unique-identifiers",
       "/tdpsa",
+      "/children",
       "/help",
       "/share",
     ];

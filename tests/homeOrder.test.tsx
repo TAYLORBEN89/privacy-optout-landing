@@ -18,6 +18,7 @@ describe("homepage after the stats band", () => {
     expect(closing).toBeTruthy();
     expect(stats?.nextElementSibling).toBe(closing);
     expect(screen.getByRole("heading", { name: "Ready to take back your privacy?" })).toBeTruthy();
+    expect(closing?.querySelector(".closing-sub")?.textContent).toBe("Let's get you started.");
     expect(closing?.querySelector("a")?.getAttribute("href")).toBe("/start");
     expect(screen.getByRole("link", { name: "More about DROP Texas >" }).getAttribute("href")).toBe("/about");
     expect(document.getElementById("how-drop-works")).toBeNull();

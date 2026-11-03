@@ -51,7 +51,7 @@ export function Stats() {
   const ref = useRef<HTMLElement>(null);
   const reduced = usePrefersReducedMotion();
   const [started, setStarted] = useState(false);
-  const stats = visibleCitedStats();
+  const stats = visibleCitedStats().filter((stat) => stat.id !== "breach-cost");
 
   useEffect(() => {
     if (reduced) {
@@ -86,7 +86,14 @@ export function Stats() {
         {stats.map((stat) => (
           <li key={stat.id} data-stat={stat.id}>
             <StatValue stat={stat} started={started} reduced={reduced} />
-            <p className="stat-label">{stat.label}</p>
+            <p className="stat-label">
+              {stat.lines.map((line, index) => (
+                <span key={`${stat.id}-${index}`}>
+                  {index > 0 ? <br /> : null}
+                  {line}
+                </span>
+              ))}
+            </p>
             <a
               className="stat-source"
               href={stat.sourceUrl}
@@ -98,10 +105,6 @@ export function Stats() {
             </a>
           </li>
         ))}
-        <li data-stat="optouts">
-          <p className="stat-value stat-pending">Coming soon</p>
-          <p className="stat-label">Opt-outs filed</p>
-        </li>
       </ul>
       <AppLink className="stats-more" href="/about">
         More about DROP Texas &gt;

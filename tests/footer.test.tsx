@@ -1,6 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
+import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,9 +63,12 @@ describe("site footer", () => {
       await user.click(button);
       expect(button.getAttribute("aria-expanded")).toBe("true");
       const panel = document.getElementById(button.getAttribute("aria-controls") ?? "");
-      expect(panel?.hidden).toBe(false);
+      expect(panel?.classList.contains("is-open")).toBe(true);
+      expect(panel?.hasAttribute("inert")).toBe(false);
       await user.click(button);
       expect(button.getAttribute("aria-expanded")).toBe("false");
+      expect(panel?.classList.contains("is-open")).toBe(false);
+      expect(panel?.hasAttribute("inert")).toBe(true);
     }
 
     const links = [...document.querySelectorAll(".site-footer a")];
@@ -75,5 +79,26 @@ describe("site footer", () => {
       else expect(href).toBe(TEXAS_STATUTE_URL);
     }
     expect(FOOTER_DESKTOP_ROWS.flat().every((link) => ROUTES.has(link.href))).toBe(true);
+  });
+
+  it("uses flat solid colors", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    const footer = css.slice(css.indexOf(".site-footer {"), css.indexOf(".text-link"));
+    expect(footer).toContain("background: #f5f6f8");
+    expect(footer).toContain("background: #0c1220");
+    expect(footer).not.toContain("linear-gradient");
+    expect(footer).not.toContain("radial-gradient");
+  });
+
+  it("rotates the chevron a half turn and slides the panel", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    expect(css).toContain("transform: rotate(45deg)");
+    expect(css).toContain("transform: rotate(225deg)");
+    expect(css).toContain("grid-template-rows: 0fr");
+    expect(css).toContain("grid-template-rows: 1fr");
+    expect(css).toContain("min-height: 0");
+    expect(css).toContain("-webkit-tap-highlight-color: transparent");
+    const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reduced).toContain(".footer-toggle::after,\n  .footer-panel {\n    transition: none;");
   });
 });

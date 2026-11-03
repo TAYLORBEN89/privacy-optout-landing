@@ -13,17 +13,14 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       <section id="overview" className="hero" aria-labelledby="page-title">
         <div className="hero-inner">
             <h1 id="page-title">Privacy is a right.</h1>
-            <p className="hero-sub">Let's get you started.</p>
-            <p className="lede">
-              DROP Texas is a free service for Texans to request data brokers not sell their personal information.
-            </p>
-            <p className="lede note">
-              If you live in Texas, check the box. That means the Texas Data Privacy and Security Act
-              (TDPSA). If you live somewhere else, you can still submit. An unchecked box still uses
-              TDPSA for now, and the request is marked non-Texas.
+            <h2 className="hero-sub">Let's get you started.</h2>
+            <p className="lede hero-line">
+              <span className="hero-rule">DROP Texas is a free service that helps you </span>
+              <span className="hero-rule">gain control of your data. </span>
+              <span className="hero-rule">Your data. Your rules.</span>
             </p>
             <AppLink className="cta" href={getStartedHref}>
-              Start Removing Me
+              Start my opt-out
             </AppLink>
         </div>
       </section>
@@ -51,9 +48,9 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           <h2 id="personal-heading">Your information, protected</h2>
           <p className="personal-sub">Only what we need. Nothing more.</p>
           <p className="personal-body">
-            We ask for your name, mailing address, email, Texas residency, and, if you choose, your
-            phone number. We use them to find your listings and to fill in the opt-out requests you send to
-            brokers. We never sell your data.
+            <span className="personal-line">Your information is encrypted in transit and never sold.</span>{" "}
+            <span className="personal-line">We ask only for your name, date of birth, address,</span>{" "}
+            <span className="personal-line">email, phone and Texas residency.</span>
           </p>
           <p className="personal-preview">{storageNotice()}</p>
           <AppLink className="cta" href="/privacy">
@@ -72,8 +69,9 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
 
       <section className="closing" aria-labelledby="closing-heading">
         <h2 id="closing-heading">Ready to take back your privacy?</h2>
+        <p className="closing-sub">Let's get you started.</p>
         <AppLink className="cta" href={getStartedHref}>
-          Start Removing Me
+          Start my opt-out
         </AppLink>
       </section>
     </>

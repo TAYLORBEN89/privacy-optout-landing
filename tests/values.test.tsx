@@ -26,7 +26,7 @@ describe("about us values", () => {
     ).toBeTruthy();
     expect(
       screen.getByText(
-        "We collect just enough to fill in the requests you send: your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. Nothing more.",
+        "We collect just enough to fill in the requests you send: your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. Nothing more.",
       ),
     ).toBeTruthy();
     expect(
@@ -62,9 +62,17 @@ describe("about us values", () => {
     expect(card).toContain("margin: -80px auto 0");
     expect(card).toContain("border-radius: 16px");
     expect(card).toContain("width: min(720px, calc(100% - 32px))");
+    expect(card).toContain("padding: 40px 28px 64px");
+    expect(card).toContain("box-shadow: 0 8px 18px rgba(16, 16, 16, 0.06)");
     const wide = css.slice(css.indexOf(".values-card {", css.indexOf("@media (min-width: 900px)")));
     expect(wide).toContain("width: min(1000px, calc(100% - 48px))");
+    expect(wide).toContain("padding: 48px 48px 80px");
     expect(wide).toContain("grid-template-columns: 1fr 1fr");
+    const item = css.slice(css.indexOf(".values-list li {"), css.indexOf(".values-icon"));
+    expect(item).toContain("flex-direction: column");
+    expect(item).toContain("text-align: left");
+    const icon = css.slice(css.indexOf(".values-icon {"), css.indexOf(".values-list li > div"));
+    expect(icon).toContain("align-self: flex-start");
     const title = css.slice(css.indexOf(".values-list h3 {"), css.indexOf(".values-list p"));
     expect(title).toContain("font-size: 28px");
     expect(title).toContain("font-weight: 400");

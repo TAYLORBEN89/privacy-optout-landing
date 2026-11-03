@@ -13,20 +13,33 @@ function Topic({
   title,
   description,
   heading,
+  tone,
+  ctaHref = "/start",
+  ctaLabel = "Start my opt-out",
   children,
 }: {
   title: string;
   description: string;
   heading: string;
+  tone: string;
+  ctaHref?: string;
+  ctaLabel?: string;
   children: ReactNode;
 }) {
   return (
-    <article className="panel topic-page">
+    <article className={`panel topic-page topic-${tone}`}>
       <PageMeta title={`${title} · DROP Texas`} description={description} />
-      <h1>{heading}</h1>
+      <header className="topic-hero">
+        <div className="topic-shapes" aria-hidden="true">
+          <span className="shape shape-a" />
+          <span className="shape shape-b" />
+          <span className="shape shape-c" />
+        </div>
+        <h1>{heading}</h1>
+      </header>
       {children}
-      <AppLink className="cta" href="/start">
-        Start Removing Me
+      <AppLink className="cta" href={ctaHref}>
+        {ctaLabel}
       </AppLink>
       <p className="independence">{DISCLAIMER}</p>
     </article>
@@ -38,9 +51,9 @@ export function OverviewPage() {
     <Topic
       title="Overview"
       heading="Overview"
-      description="DROP Texas is a free service for Texans to request data brokers not sell their personal information."
+      tone="overview"
+      description="What DROP Texas does, and what an opt-out request is."
     >
-      <p>{SHARE_TEXT}</p>
       <p>
         DROP Texas gives you free tools to send opt-out and deletion requests to data brokers and track every reply. You send each request yourself. An opt-out
         request asks a data broker not to sell your personal information. DROP Texas does not check
@@ -59,6 +72,7 @@ export function HowItWorksPage() {
     <Topic
       title="How it works"
       heading="How DROP works"
+      tone="how"
       description="Free tools to send opt-out and deletion requests to data brokers and track every reply."
     >
       <p>Three steps. You can stop at any time before you submit.</p>
@@ -70,8 +84,8 @@ export function HowItWorksPage() {
         <li>
           <h2>Enter the details the request uses</h2>
           <p>
-            The form asks for your name, mailing address, email, Texas residency, and (if you choose to
-            provide it) your phone number. Most broker opt-out forms require a physical address. The form
+            The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
+            provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. Most broker opt-out forms require a physical address. The form
             does not ask for a device ID, a password, or a government ID number.
           </p>
         </li>
@@ -89,11 +103,12 @@ export function PersonalInformationPage() {
     <Topic
       title="Personal information"
       heading="Personal information"
-      description="The form asks for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
+      tone="personal"
+      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address."
     >
       <p>
-        The form asks for your name, mailing address, email, Texas residency, and (if you choose to
-        provide it) your phone number.
+        The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
+        provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.
       </p>
       <p>DROP Texas does not sell that information.</p>
       <p>
@@ -108,6 +123,7 @@ export function DataBrokersPage() {
     <Topic
       title="Data brokers"
       heading="Data brokers"
+      tone="brokers"
       description="An opt-out request asks a data broker not to sell your personal information. DROP Texas does not check that a record was deleted."
     >
       <p>
@@ -141,15 +157,16 @@ export function UniqueIdentifiersPage() {
     <Topic
       title="Unique identifiers"
       heading="Unique identifiers"
-      description="The form asks for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number."
+      tone="identifiers"
+      description="The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address."
     >
       <p>
         Some brokers match people with extra identifiers. This form does not ask for device IDs, account
         passwords, or government ID numbers.
       </p>
       <p>
-        The form asks for your name, mailing address, email, Texas residency, and (if you choose to
-        provide it) your phone number.
+        The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
+        provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.
       </p>
       <p>
         The <AppLink href="/brokers">brokers page</AppLink> lists categories each company names in its own
@@ -164,6 +181,7 @@ export function TdpsaPage() {
     <Topic
       title="TDPSA"
       heading="The Texas Data Privacy and Security Act"
+      tone="tdpsa"
       description="A plain-English summary of consumer rights in Texas Business and Commerce Code chapter 541."
     >
       <p>
@@ -227,6 +245,7 @@ export function HelpPage() {
     <Topic
       title="Help"
       heading="Help"
+      tone="help"
       description="Answers about signup, request statuses, and the Texas Data Privacy and Security Act."
     >
       {/* TODO: no support email is configured. Do not invent a contact address on this page. */}
@@ -242,8 +261,8 @@ export function HelpPage() {
         <details>
           <summary>What do I enter?</summary>
           <p>
-            The form asks for your name, mailing address, email, Texas residency, and (if you choose to
-            provide it) your phone number. The page needs JavaScript to show the form.
+            The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to
+            provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address. The page needs JavaScript to show the form.
           </p>
         </details>
         <details>
@@ -293,6 +312,7 @@ export function SharePage() {
     <Topic
       title="Share"
       heading="Share DROP Texas"
+      tone="share"
       description="Share https://droptexas.com by copying the link, or with email, X, or Facebook."
     >
       <p>You can share this private service at {SITE}.</p>
@@ -310,6 +330,112 @@ export function SharePage() {
           Share on Facebook
         </a>
       </div>
+    </Topic>
+  );
+}
+
+export function ChildrenPage() {
+  return (
+    <Topic
+      title="Protecting children's information"
+      heading="Protecting children's information"
+      tone="children"
+      description="Sourced notes on children's information, Texas law, and how a parent can send a request for a child under 13."
+      ctaHref="/start?for=child"
+    >
+      <h2>Students' information offered for sale</h2>
+      <p>
+        In 2019, a New Jersey data broker, ALC Inc., advertised a list of 1.2 million students aged 14–17 with names,
+        addresses, high schools, and hobbies, at $100 per 1,000 records.{" "}
+        <a
+          href="https://www.inquirer.com/business/technology/alc-princeton-data-broker-personal-info-million-kids-vermont-law-20190319.html"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          The Philadelphia Inquirer
+        </a>
+        .
+      </p>
+      <h2>Brokers that say they sell minors' data</h2>
+      <p>
+        24 of 480 data brokers registered in California disclosed that they sell minors' data.{" "}
+        <a
+          href="https://therecord.media/dozens-of-data-brokers-disclose-selling-info-on-kids-geolocation-data-reproductive-health"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          The Record
+        </a>
+        .
+      </p>
+      <h2>Edmodo</h2>
+      <p>
+        In 2023 the FTC said ed-tech provider Edmodo collected students' personal information, including names, emails,
+        dates of birth, phone numbers, and device IDs, without parental consent and used it for advertising.{" "}
+        <a
+          href="https://www.ftc.gov/news-events/news/press-releases/2023/05/ftc-says-ed-tech-provider-edmodo-unlawfully-used-childrens-personal-information-advertising"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Federal Trade Commission
+        </a>
+        .
+      </p>
+      <h2>OpenX</h2>
+      <p>
+        In 2021 the FTC said the ad exchange OpenX would pay $2 million to settle allegations that it collected
+        personal information from children under 13 without parental consent. The FTC also said OpenX collected
+        geolocation information from users who asked not to be tracked, and that child-directed apps took part in its
+        ad exchange.{" "}
+        <a
+          href="https://www.ftc.gov/news-events/news/press-releases/2021/12/advertising-platform-openx-will-pay-2-million-collecting-personal-information-children-violation"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Federal Trade Commission
+        </a>
+        .
+      </p>
+      <h2>Kurbo by WW</h2>
+      <p>
+        In 2022 the FTC acted against WW International, formerly Weight Watchers, and its Kurbo app for collecting
+        personal information from children under 13 without parental permission. The settlement requires a $1.5 million
+        penalty, deletion of that personal information, and destruction of algorithms derived from it.{" "}
+        <a
+          href="https://www.ftc.gov/news-events/news/press-releases/2022/03/ftc-takes-action-against-company-formerly-known-weight-watchers-illegally-collecting-kids-sensitive"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Federal Trade Commission
+        </a>
+        .
+      </p>
+      <h2>Texas privacy law</h2>
+      <p>
+        Under the Texas Data Privacy and Security Act, Texas Business and Commerce Code chapter 541, a child is under
+        13 (section 541.001). Data collected from a known child is sensitive data. A parent or legal guardian may
+        exercise the consumer rights on behalf of a child (section 541.051), including asking a company to delete data
+        or stop selling it. Companies may ask for verification (section 541.052).{" "}
+        <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
+          Texas Business and Commerce Code chapter 541
+        </a>
+        .
+      </p>
+      <h2>Texas data broker law</h2>
+      <p>
+        Under Texas Business and Commerce Code chapter 510, a registered data broker that knowingly holds a known
+        child's data must disclose how it collects and sells that data and how it handles opt-outs (section 510.005).{" "}
+        <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.510.htm" target="_blank" rel="noopener noreferrer">
+          Texas Business and Commerce Code chapter 510
+        </a>
+        .
+      </p>
+      <h2>How DROP Texas helps</h2>
+      <p>
+        A parent or legal guardian can choose My child on the request form for a child under 13. DROP Texas sends the
+        requests for free. Companies decide how to respond, and they may ask for proof of guardianship.
+      </p>
+      <p>Teens who are 13 to 17 can submit a request for themselves.</p>
     </Topic>
   );
 }

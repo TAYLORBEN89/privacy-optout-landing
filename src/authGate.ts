@@ -22,8 +22,12 @@ export function accountsLive(raw?: string): boolean {
   return value === "true" || value === "1";
 }
 
-export function startHref(gateEnabled: boolean, signedIn: boolean): string {
-  if (!gateEnabled || signedIn) return "/start";
+export function startHref(
+  gateEnabled: boolean,
+  signedIn: boolean,
+  live: boolean = accountsLive(),
+): string {
+  if (!live || !gateEnabled || signedIn) return "/start";
   return SIGN_IN_HREF;
 }
 
@@ -32,8 +36,9 @@ export type StartAction = "loading" | "form" | "redirect" | "unavailable";
 export function startPageAction(
   gateEnabled: boolean,
   meStatus: number | "loading" | "error",
+  live: boolean = accountsLive(),
 ): StartAction {
-  if (!gateEnabled) return "form";
+  if (!gateEnabled || !live) return "form";
   if (meStatus === "loading") return "loading";
   if (meStatus === 200) return "form";
   if (meStatus === 401) return "redirect";

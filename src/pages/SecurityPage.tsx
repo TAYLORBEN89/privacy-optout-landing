@@ -7,7 +7,7 @@ export function SecurityPage() {
       <h1>{TRUST_LABEL}</h1>
       <p className="todo">TODO: replace this placeholder with final security copy before launch.</p>
       <h2>Data minimization</h2>
-      <p>The form asks for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number.</p>
+      <p>The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.</p>
       <h2>What is stored</h2>
       <p>
         The design stores only those form fields. {storageNotice()}
@@ -21,7 +21,7 @@ export function SecurityPage() {
       <h2>No selling</h2>
       <p>We do not sell your data.</p>
       <h2>Standards</h2>
-      <p>DROP Texas is built to SOC 2 standards. It is not audited and not certified.</p>
+      <p>DROP Texas is built to SOC 2 standards. That is not a certification claim.</p>
       <p className="independence">{DISCLAIMER}</p>
     </article>
   );

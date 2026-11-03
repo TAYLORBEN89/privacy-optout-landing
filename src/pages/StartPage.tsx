@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { SignupForm } from "../SignupForm";
-import { DISCLAIMER } from "../copy";
 import { type StartAction, signInHrefFor } from "../authGate";
 import { AuthErrorNotice } from "../components/AuthErrorNotice";
 
@@ -21,7 +20,6 @@ export function StartPage({
 
   let body = (
     <section className="form-section" aria-labelledby="form-heading">
-      <p className="note">{DISCLAIMER}</p>
       <SignupForm />
     </section>
   );

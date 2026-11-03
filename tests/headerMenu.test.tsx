@@ -16,6 +16,9 @@ describe("header menu", () => {
     render(
       <Header signedIn={false} csrf={null} signInHref={signInHrefFor("/start")} accountsLive onSignedOut={() => undefined} />,
     );
+    const home = screen.getByRole("link", { name: /DROP Texas/ });
+    expect(home.getAttribute("href")).toBe("/");
+    expect(home.className).toBe("brand-home");
     const link = screen.getByRole("link", { name: "Account" });
     expect(link.getAttribute("href")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
     expect(link.className).toBe("account-button");

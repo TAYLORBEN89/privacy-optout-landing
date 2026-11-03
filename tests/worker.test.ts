@@ -3,8 +3,13 @@ import { validateSignup } from "../shared/signup";
 import { handleRequest } from "../worker/handle";
 
 const valid = {
-  fullName: "Ada Lovelace",
-  mailingAddress: "123 Main St, Austin, TX 78701",
+  firstName: "Ada",
+  lastName: "Lovelace",
+  dob: "1990-01-15",
+  addressLine1: "123 Main St",
+  city: "Austin",
+  state: "TX",
+  zip: "78701",
   email: "ada@example.com",
   texasResident: false,
 };
@@ -42,10 +47,59 @@ describe("POST /api/signup", () => {
     expect(await response.json()).toEqual({ ok: true });
   });
 
+  it("rejects a missing or impossible date of birth with the shared error", async () => {
+    for (const dob of [undefined, "2024-02-31"]) {
+      const body = { ...valid, dob };
+      const expected = validateSignup(body);
+      const response = await handleRequest(post(body), assets());
+      const payload = (await response.json()) as { errors: { dob?: { code: string; message: string } } };
+      expect(response.status).toBe(400);
+      expect(expected.ok).toBe(false);
+      if (!expected.ok) {
+        expect(payload.errors.dob?.code).toBe(expected.errors.dob?.code);
+        expect(payload.errors.dob?.message).toBe(expected.errors.dob?.message);
+      }
+    }
+  });
+
+  it("rejects a child request that breaks the age or attestation rules", async () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const latest = `${y}-${m}-${d}`;
+    const body = {
+      ...valid,
+      dob: latest,
+      submitter: "child",
+      guardianAttestation: false,
+      child: { firstName: "Grace", lastName: "Hopper", dob: latest, sameAddress: true },
+    };
+    const expected = validateSignup(body);
+    const response = await handleRequest(post(body), assets());
+    const payload = (await response.json()) as { errors: Record<string, { code: string }> };
+    expect(response.status).toBe(400);
+    expect(expected.ok).toBe(false);
+    if (!expected.ok) {
+      expect(payload.errors.dob?.code).toBe(expected.errors.dob?.code);
+      expect(payload.errors.guardianAttestation?.code).toBe(expected.errors.guardianAttestation?.code);
+    }
+
+    const selfBody = { ...valid, submitter: "self", child: { firstName: "Grace" } };
+    const selfResponse = await handleRequest(post(selfBody), assets());
+    const selfPayload = (await selfResponse.json()) as { errors: { submitter?: { code: string } } };
+    expect(selfResponse.status).toBe(400);
+    expect(selfPayload.errors.submitter?.code).toBe("unexpected");
+  });
+
   it("returns the shared schema errors for a bad body", async () => {
     const body = {
-      fullName: "Ada",
-      mailingAddress: "nope",
+      firstName: "",
+      lastName: "Lovelace",
+      addressLine1: "",
+      city: "Austin",
+      state: "ZZ",
+      zip: "7870",
       email: "nope",
       texasResident: "yes",
     };
@@ -58,8 +112,10 @@ describe("POST /api/signup", () => {
     expect(response.status).toBe(400);
     expect(expected.ok).toBe(false);
     if (!expected.ok) {
-      expect(payload.errors.fullName.code).toBe(expected.errors.fullName?.code);
-      expect(payload.errors.mailingAddress.code).toBe(expected.errors.mailingAddress?.code);
+      expect(payload.errors.firstName.code).toBe(expected.errors.firstName?.code);
+      expect(payload.errors.addressLine1.code).toBe(expected.errors.addressLine1?.code);
+      expect(payload.errors.state.code).toBe(expected.errors.state?.code);
+      expect(payload.errors.zip.code).toBe(expected.errors.zip?.code);
       expect(payload.errors.email.code).toBe(expected.errors.email?.code);
       expect(payload.errors.texasResident.code).toBe(expected.errors.texasResident?.code);
     }
@@ -91,7 +147,7 @@ describe("POST /api/signup", () => {
   });
 
   it("rejects an oversized body before treating it as field data", async () => {
-    const huge = JSON.stringify({ ...valid, fullName: "A".repeat(9000) + " B" });
+    const huge = JSON.stringify({ ...valid, firstName: "A".repeat(9000) });
     const response = await handleRequest(post(huge), assets());
     expect(response.status).toBe(413);
     const payload = (await response.json()) as { form: { code: string } };
@@ -108,8 +164,10 @@ describe("POST /api/signup", () => {
     });
 
     const body = {
-      fullName: "Zephyr Quill",
-      mailingAddress: "500 Secret Hollow, Austin, TX 78701",
+      ...valid,
+      firstName: "Zephyr",
+      lastName: "Quill",
+      addressLine1: "500 Secret Hollow",
       email: "zephyr.quill@example.com",
       texasResident: true,
       ssn: "123-45-6789",
@@ -218,6 +276,7 @@ describe("POST /api/signup", () => {
       "/data-brokers",
       "/unique-identifiers",
       "/tdpsa",
+      "/children",
       "/help",
       "/share",
       "/start",

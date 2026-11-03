@@ -1,6 +1,5 @@
 import { TDPSA_POINTS } from "../data/rights";
-
-const STATUTE_URL = "https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm";
+import { AppLink } from "../router";
 
 function Check() {
   return (
@@ -28,9 +27,9 @@ export function RightsSection() {
         ))}
       </ul>
       <p className="rights-note">This is a plain-English summary, not legal advice.</p>
-      <a className="rights-law" href={STATUTE_URL} target="_blank" rel="noopener noreferrer">
-        Read the full law &gt;
-      </a>
+      <AppLink className="rights-law" href="/about">
+        About DROP Texas &gt;
+      </AppLink>
     </section>
   );
 }

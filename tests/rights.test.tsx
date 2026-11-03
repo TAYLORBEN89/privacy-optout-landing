@@ -7,8 +7,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { RightsSection } from "../src/components/Rights";
 import { TDPSA_POINTS, tdpsaRightCount } from "../src/data/rights";
 
-const STATUTE = "https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm";
-
 afterEach(() => {
   cleanup();
 });
@@ -27,7 +25,7 @@ describe("your rights", () => {
     expect(TDPSA_POINTS.find((point) => point.id === "response")?.consumerRight).toBe(false);
   });
 
-  it("lists only verified TDPSA points and links to the statute", () => {
+  it("lists only verified TDPSA points and links to About", () => {
     render(<RightsSection />);
     expect(screen.getByRole("heading", { name: "Your rights under the TDPSA" })).toBeTruthy();
     expect(screen.getByText(/gives Texans rights over the personal data/)).toBeTruthy();
@@ -45,10 +43,9 @@ describe("your rights", () => {
     ]);
     expect(document.querySelectorAll(".rights-check")).toHaveLength(9);
     expect(screen.getByText("This is a plain-English summary, not legal advice.")).toBeTruthy();
-    const law = screen.getByRole("link", { name: "Read the full law >" });
-    expect(law.getAttribute("href")).toBe(STATUTE);
-    expect(law.getAttribute("target")).toBe("_blank");
-    expect(law.getAttribute("rel")).toBe("noopener noreferrer");
+    const law = screen.getByRole("link", { name: "About DROP Texas >" });
+    expect(law.getAttribute("href")).toBe("/about");
+    expect(law.getAttribute("target")).toBeNull();
     expect(document.querySelector("blockquote")).toBeNull();
   });
 

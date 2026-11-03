@@ -5,16 +5,15 @@ const CARDS = [
   {
     id: "overview",
     tag: "Overview",
-    headline: "What DROP Texas is",
-    description:
-      "DROP Texas is a free service for Texans to request data brokers not sell their personal information.",
+    headline: "Take back your privacy for free",
+    description: "Ask brokers to stop selling your information at no cost.",
     button: "See the overview",
     href: "/overview",
   },
   {
     id: "how-drop-works",
     tag: "How it works",
-    headline: "Three steps to opt out",
+    headline: "Save hours of paperwork",
     description: "Free tools to send opt-out and deletion requests to data brokers and track every reply.",
     button: "See how it works",
     href: "/how-it-works",
@@ -22,38 +21,42 @@ const CARDS = [
   {
     id: "personal-information",
     tag: "Personal information",
-    headline: "Only what the form needs",
-    description:
-      "We ask for your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. We do not sell those details.",
+    headline: "Share less to protect more",
+    description: "We collect the minimum and never sell it.",
     button: "See what we ask",
     href: "/personal-information",
   },
   {
     id: "data-brokers",
     tag: "Data brokers",
-    headline: "Requests go to named brokers",
-    description:
-      "Opt-out requests can go to Acxiom, Experian, Equifax, TransUnion, Spokeo, Whitepages, and others named on this page.",
+    headline: "Fewer lists with your name on them",
+    description: "Reach the companies that trade your address and phone.",
     button: "See the brokers",
     href: "/data-brokers",
   },
   {
     id: "unique-identifiers",
     tag: "Unique identifiers",
-    headline: "How a record is matched",
-    description:
-      "Brokers often use an email, a phone number, or another ID. This form uses your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number.",
+    headline: "Get matched correctly",
+    description: "The right details help brokers find the right record.",
     button: "See the identifiers",
     href: "/unique-identifiers",
   },
   {
     id: "tdpsa",
     tag: "TDPSA",
-    headline: "A Texas privacy law",
-    description:
-      "The Texas box means the Texas Data Privacy and Security Act. An unchecked box still uses TDPSA for now and is marked non-Texas.",
+    headline: "Know your rights work for you",
+    description: "Texas law gives you the right to opt out of the sale of your data.",
     button: "Read about TDPSA",
     href: "/tdpsa",
+  },
+  {
+    id: "children",
+    tag: "Children",
+    headline: "Protect your children's information",
+    description: "Shield kids' personal information from web abuse and predators.",
+    button: "Learn more",
+    href: "/children",
   },
 ] as const;
 

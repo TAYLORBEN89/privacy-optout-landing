@@ -1,4 +1,4 @@
-import type { SignupField, SignupIssues } from "../shared/signup";
+import { SIGNUP_FIELDS, type SignupField, type SignupIssues } from "../shared/signup";
 
 /**
  * Lightweight product events. Payloads name the event, field, and error code.
@@ -26,8 +26,7 @@ export function track(event: AnalyticsEvent): void {
 
 export function fieldErrorEvents(errors: SignupIssues): AnalyticsEvent[] {
   const events: AnalyticsEvent[] = [];
-  const fields: SignupField[] = ["fullName", "mailingAddress", "email", "texasResident"];
-  for (const field of fields) {
+  for (const field of SIGNUP_FIELDS) {
     const issue = errors[field];
     if (!issue) continue;
     events.push({ event: "field_error", field, code: issue.code });

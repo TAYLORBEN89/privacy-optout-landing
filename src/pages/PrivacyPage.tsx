@@ -1,4 +1,4 @@
-import { DISCLAIMER } from "../copy";
+import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE, DISCLAIMER } from "../copy";
 
 /**
  * REVIEW: Cybersecurity and Compliance Agents must review this copy before launch.
@@ -8,35 +8,18 @@ import { DISCLAIMER } from "../copy";
  */
 
 const COLLECTED =
-  "your name, mailing address, email, Texas residency, and (if you choose to provide it) your phone number";
+  "your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number";
 
-const SECTIONS: { title: string; paragraphs: string[] }[] = [
+const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
+    id: "collect",
     title: "Data we collect",
     paragraphs: [
       `The form asks for ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
-      "If you provide a phone number, it is used only to match and locate your records in the opt-out, do-not-sell, and deletion requests you send to data brokers. DROP Texas does not send requests for you today. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers you choose to send those requests to.",
-    ],
-  },
-  {
-    title: "Encryption in transit",
-    paragraphs: ["Every page and API call is served over HTTPS with TLS through Cloudflare."],
-  },
-  {
-    title: "Encryption at rest",
-    paragraphs: ["Information that is saved is stored in Cloudflare Workers KV, which Cloudflare encrypts at rest. Planned, not live yet: moving storage to Cloudflare D1 and adding our own AES-GCM encryption of identifiers."],
-  },
-  {
-    title: "Secure sign-in",
-    paragraphs: ["Planned, not live yet: per-user accounts with Google or Microsoft sign-in at accounts.droptexas.com, TOTP two-factor sign-in, HttpOnly __Host- session cookies, CSRF protection, rate limiting, and a security audit log."],
-  },
-  {
-    title: "Your controls",
-    paragraphs: ["Planned, not live yet: exporting your data, deleting your account, signing out of other sessions, and a daily job that deletes data when its retention period ends."],
-  },
-  {
-    title: "How long we keep things",
-    paragraphs: [
+      "For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.",
+      "If you provide a phone number, it is used only to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
+      "DROP Texas does not send requests for you today.",
+      "We keep what you give us only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
       "Planned, not yet automated. This is the approved schedule; the daily job that enforces it is approved but not live yet.",
       "An account phone number is kept while your account is active and deleted with the account, either when you ask or after 24 months without a sign-in (with a warning email 30 days before). A phone number copied into a specific broker request is deleted 30 days after the broker confirms, and never kept more than 90 days.",
       "Other identifiers copied into a request (name, addresses, emails) are deleted 30 days after the broker confirms, and never kept more than 90 days.",
@@ -47,16 +30,33 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
     ],
   },
   {
+    id: "transit",
+    title: "Encryption in transit",
+    paragraphs: ["Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare."],
+  },
+  {
+    id: "rest",
+    title: "Encryption at rest",
+    paragraphs: ["Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256)."],
+  },
+  {
+    id: "coming-soon",
+    title: ACCOUNTS_COMING_SOON_TITLE,
+    paragraphs: [ACCOUNTS_COMING_SOON],
+  },
+  {
+    id: "limits",
     title: "What we don't do",
     paragraphs: ["We do not sell your data. This site does not load advertising trackers."],
   },
   {
+    id: "compliance",
     title: "Compliance",
-    paragraphs: ["DROP Texas is built to SOC 2 standards. It is not audited and not certified."],
+    paragraphs: ["DROP Texas is built to SOC 2 standards. Not audited, not certified."],
   },
 ];
 
-function SectionIcon({ index }: { index: number }) {
+function SectionIcon({ id }: { id: string }) {
   const common = {
     viewBox: "0 0 24 24",
     width: 28,
@@ -67,15 +67,16 @@ function SectionIcon({ index }: { index: number }) {
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
     "aria-hidden": true as const,
+    "data-icon": id,
   };
-  if (index === 0) {
+  if (id === "collect") {
     return (
       <svg {...common}>
         <path d="M8 7h8M8 12h8M8 17h5" />
       </svg>
     );
   }
-  if (index === 1) {
+  if (id === "transit") {
     return (
       <svg {...common}>
         <rect x="5" y="11" width="14" height="9" rx="2" />
@@ -83,7 +84,7 @@ function SectionIcon({ index }: { index: number }) {
       </svg>
     );
   }
-  if (index === 2) {
+  if (id === "rest") {
     return (
       <svg {...common}>
         <ellipse cx="12" cy="7" rx="7" ry="3" />
@@ -92,24 +93,15 @@ function SectionIcon({ index }: { index: number }) {
       </svg>
     );
   }
-  if (index === 3) {
+  if (id === "coming-soon") {
     return (
       <svg {...common}>
-        <circle cx="12" cy="8" r="3" />
-        <path d="M6 19c1.2-3.2 3.4-4.8 6-4.8s4.8 1.6 6 4.8" />
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 8v4l3 2" />
       </svg>
     );
   }
-  if (index === 4) {
-    return (
-      <svg {...common}>
-        <path d="M12 4v10" />
-        <path d="m8 10 4 4 4-4" />
-        <path d="M6 18h12" />
-      </svg>
-    );
-  }
-  if (index === 5) {
+  if (id === "limits") {
     return (
       <svg {...common}>
         <circle cx="12" cy="12" r="8" />
@@ -129,9 +121,9 @@ export function PrivacyPage() {
     <article className="panel privacy-page">
       <h1>Privacy & Security</h1>
       <ul className="privacy-list">
-        {SECTIONS.map((section, index) => (
-          <li key={section.title}>
-            <SectionIcon index={index} />
+        {SECTIONS.map((section) => (
+          <li key={section.id}>
+            <SectionIcon id={section.id} />
             <div>
               <h2>{section.title}</h2>
               {section.paragraphs.map((paragraph) => (

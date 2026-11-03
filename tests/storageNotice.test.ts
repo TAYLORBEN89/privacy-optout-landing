@@ -11,7 +11,7 @@ describe("storage notice", () => {
   it("keeps the preview note until storage is live", () => {
     expect(STORAGE_LIVE).toBe(false);
     expect(storageNotice()).toBe(STORAGE_PREVIEW_NOTE);
-    expect(storageNotice()).toBe("This preview checks your details and does not store them yet.");
+    expect(storageNotice()).toBe("This is a preview. Nothing you enter is saved yet.");
     expect(submissionConfirmation()).toBe("Confirmation received.");
   });
 

@@ -2,12 +2,13 @@
  * @vitest-environment happy-dom
  */
 import { readFileSync } from "node:fs";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { exportAccount, linkIdentity, optOutLabel, patchDisplayName, submitStart, unlinkIdentity, type OptOutRecord } from "../src/api/account";
 import { isStepUpRequired, stepUpChoices } from "../src/api/stepUp";
 import { LOGOUT_PATH } from "../src/api";
+import { App } from "../src/App";
 import { fetchMe, signInHrefFor, type MeOk } from "../src/authGate";
 import { Header } from "../src/Header";
 import { AccountPage, AccountView } from "../src/pages/AccountPage";
@@ -15,6 +16,7 @@ import { AccountPage, AccountView } from "../src/pages/AccountPage";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 const me: MeOk = {
@@ -463,5 +465,128 @@ describe("account dashboard", () => {
     expect(screen.getByText("Profile could not be loaded.")).toBeTruthy();
     expect(screen.getByText("Sessions could not be loaded.")).toBeTruthy();
     expect(screen.getByText("No reminders yet")).toBeTruthy();
+  });
+});
+
+const otherSession = {
+  id: "sess-2",
+  auth_method: "microsoft",
+  created_at: 1_700_000_000,
+  last_seen_at: 1_700_000_100,
+  expires_at: 1_700_100_000,
+  current: false,
+};
+
+function accountFetch(
+  onCall: (url: string, init?: RequestInit) => Response | Promise<Response>,
+): typeof fetch {
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
+    if (url.endsWith("/api/account/optouts")) return json(200, { optouts: [] });
+    if (url.endsWith("/api/account/sessions") && !url.includes("/revoke")) {
+      return json(200, { sessions: [otherSession] });
+    }
+    return onCall(url, init);
+  }) as typeof fetch;
+}
+
+describe("session revoke and account delete", () => {
+  it("revokes a session with the csrf token and removes the row", async () => {
+    const user = userEvent.setup();
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchImpl = accountFetch(async (url, init) => {
+      calls.push({ url, init });
+      if (url.endsWith("/api/account/sessions/sess-2/revoke")) return json(200, { ok: true });
+      return json(404, { error: "not_found" });
+    });
+    render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} />);
+    await user.click(await screen.findByRole("button", { name: "Revoke" }));
+    await waitFor(() => {
+      expect(calls.some((call) => call.url.endsWith("/api/account/sessions/sess-2/revoke"))).toBe(true);
+    });
+    const revoke = calls.find((call) => call.url.endsWith("/api/account/sessions/sess-2/revoke"));
+    expect(revoke?.init?.method).toBe("POST");
+    expect(revoke?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
+    expect(await screen.findByText("No sessions yet")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Revoke" })).toBeNull();
+  });
+
+  it("opens step-up when revoke returns 403 step_up_required and shows an error otherwise", async () => {
+    const user = userEvent.setup();
+    let mode: "step" | "error" = "step";
+    const fetchImpl = accountFetch(async (url) => {
+      if (!url.endsWith("/api/account/sessions/sess-2/revoke")) return json(404, { error: "not_found" });
+      if (mode === "step") return json(403, { error: "step_up_required" });
+      return json(500, { error: "nope" });
+    });
+    const view = render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} />);
+    await user.click(await screen.findByRole("button", { name: "Revoke" }));
+    expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Revoke" })).toBeTruthy();
+
+    mode = "error";
+    view.unmount();
+    render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} />);
+    await user.click(await screen.findByRole("button", { name: "Revoke" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Could not revoke that session.");
+    expect(screen.queryByRole("dialog", { name: "Confirm it's you" })).toBeNull();
+  });
+
+  it("does not delete until confirmed, then posts and leaves, or asks for step-up", async () => {
+    const user = userEvent.setup();
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const goTo = vi.fn();
+    let stepUp = false;
+    const fetchImpl = accountFetch(async (url, init) => {
+      calls.push({ url, init });
+      if (!url.endsWith("/api/account/delete")) return json(404, { error: "not_found" });
+      if (stepUp) return json(403, { error: "step_up_required" });
+      return json(200, { ok: true });
+    });
+    const view = render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} goTo={goTo} />);
+    await user.click(await screen.findByRole("button", { name: "Delete my account" }));
+    expect(screen.getByRole("dialog", { name: "Delete my account" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Delete my account" })).toBeNull();
+    expect(calls.some((call) => call.url.endsWith("/api/account/delete"))).toBe(false);
+
+    await user.click(screen.getByRole("button", { name: "Delete my account" }));
+    await user.click(screen.getByRole("button", { name: "Confirm delete" }));
+    await waitFor(() => {
+      expect(calls.some((call) => call.url.endsWith("/api/account/delete"))).toBe(true);
+    });
+    const deleted = calls.find((call) => call.url.endsWith("/api/account/delete"));
+    expect(deleted?.init?.method).toBe("POST");
+    expect(deleted?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
+    expect(goTo).toHaveBeenCalledWith("/");
+
+    goTo.mockClear();
+    stepUp = true;
+    view.unmount();
+    render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} goTo={goTo} />);
+    await user.click(await screen.findByRole("button", { name: "Delete my account" }));
+    await user.click(screen.getByRole("button", { name: "Confirm delete" }));
+    expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+  });
+});
+
+describe("accounts coming soon", () => {
+  it("does not show the account page while VITE_ACCOUNTS_LIVE is unset", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 401 })));
+    (window as unknown as { happyDOM: { setURL: (url: string) => void } }).happyDOM.setURL(
+      "http://localhost/account",
+    );
+    expect(window.location.pathname).toBe("/account");
+    render(<App />);
+    expect(await screen.findByRole("heading", { name: "Coming soon" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Your account" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete my account" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Export my data" })).toBeNull();
+    (window as unknown as { happyDOM: { setURL: (url: string) => void } }).happyDOM.setURL(
+      "http://localhost/",
+    );
+    vi.unstubAllGlobals();
   });
 });

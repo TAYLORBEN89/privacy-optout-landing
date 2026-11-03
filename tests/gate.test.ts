@@ -12,22 +12,24 @@ describe("auth gate", () => {
   });
 
   it("sends a 401 visitor from the gated form to sign-in", () => {
-    expect(startPageAction(true, 401)).toBe("redirect");
+    expect(startPageAction(true, 401, true)).toBe("redirect");
     expect(ACCOUNTS_ORIGIN).toBe("https://accounts.droptexas.com");
     expect(SIGN_IN_HREF).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
     expect(signInHrefFor("/account")).toBe("https://accounts.droptexas.com/signin?return_to=%2Faccount");
-    expect(startHref(true, false)).toBe(SIGN_IN_HREF);
+    expect(startHref(true, false, true)).toBe(SIGN_IN_HREF);
   });
 
-  it("hides header sign-in unless VITE_ACCOUNTS_LIVE is on, and still redirects when the gate is on", () => {
+  it("hides accounts while VITE_ACCOUNTS_LIVE is unset, and redirects only when it is on", () => {
     expect(accountsLive(undefined)).toBe(false);
     expect(accountsLive("")).toBe(false);
     expect(accountsLive("false")).toBe(false);
     expect(accountsLive("0")).toBe(false);
     expect(accountsLive("true")).toBe(true);
     expect(accountsLive("1")).toBe(true);
-    expect(startPageAction(true, 401)).toBe("redirect");
-    expect(startHref(true, false)).toBe(SIGN_IN_HREF);
+    expect(startPageAction(true, 401)).toBe("form");
+    expect(startHref(true, false)).toBe("/start");
+    expect(startPageAction(true, 401, true)).toBe("redirect");
+    expect(startHref(true, false, true)).toBe(SIGN_IN_HREF);
   });
 
   it("shows the form when the gate is off", () => {
