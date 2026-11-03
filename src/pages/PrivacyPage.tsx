@@ -40,9 +40,7 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
     id: "limits",
     title: "What we don't do",
-    paragraphs: [
-      "We do not sell your data. This site does not load advertising trackers. Texas privacy requests still go to the broker, and this site does not sell the form data. Email help@droptexas.com with a privacy question.",
-    ],
+    paragraphs: ["We do not sell your data. This site does not load advertising trackers."],
   },
   {
     id: "compliance",

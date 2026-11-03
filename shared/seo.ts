@@ -86,7 +86,7 @@ export const SEO_PAGES: readonly SeoPage[] = [
     path: "/overview",
     title: "Delete personal information: a Texas opt-out guide",
     description:
-      "Learn how to delete personal information from a broker file by sending an opt-out yourself with DROP Texas tools. Results are not a verified deletion.",
+      "This guide does not delete personal information a broker already holds. It explains the opt-out of sale you send yourself with DROP Texas tools.",
     focus: "delete personal information",
     related: ["opt-out of sale", "not a deletion check", "free form"],
     indexable: true,

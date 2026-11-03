@@ -39,7 +39,11 @@ export function ControlBenefitPage() {
         Brokers decide whether they have a record and how they respond. DROP Texas does not check that a
         broker deleted a record. An opt-out limits future sales. It does not pull back every copy already
         sold. The right to opt out of a sale is in Texas Business and Commerce Code chapter 541. Read it
-        at statutes.capitol.texas.gov before you rely on this summary. This is not legal advice.
+        before you rely on this summary:{" "}
+        <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
+          statutes.capitol.texas.gov
+        </a>
+        . This is not legal advice.
       </p>
     </Topic>
   );
@@ -76,8 +80,8 @@ export function SpamBenefitPage() {
       </p>
       <p>
         This does not stop a company you already do business with from emailing you. It does not sign you
-        up for the National Do Not Call Registry. Data broker mail can also keep coming from a list that
-        was sold before your request. You can sign up for the registry yourself at{" "}
+        up for the National Do Not Call Registry. An opt-out does not pull back a list a broker already
+        sold. You can sign up for the registry yourself at{" "}
         <a href="https://www.donotcall.gov" target="_blank" rel="noopener noreferrer">
           donotcall.gov
         </a>
@@ -96,9 +100,8 @@ export function SecurityBenefitPage() {
       description="Limiting the spread of your personal information can reduce your risk of identity theft and targeted fraud."
     >
       <p>
-        Broker data exposure grows when more strangers can look up facts used to impersonate you.
-        Limiting the spread of your personal information can reduce your risk of identity theft and
-        targeted fraud.
+        A sold profile can include facts a stranger could use to impersonate you. Limiting the spread of
+        your personal information can reduce your risk of identity theft and targeted fraud.
       </p>
       <h2>The problem with broker data exposure</h2>
       <p>
@@ -146,8 +149,7 @@ export function TimeBenefitPage() {
     >
       <p>
         One opt-out form collects the name and address that many broker forms repeat, plus the extra
-        steps those forms do not share. Most people stop after one or two companies when they start from
-        scratch.
+        steps those forms do not share. Most people stop after one or two.
       </p>
       <h2>The problem one opt-out form is meant to shrink</h2>
       <p>
@@ -170,8 +172,7 @@ export function TimeBenefitPage() {
       <p>
         Companies still answer on their own schedule. DROP Texas does not check that a broker deleted a
         record. You still send each request from the one opt-out form. Confirming each outcome is still
-        the broker's job. The list of companies is not stable, so a finished afternoon of forms is not
-        the end of the work.
+        the broker's job. New brokers appear after you finish the ones you know about.
       </p>
     </Topic>
   );
@@ -208,7 +209,7 @@ export function CostBenefitPage() {
       </p>
       <p>
         Free privacy tools do not mean a broker must delete a record, and they do not mean every company
-        will agree. You can still ask on the broker's own page and pay nothing.
+        will agree.
         If a status is shown later, it is one of Submitted, Confirmed, Pending, Not completed, or No
         record found. None of those words means a deletion was verified.
       </p>
@@ -307,7 +308,11 @@ export function ChildrenBenefitPage() {
       <p>
         Teens who are 13 to 17 can submit a request for themselves. Child data privacy under the Texas
         Data Privacy and Security Act also lets a parent or guardian exercise the consumer's rights for
-        a known child. That is a statute rule, not a promise that a broker will agree.
+        a known child. Read that rule in{" "}
+        <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
+          chapter 541
+        </a>
+        . It is not a promise that a broker will agree.
         That summary, with the statute links, is on the{" "}
         <AppLink href="/children">children's information page</AppLink>.
       </p>

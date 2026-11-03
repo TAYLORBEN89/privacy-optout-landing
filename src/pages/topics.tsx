@@ -53,9 +53,9 @@ export function OverviewPage() {
       description="What DROP Texas does, who it is for, and what an opt-out request is."
     >
       <p>
-        You can delete personal information from a broker's future sales by sending an opt-out. DROP
-        Texas gives you one free form for that request. Brokers decide whether they have a record and
-        how they respond. This does not check that a record was deleted.
+        This form does not delete personal information a broker already holds. It is an opt-out of sale
+        you send yourself. DROP Texas gives you one free form for that request. Brokers decide whether
+        they have a record and how they respond.
       </p>
       <h2>Who can delete personal information here</h2>
       <p>
@@ -326,7 +326,12 @@ export function TdpsaPage() {
       <h2>Who the chapter covers</h2>
       <p>
         A consumer under Section 541.001(7) is a Texas resident acting in a personal or household
-        context. That term does not include someone acting in a commercial or employment context.
+        context. That term does not include someone acting in a commercial or employment context. The
+        section text is in{" "}
+        <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
+          chapter 541
+        </a>
+        .
       </p>
       <h2>Consumer rights in Section 541.051</h2>
       <p>Section 541.051(b) says a controller shall comply with an authenticated request to:</p>
@@ -551,9 +556,8 @@ export function ChildrenPage() {
       ctaHref="/start?for=child"
     >
       <p>
-        Children's data can show up in a broker file even when a child never filled out a form. The notes
-        below cite public reports and the Texas statute. A parent uses the DROP Texas form for a child
-        under 13.
+        The reports below are about children's data in broker files and student lists. A parent uses the
+        DROP Texas form for a child under 13. The statute link is on this page.
       </p>
       <h2>Students' information and children's data offered for sale</h2>
       <p>

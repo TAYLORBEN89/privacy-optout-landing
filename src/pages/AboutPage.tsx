@@ -24,7 +24,7 @@ export function AboutPage() {
         proof of deletion.
       </p>
       <p>
-        There is no fee. You can also ask a broker on that company's own page. Read chapter 541 yourself
+        There is no fee. Read chapter 541 yourself
         at{" "}
         <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
           statutes.capitol.texas.gov

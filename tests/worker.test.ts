@@ -453,6 +453,20 @@ describe("POST /api/signup", () => {
     expect(response.status).toBe(200);
   });
 
+  it("sends noindex for account and sign-in paths that fall back to the shell", async () => {
+    for (const path of ["/account/history", "/account/settings/export", "/signin/callback", "/signin/oauth/callback"]) {
+      const response = await handleRequest(new Request(`https://droptexas.com${path}`), assets());
+      expect(response.status, path).toBe(200);
+      expect(response.headers.get("content-type"), path).toContain("text/html");
+      expect(response.headers.get("x-robots-tag"), path).toBe("noindex");
+    }
+    const account = await handleRequest(new Request("https://droptexas.com/account"), assets());
+    expect(account.headers.get("x-robots-tag")).toBe("noindex");
+    const signIn = await handleRequest(new Request("https://droptexas.com/signin"), assets());
+    expect(signIn.status).toBe(302);
+    expect(signIn.headers.get("x-robots-tag")).toBe("noindex");
+  });
+
   it("redirects /signin to the accounts host and drops an unsafe return path", async () => {
     const kept = await handleRequest(new Request("https://droptexas.com/signin?return_to=/account"), assets());
     expect(kept.status).toBe(302);

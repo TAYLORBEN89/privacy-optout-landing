@@ -395,5 +395,14 @@ export async function handleRequest(
   if (!deps.fetchAsset) {
     return new Response("Not found", { status: 404 });
   }
-  return deps.fetchAsset();
+  const asset = await deps.fetchAsset();
+  if (!privateShell(url.pathname)) return asset;
+  const headers = new Headers(asset.headers);
+  headers.set("x-robots-tag", "noindex");
+  return new Response(asset.body, { status: asset.status, headers });
+}
+
+/** Account and sign-in paths, including SPA fallbacks such as /account/history. */
+function privateShell(pathname: string): boolean {
+  return pathname === "/account" || pathname.startsWith("/account/") || pathname.startsWith("/signin/");
 }
