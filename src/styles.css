@@ -2547,6 +2547,8 @@ textarea {
 
 .broker-dashboard {
   margin-top: 22px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .broker-find {
@@ -2580,17 +2582,62 @@ textarea {
 
 .broker-group ul {
   list-style: none;
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.broker-group li {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  align-items: baseline;
+.broker-row {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.broker-row-name {
+  color: #010101;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.broker-optout {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.broker-optout:hover {
+  background: var(--bg);
+}
+
+.broker-optout:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.broker-mail {
+  color: var(--blue);
+  font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .broker-name {
