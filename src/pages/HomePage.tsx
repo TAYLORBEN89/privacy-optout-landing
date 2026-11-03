@@ -13,8 +13,9 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
     <>
       <section id="overview" className="hero" aria-labelledby="page-title">
         <div className="hero-inner">
-            <h1 id="page-title">Privacy is a right.</h1>
+            <h1 id="page-title">Texas data broker opt-out</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
+            <p className="hero-focus">DROP Texas is a free Texas data broker opt-out for Texans.</p>
             <p className="lede hero-line">
               <span className="hero-rule">DROP Texas is a free service that helps you </span>
               <span className="hero-rule">gain control of your data. </span>
@@ -28,7 +29,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
 
       <section className="explore" aria-labelledby="explore-heading">
         <h2 id="explore-heading" className="explore-label">
-          Explore DROP Texas
+          Explore the Texas data broker opt-out
         </h2>
         <TopNav />
       </section>
@@ -38,7 +39,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       {/* A real, permissioned quote can be added here later. Do not invent a testimonial. */}
       <section id="personal-information" className="yellow-band" aria-labelledby="personal-heading">
         <div className="personal-protect">
-          <img className="personal-icon" src={protectedArt} alt="" />
+          <img className="personal-icon" src={protectedArt} alt="A person icon with a padlock for the Texas data broker opt-out" />
           <p className="personal-kicker">Personal information</p>
           <h2 id="personal-heading">Your information, protected</h2>
           <p className="personal-sub">Only what we need. Nothing more.</p>
@@ -65,6 +66,10 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
       <section className="closing" aria-labelledby="closing-heading">
         <h2 id="closing-heading">Ready to take back your privacy?</h2>
         <p className="closing-sub">Let's get you started.</p>
+        <p>
+          This Texas data broker opt-out is free. The Texas data broker opt-out does not check that a
+          broker deleted a record.
+        </p>
         <AppLink className="cta" href={getStartedHref}>
           Start my opt-out
         </AppLink>

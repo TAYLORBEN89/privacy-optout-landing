@@ -14,7 +14,7 @@ afterEach(() => {
 describe("brokers page", () => {
   it("lists the nine carousel brokers and a source for each", () => {
     render(<BrokersPage />);
-    expect(screen.getByRole("heading", { name: "Data brokers" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Texas data broker registry" })).toBeTruthy();
     const cards = document.querySelectorAll(".broker-card");
     expect(cards).toHaveLength(BROKERS.length);
     expect([...cards].map((card) => card.querySelector("h2")?.textContent)).toEqual([...BROKERS]);

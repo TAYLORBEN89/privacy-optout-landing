@@ -1,37 +1,10 @@
 import { useEffect, useState } from "react";
-import { accountsLive, authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
+import { authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
 import { Header } from "./Header";
 import { SiteFooter } from "./Footer";
-import {
-  ChildrenBenefitPage,
-  ControlBenefitPage,
-  CostBenefitPage,
-  RightsBenefitPage,
-  SecurityBenefitPage,
-  SpamBenefitPage,
-  TimeBenefitPage,
-} from "./pages/benefits";
-import { AccountComingSoon } from "./pages/AccountComingSoon";
-import { AboutPage } from "./pages/AboutPage";
-import { AccountPage } from "./pages/AccountPage";
-import { BrokersPage } from "./pages/BrokersPage";
-import { HomePage } from "./pages/HomePage";
-import {
-  DataBrokersPage,
-  HelpPage,
-  HowItWorksPage,
-  OverviewPage,
-  PersonalInformationPage,
-  SharePage,
-  TdpsaPage,
-  UniqueIdentifiersPage,
-  ChildrenPage,
-} from "./pages/topics";
-import { PrivacyPage } from "./pages/PrivacyPage";
-import { SecurityPage } from "./pages/SecurityPage";
-import { SignInPage } from "./pages/SignInPage";
-import { StartPage } from "./pages/StartPage";
 import { usePathname } from "./router";
+import { SeoHead } from "./seoHead";
+import { routePage } from "./routePage";
 
 type Session =
   | { status: "off" }
@@ -72,44 +45,16 @@ export function App() {
   const showNav = path !== "/signin";
   const pageAction = startPageAction(gate, session.status === "off" ? 200 : meStatus);
 
-  let page = <HomePage getStartedHref={getStarted} />;
-  if (path === "/security") page = <SecurityPage />;
-  else if (path === "/privacy") page = <PrivacyPage />;
-  else if (path === "/brokers") page = <BrokersPage />;
-  else if (path === "/overview") page = <OverviewPage />;
-  else if (path === "/how-it-works") page = <HowItWorksPage />;
-  else if (path === "/personal-information") page = <PersonalInformationPage />;
-  else if (path === "/data-brokers") page = <DataBrokersPage />;
-  else if (path === "/unique-identifiers") page = <UniqueIdentifiersPage />;
-  else if (path === "/tdpsa") page = <TdpsaPage />;
-  else if (path === "/children") page = <ChildrenPage />;
-  else if (path === "/benefits/control") page = <ControlBenefitPage />;
-  else if (path === "/benefits/spam") page = <SpamBenefitPage />;
-  else if (path === "/benefits/security") page = <SecurityBenefitPage />;
-  else if (path === "/benefits/time") page = <TimeBenefitPage />;
-  else if (path === "/benefits/cost") page = <CostBenefitPage />;
-  else if (path === "/benefits/rights") page = <RightsBenefitPage />;
-  else if (path === "/benefits/children") page = <ChildrenBenefitPage />;
-  else if (path === "/help") page = <HelpPage />;
-  else if (path === "/share") page = <SharePage />;
-  else if (path === "/about") page = <AboutPage />;
-  else if (path === "/signin") page = <SignInPage />;
-  else if (path === "/start") {
-    page = <StartPage action={pageAction} csrfToken={session.status === "in" ? session.me.csrf_token : null} />;
-  }
-  else if (path === "/account" && !accountsLive()) {
-    page = <AccountComingSoon />;
-  } else if (path === "/account") {
-    page = (
-      <AccountPage
-        action={pageAction}
-        me={session.status === "in" ? session.me : null}
-      />
-    );
-  }
+  const page = routePage(path, {
+    getStartedHref: getStarted,
+    action: pageAction,
+    csrfToken: session.status === "in" ? session.me.csrf_token : null,
+    me: session.status === "in" ? session.me : null,
+  });
 
   return (
     <>
+      <SeoHead path={path} />
       <div className="top-stack">
         <Header
           signedIn={signedIn}

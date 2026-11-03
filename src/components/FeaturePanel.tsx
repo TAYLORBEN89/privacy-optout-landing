@@ -50,7 +50,7 @@ const CARDS = [
     tag: "Time",
     headline: "Hours back from paperwork",
     description:
-      "Each broker has its own opt-out form. DROP Texas sends those requests from the one form you fill out, so you are not repeating yourself.",
+      "Each broker has its own opt-out form. You send those requests from the one form you fill out, so you are not repeating yourself.",
     button: "See the time you save",
     href: "/benefits/time",
   },
@@ -59,7 +59,7 @@ const CARDS = [
     tag: "Cost",
     headline: "Free to make the request",
     description:
-      "DROP Texas does not charge a fee to send opt-out requests. You can also ask each broker yourself. There is no subscription for the ask.",
+      "DROP Texas does not charge a fee for an opt-out request. You can also ask each broker yourself. There is no subscription for the ask.",
     button: "See what is free",
     href: "/benefits/cost",
   },
@@ -68,7 +68,7 @@ const CARDS = [
     tag: "Texas law",
     headline: "A right you can use",
     description:
-      "Texas law lets you opt out of the sale of your personal data. DROP Texas sends that request. Each broker still decides how it responds to you.",
+      "Texas law lets you opt out of the sale of your personal data. You send that request. Each broker still decides how it responds to you.",
     button: "See the right",
     href: "/benefits/rights",
   },
@@ -77,7 +77,7 @@ const CARDS = [
     tag: "Children",
     headline: "Protection for your children",
     description:
-      "A parent or guardian can ask brokers not to sell a child's information. DROP Texas sends that request at no cost for any child under 13.",
+      "A parent or guardian can ask brokers not to sell a child's information. You send that request at no cost for any child under 13.",
     button: "See children's protection",
     href: "/benefits/children",
   },

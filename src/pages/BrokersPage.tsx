@@ -15,10 +15,11 @@ export function BrokersPage() {
   return (
     <div className="brokers-page">
       <article className="panel brokers-intro">
-        <h1>Data brokers</h1>
+        <h1>Texas data broker registry</h1>
         <p>
-          A data broker collects personal information and shares or licenses it. This page covers the nine
-          names in the carousel on the DROP Texas home page.
+          The Texas data broker registry is kept by the Texas Secretary of State. This page does not
+          replace it. It covers the nine names in the carousel on the DROP Texas home page, using each
+          company's own privacy notice.
         </p>
         <p>
           Each card lists categories taken from that organization’s own privacy notice. DMAchoice and Catalog
@@ -28,6 +29,18 @@ export function BrokersPage() {
         <p>
           This is a plain summary of those notices. It is not a complete record of what any company holds about
           you, and it is not legal advice.
+        </p>
+        <h2>Where to open the Texas data broker registry</h2>
+        <p>
+          The Secretary of State describes registration on its{" "}
+          <a href="https://www.sos.texas.gov/statdoc/data-brokers.shtml" target="_blank" rel="noopener noreferrer">
+            data brokers page
+          </a>
+          , and the searchable registry is the{" "}
+          <a href="https://texas-sos.appianportalsgov.com/data-broker-registry" target="_blank" rel="noopener noreferrer">
+            Registry of Registered Data Brokers
+          </a>
+          .
         </p>
       </article>
       <ul className="broker-grid">

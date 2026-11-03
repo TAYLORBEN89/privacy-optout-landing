@@ -5,7 +5,7 @@ describe("hero copy", () => {
   it("uses Privacy is a right as the headline and a subline under it", () => {
     const source = readFileSync("src/pages/HomePage.tsx", "utf8");
     const hero = source.slice(source.indexOf('id="overview"'), source.indexOf('className="explore"'));
-    expect(hero).toContain("Privacy is a right.");
+    expect(hero).toContain("Texas data broker opt-out");
     expect(hero).toContain("Let's get you started.");
     expect(hero.match(/<h1/g)).toHaveLength(1);
     expect(hero).not.toContain("for the people");
@@ -38,10 +38,10 @@ describe("hero copy", () => {
     expect(css).toContain(".hero h1,\n  .hero-sub,\n  .hero .hero-line {\n    animation: none;\n  }");
     const html = readFileSync("index.html", "utf8");
     const sentence =
-      "DROP Texas is a free service for Texans to request data brokers not sell their personal information.";
-    expect(html).toContain(`name="description"\n      content="${sentence}"`);
-    expect(html).toContain(`property="og:description"\n      content="${sentence}"`);
-    expect(html).toContain(`name="twitter:description"\n      content="${sentence}"`);
+      "DROP Texas is a free Texas data broker opt-out for Texans. Ask data brokers not to sell your personal information. This is not a government website.";
+    expect(html).toContain(sentence);
+    expect(html).toContain('lang="en-US"');
+    expect(html).toContain('rel="canonical" href="https://droptexas.com/"');
     const brand = readFileSync("src/Brand.tsx", "utf8");
     expect(brand).toContain("Demanding privacy for the people, by the people");
   });

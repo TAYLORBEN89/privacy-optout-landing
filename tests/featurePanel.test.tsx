@@ -23,8 +23,8 @@ describe("feature panel", () => {
     expect(screen.getByText(/limit what data brokers collect and sell about you/)).toBeTruthy();
     expect(screen.getByText(/can reduce unwanted texts, calls, and emails/)).toBeTruthy();
     expect(screen.getByText(/lower the risk of identity theft and targeted fraud/)).toBeTruthy();
-    expect(screen.getByText(/sends those requests from the one form you fill out/)).toBeTruthy();
-    expect(screen.getByText(/does not charge a fee to send opt-out requests/)).toBeTruthy();
+    expect(screen.getByText(/send those requests from the one form you fill out/)).toBeTruthy();
+    expect(screen.getByText(/does not charge a fee for an opt-out request/)).toBeTruthy();
     expect(screen.getByText(/Each broker still decides how it responds to you/)).toBeTruthy();
     expect(screen.getByText(/at no cost for any child under 13/)).toBeTruthy();
     expect(screen.getByText("Children")).toBeTruthy();

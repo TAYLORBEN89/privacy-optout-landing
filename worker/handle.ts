@@ -61,6 +61,7 @@ function json(body: { ok: true } | ErrorBody, status: number): Response {
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      "x-robots-tag": "noindex",
     },
   });
 }
@@ -376,6 +377,7 @@ export async function handleRequest(
       headers: {
         location: accountsSignInUrl(requested),
         "cache-control": "no-store",
+        "x-robots-tag": "noindex",
       },
     });
   }

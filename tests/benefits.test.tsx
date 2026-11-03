@@ -14,13 +14,13 @@ import {
 } from "../src/pages/benefits";
 
 const PAGES = [
-  ["More control of your data", ControlBenefitPage, "/start"],
-  ["Reduced spam and scams", SpamBenefitPage, "/start"],
-  ["Greater security", SecurityBenefitPage, "/start"],
-  ["Hours back from paperwork", TimeBenefitPage, "/start"],
-  ["Free to make the request", CostBenefitPage, "/start"],
-  ["A right you can use", RightsBenefitPage, "/start"],
-  ["Protection for your children", ChildrenBenefitPage, "/start?for=child"],
+  ["Control your data", ControlBenefitPage, "/start"],
+  ["Data broker mail", SpamBenefitPage, "/start"],
+  ["Broker data exposure", SecurityBenefitPage, "/start"],
+  ["One opt-out form", TimeBenefitPage, "/start"],
+  ["Free privacy tools", CostBenefitPage, "/start"],
+  ["Texas privacy rights", RightsBenefitPage, "/start"],
+  ["Child data privacy", ChildrenBenefitPage, "/start?for=child"],
 ] as const;
 
 afterEach(() => {
@@ -33,7 +33,7 @@ describe("benefit pages", () => {
       cleanup();
       render(<Page />);
       expect(screen.getByRole("heading", { level: 1, name: heading })).toBeTruthy();
-      expect(screen.getByRole("heading", { level: 2, name: "The problem" })).toBeTruthy();
+      expect(screen.getByRole("heading", { level: 2, name: /problem/i })).toBeTruthy();
       expect(screen.getByRole("heading", { level: 2, name: "Examples" })).toBeTruthy();
       expect(screen.getByRole("heading", { level: 2, name: "How DROP Texas helps" })).toBeTruthy();
       expect(screen.getAllByRole("listitem").length).toBeGreaterThanOrEqual(3);

@@ -5,16 +5,16 @@ export function ControlBenefitPage() {
   return (
     <Topic
       title="More control of your data"
-      heading="More control of your data"
+      heading="Control your data"
       tone="overview"
       description="Using DROP helps you limit the information data brokers collect and sell about you."
     >
       <p>
-        Using DROP helps you limit the information data brokers collect and sell about you. Data brokers
-        collect a wide range of your personal information, which may include your Social Security number,
-        data about your children, search history, and much more.
+        Control your data by limiting what data brokers can sell about you. Data brokers collect a wide
+        range of your personal information, which may include your Social Security number, data about
+        your children, search history, and much more.
       </p>
-      <h2>The problem</h2>
+      <h2>The problem with how you control your data</h2>
       <p>
         A data broker builds a profile from records it did not get from you in person. It can then sell
         that profile, or access to it, to other businesses. You do not get a say in each sale unless you
@@ -31,14 +31,15 @@ export function ControlBenefitPage() {
       </ul>
       <h2>How DROP Texas helps</h2>
       <p>
-        You submit one form. DROP Texas sends opt-out requests that ask brokers not to sell your personal
+        You submit one form. You send opt-out requests that ask brokers not to sell your personal
         information. The form asks for your name, date of birth, address, email, and, if you choose, your
         phone. It does not ask for a Social Security number.
       </p>
       <p>
         Brokers decide whether they have a record and how they respond. DROP Texas does not check that a
         broker deleted a record. An opt-out limits future sales. It does not pull back every copy already
-        sold.
+        sold. The right to opt out of a sale is in Texas Business and Commerce Code chapter 541. Read it
+        at statutes.capitol.texas.gov before you rely on this summary. This is not legal advice.
       </p>
     </Topic>
   );
@@ -48,15 +49,15 @@ export function SpamBenefitPage() {
   return (
     <Topic
       title="Reduced spam and scams"
-      heading="Reduced spam and scams"
+      heading="Data broker mail"
       tone="how"
       description="Limiting how your data gets sold can reduce unwanted texts, calls, and emails. Results vary and can take time."
     >
       <p>
-        Limiting how your data gets sold can reduce the volume of unwanted texts, calls, or emails you
-        receive. Results will vary by consumer and may take time to notice.
+        Data broker mail, calls, and texts can grow when a contact list is sold. Limiting new sales can
+        reduce that volume. Results will vary by consumer and may take time to notice.
       </p>
-      <h2>The problem</h2>
+      <h2>The problem behind data broker mail</h2>
       <p>
         Once a phone number, email, or address is sold, companies you have never contacted can use it.
         Some of those messages are ads. Some are scams that use a real detail about you so the message
@@ -75,7 +76,8 @@ export function SpamBenefitPage() {
       </p>
       <p>
         This does not stop a company you already do business with from emailing you. It does not sign you
-        up for the National Do Not Call Registry. You can do that yourself at{" "}
+        up for the National Do Not Call Registry. Data broker mail can also keep coming from a list that
+        was sold before your request. You can sign up for the registry yourself at{" "}
         <a href="https://www.donotcall.gov" target="_blank" rel="noopener noreferrer">
           donotcall.gov
         </a>
@@ -89,15 +91,16 @@ export function SecurityBenefitPage() {
   return (
     <Topic
       title="Greater security"
-      heading="Greater security"
+      heading="Broker data exposure"
       tone="personal"
       description="Limiting the spread of your personal information can reduce your risk of identity theft and targeted fraud."
     >
       <p>
+        Broker data exposure grows when more strangers can look up facts used to impersonate you.
         Limiting the spread of your personal information can reduce your risk of identity theft and
         targeted fraud.
       </p>
-      <h2>The problem</h2>
+      <h2>The problem with broker data exposure</h2>
       <p>
         Identity theft and targeted fraud get easier when more strangers can look up the facts used to
         impersonate you: your age, past addresses, phone number, relatives, and email. A people-search
@@ -116,8 +119,9 @@ export function SecurityBenefitPage() {
         fresh copy.
       </p>
       <p>
-        DROP Texas does not place a credit freeze and it is not identity-theft insurance. A freeze is a
-        separate step you take with the credit bureaus. The Federal Trade Commission explains that step
+        DROP Texas does not place a credit freeze and it is not identity-theft insurance. Broker data
+        exposure can remain in copies that were already sold. A freeze is a separate step you take with
+        the credit bureaus. The Federal Trade Commission explains that step
         at{" "}
         <a
           href="https://consumer.ftc.gov/articles/credit-freeze-or-fraud-alert"
@@ -136,15 +140,16 @@ export function TimeBenefitPage() {
   return (
     <Topic
       title="Hours back from paperwork"
-      heading="Hours back from paperwork"
+      heading="One opt-out form"
       tone="brokers"
-      description="DROP Texas sends opt-out requests from one form, instead of a separate form at each data broker."
+      description="One form collects what many broker opt-outs ask for, instead of a separate form at each data broker."
     >
       <p>
-        Each data broker runs its own opt-out. The forms ask for the same name and address, then differ
-        in the extra steps. Most people stop after one or two.
+        One opt-out form collects the name and address that many broker forms repeat, plus the extra
+        steps those forms do not share. Most people stop after one or two companies when they start from
+        scratch.
       </p>
-      <h2>The problem</h2>
+      <h2>The problem one opt-out form is meant to shrink</h2>
       <p>
         There is no single public form that reaches every broker. You have to find each company's page,
         prove you are the person in the record, and repeat that for the next company. New brokers appear
@@ -158,14 +163,15 @@ export function TimeBenefitPage() {
       </ul>
       <h2>How DROP Texas helps</h2>
       <p>
-        You fill out one form. DROP Texas sends the opt-out requests. The{" "}
+        You fill out one form and send the opt-out requests. The{" "}
         <AppLink href="/brokers">brokers page</AppLink> names companies the home page carousel covers and
         links to categories from each company's own privacy notice.
       </p>
       <p>
         Companies still answer on their own schedule. DROP Texas does not check that a broker deleted a
-        record. Sending the requests is the time you get back. Confirming each outcome is still the
-        broker's job.
+        record. You still send each request from the one opt-out form. Confirming each outcome is still
+        the broker's job. The list of companies is not stable, so a finished afternoon of forms is not
+        the end of the work.
       </p>
     </Topic>
   );
@@ -175,15 +181,15 @@ export function CostBenefitPage() {
   return (
     <Topic
       title="Free to make the request"
-      heading="Free to make the request"
+      heading="Free privacy tools"
       tone="identifiers"
       description="DROP Texas does not charge a fee to send opt-out requests. You can also ask brokers yourself for free."
     >
       <p>
-        Asking a data broker not to sell your personal information should not require a subscription.
-        DROP Texas does not charge a fee to send the requests.
+        Free privacy tools should be enough to ask a data broker not to sell your personal information.
+        DROP Texas does not charge a fee for the form.
       </p>
-      <h2>The problem</h2>
+      <h2>The problem free privacy tools avoid</h2>
       <p>
         Some removal services bill every month. The charge is for their labor, not a fee the broker is
         allowed to demand before it honors an opt-out. People pay because finding every broker and every
@@ -198,10 +204,11 @@ export function CostBenefitPage() {
       <h2>How DROP Texas helps</h2>
       <p>
         The form is free. You can also opt out yourself, one broker at a time, for free. DROP Texas is a
-        way to send those requests without paying us.
+        way to prepare those requests without paying us.
       </p>
       <p>
-        Free does not mean a broker must delete a record, and it does not mean every company will agree.
+        Free privacy tools do not mean a broker must delete a record, and they do not mean every company
+        will agree. You can still ask on the broker's own page and pay nothing.
         If a status is shown later, it is one of Submitted, Confirmed, Pending, Not completed, or No
         record found. None of those words means a deletion was verified.
       </p>
@@ -213,15 +220,15 @@ export function RightsBenefitPage() {
   return (
     <Topic
       title="A right you can use"
-      heading="A right you can use"
+      heading="Texas privacy rights"
       tone="tdpsa"
-      description="Texas law gives you the right to opt out of the sale of your personal data. DROP Texas sends that request for you."
+      description="Texas law gives you the right to opt out of the sale of your personal data. You send that request."
     >
       <p>
-        Texas law gives you the right to opt out of the sale of your personal data. The right matters
+        Texas privacy rights include an opt-out of the sale of your personal data. The right matters
         only if a company receives a request it can act on.
       </p>
-      <h2>The problem</h2>
+      <h2>The problem with using Texas privacy rights</h2>
       <p>
         The Texas Data Privacy and Security Act, Business and Commerce Code chapter 541, says a
         controller must honor an authenticated consumer request to opt out of the sale of personal data,
@@ -246,7 +253,7 @@ export function RightsBenefitPage() {
       </ul>
       <h2>How DROP Texas helps</h2>
       <p>
-        The request DROP Texas sends is an opt-out of sale under that right. A plain-English summary of
+        The request you send is an opt-out of sale under that right. A plain-English summary of
         the rest of the chapter is on the <AppLink href="/tdpsa">TDPSA page</AppLink>. The statute is at{" "}
         <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
           statutes.capitol.texas.gov
@@ -254,8 +261,9 @@ export function RightsBenefitPage() {
         .
       </p>
       <p>
-        This is not legal advice, and DROP Texas is not a government site. An unchecked Texas box on the
-        form still uses TDPSA for now and is marked non-Texas.
+        This is not legal advice, and DROP Texas is not a government site. Texas privacy rights on this
+        page are a summary of chapter 541, not a filing with the attorney general. An unchecked Texas box
+        on the form still uses TDPSA for now and is marked non-Texas.
       </p>
     </Topic>
   );
@@ -265,17 +273,16 @@ export function ChildrenBenefitPage() {
   return (
     <Topic
       title="Protection for your children"
-      heading="Protection for your children"
+      heading="Child data privacy"
       tone="children"
-      description="A parent or guardian can ask data brokers not to sell a child's personal information. DROP Texas sends that request for free."
+      description="A parent or guardian can ask data brokers not to sell a child's personal information and send that request for free."
       ctaHref="/start?for=child"
     >
       <p>
-        A parent or guardian can ask data brokers not to sell a child's personal information. Children
-        are not going to find each broker's form, and a profile can include them because they live with
-        an adult whose data was sold.
+        Child data privacy is hard because children are not going to find each broker's form, and a
+        profile can include them because they live with an adult whose data was sold.
       </p>
-      <h2>The problem</h2>
+      <h2>The problem for child data privacy</h2>
       <p>
         Children's information shows up in places built for adults: people-search pages that list
         household members, student lists offered for sale, and apps that collected data from children
@@ -294,12 +301,13 @@ export function ChildrenBenefitPage() {
       <h2>How DROP Texas helps</h2>
       <p>
         On the request form, a parent or legal guardian chooses My child for a child under 13 and enters
-        the child's name and date of birth. DROP Texas sends the opt-out requests for free. Companies
+        the child's name and date of birth, and send the opt-out requests for free. Companies
         decide how to respond, and they may ask for proof of guardianship.
       </p>
       <p>
-        Teens who are 13 to 17 can submit a request for themselves. Under the Texas Data Privacy and
-        Security Act, a parent or guardian may also exercise the consumer's rights for a known child.
+        Teens who are 13 to 17 can submit a request for themselves. Child data privacy under the Texas
+        Data Privacy and Security Act also lets a parent or guardian exercise the consumer's rights for
+        a known child. That is a statute rule, not a promise that a broker will agree.
         That summary, with the statute links, is on the{" "}
         <AppLink href="/children">children's information page</AppLink>.
       </p>
