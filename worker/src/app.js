@@ -573,9 +573,13 @@ export async function handleApp(req, env) {
   if (m === 'GET' && path === '/me') return me(ctx, cur);
   if (m === 'POST' && path === '/auth/backup-codes/regenerate') return regenerateBackupCodes(ctx, cur);
 
-  // Everything below requires a TOTP-verified password session or a provider (social) session, matching api.js
-  // requireSession: social sign-in is not gated on TOTP there, so it is not here either.
-  if ((cur.session.auth_method || 'password') === 'password' && !cur.session.mfa) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403);
+  // Everything below requires a TOTP-verified session, or a provider (social) session on an account without TOTP,
+  // matching api.js requireSession. A social session on a TOTP account upgrades via POST /api/auth/mfa/verify.
+  if (!cur.session.mfa) {
+    if ((cur.session.auth_method || 'password') === 'password') return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403);
+    const u = await ctx.env.DB.prepare('SELECT totp_enabled FROM users WHERE id = ?1').bind(cur.session.user_id).first();
+    if (u?.totp_enabled) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403);
+  }
   if (m === 'GET' && path === '/optouts') return listOptouts(ctx, cur);
   if (m === 'POST' && path === '/optouts') return createOptout(ctx, cur);
   const cm = path.match(/^\/optouts\/([0-9a-f-]{36})\/confirmations$/);

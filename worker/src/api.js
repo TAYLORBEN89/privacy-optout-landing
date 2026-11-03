@@ -2,7 +2,7 @@
 // Every D1 query uses a literal SQL string with prepare().bind(). No PII or tokens in audit_log targets or logs.
 import {
   json, readJson, audit, createSession, loadSession, revoke, setCookie, clearCookie, allowedOrigins, handleApp,
-  checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS,
+  checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS, rotate, sessionResponse, isBackupShape, useBackupCode,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
 import { reserve, refund, clientIp, retryHeaders } from './ratelimit.js';
@@ -39,8 +39,34 @@ const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 async function requireSession(ctx) {
   const cur = await loadSession(ctx);
   if (!cur) return null;
-  if (cur.session.auth_method === 'password' && !cur.session.mfa) return { ...cur, limited: true };
+  if (cur.session.mfa) return cur;
+  if ((cur.session.auth_method || 'password') === 'password') return { ...cur, limited: true };
+  // Google/Microsoft session: needs TOTP too once the account has TOTP enrolled (POST /api/auth/mfa/verify).
+  const u = await ctx.env.DB.prepare('SELECT totp_enabled FROM users WHERE id = ?1').bind(cur.session.user_id).first();
+  if (u?.totp_enabled) return { ...cur, limited: true, mfaRequired: true };
   return cur;
+}
+
+// POST /api/auth/mfa/verify {code}: a social session on a TOTP account proves TOTP (or a backup code) and is
+// rotated to a new mfa=1 session. Same 'login' limiter and replay protection as the password TOTP step.
+async function mfaVerify(ctx, cur) {
+  if (cur.session.mfa || !cur.mfaRequired) return json(ctx, { error: 'not required' }, 400);
+  const uid = cur.session.user_id;
+  const rlRes = await reserve(ctx.env, 'login', `${clientIp(ctx.req)}|mfa|${uid}`);
+  if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
+  const b = await readJson(ctx.req);
+  const u = await ctx.env.DB.prepare('SELECT totp_secret_enc, totp_last_step FROM users WHERE id = ?1').bind(uid).first();
+  let ok = false; let method = 'totp';
+  if (u?.totp_secret_enc && isBackupShape(b?.code)) { method = 'backup_code'; ok = await useBackupCode(ctx.env, uid, b.code); }
+  else if (u?.totp_secret_enc) {
+    const step = await checkTotp(await decryptStr(ctx.env, u.totp_secret_enc), b?.code, u.totp_last_step);
+    ok = step !== null && (await claimStep(ctx.env, uid, step));
+  }
+  if (!ok) { await audit(ctx, uid, 'totp.fail', 'social'); return json(ctx, { error: 'invalid code' }, 401); }
+  await refund(ctx.env, rlRes);
+  const s = await rotate(ctx, cur, true); // privilege change -> new token
+  await audit(ctx, uid, method === 'backup_code' ? 'login.backup_code' : 'login.mfa', 'social');
+  return sessionResponse(ctx, s, { ok: true });
 }
 
 // ---------- hosts ----------
@@ -290,7 +316,7 @@ async function me(ctx, cur) {
   return json(ctx, {
     user: { id: u.id, display_name: await displayName(ctx.env, u), has_password: hasPassword(u), totp_enabled: !!u.totp_enabled, created_at: u.created_at },
     providers: ids.map(publicIdentity),
-    auth_method: cur.session.auth_method, mfa: !!cur.session.mfa, limited: !!cur.limited,
+    auth_method: cur.session.auth_method, mfa: !!cur.session.mfa, limited: !!cur.limited, mfa_required: !!cur.limited,
     stepped_up_until: isSteppedUp(cur.session) ? cur.session.stepped_up_at + STEP_UP_SECONDS : null,
     csrf_token: cur.session.csrf,
   });
@@ -537,6 +563,7 @@ export async function handleApi(req, env) {
 
   if (m === 'GET' && path === '/api/me') return me(ctx, cur);
   if (m === 'POST' && path === '/api/auth/logout') return logout(ctx, cur);
+  if (m === 'POST' && path === '/api/auth/mfa/verify') return mfaVerify(ctx, cur);
   if (cur.limited) return json(ctx, { error: 'mfa required', code: 'mfa_required' }, 403); // password session that hasn't finished TOTP
 
   if (m === 'POST' && path === '/api/auth/stepup/password') return stepUpPassword(ctx, cur);

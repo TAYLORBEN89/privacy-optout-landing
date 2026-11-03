@@ -448,6 +448,58 @@ describe('account API + step-up', () => {
   });
 });
 
+describe('social sign-in + TOTP (same gate as password)', () => {
+  const legacyGet = (path, { sid }) => SELF.fetch(BASE + path, { headers: H({ Cookie: sid }) });
+  for (const p of ['google', 'microsoft']) {
+    it(`${p}: account without TOTP passes on /api and the older routes; mfa/verify is not required`, async () => {
+      const a = await socialLogin(p);
+      expect((await api('GET', '/api/account/profile', a)).status).toBe(200);
+      expect((await legacyGet('/optouts', a)).status).toBe(200);
+      expect((await legacyGet('/tx-requests', a)).status).toBe(200);
+      expect((await (await api('GET', '/api/me', a)).json()).mfa_required).toBe(false);
+      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(400);
+    });
+    it(`${p}: account with TOTP enrolled is blocked until TOTP is verified`, async () => {
+      const a = await socialLogin(p);
+      const secret = authenticator.generateSecret(20);
+      const { id } = await env.DB.prepare('SELECT user_id AS id FROM user_identities WHERE provider = ?1').bind(p).first();
+      await env.DB.prepare('UPDATE users SET totp_secret_enc = ?1, totp_enabled = 1 WHERE id = ?2').bind(await encryptStr(env, secret), id).run();
+      expect(await (await api('GET', '/api/me', a)).json()).toMatchObject({ mfa: false, limited: true, mfa_required: true });
+      for (const [m, path, body] of [['GET', '/api/account/profile'], ['GET', '/api/account/optouts'], ['GET', '/api/account/sessions'],
+        ['POST', '/api/account/export'], ['POST', '/api/optouts/signup', {}], ['POST', '/api/account/delete'], ['POST', `/api/auth/${p}/stepup`]]) {
+        const r = await api(m, path, a, body);
+        expect(r.status, `${m} ${path}`).toBe(403);
+        expect(await r.json()).toEqual({ error: 'mfa required', code: 'mfa_required' });
+      }
+      for (const path of ['/optouts', '/tx-requests', '/brokers']) {
+        const r = await legacyGet(path, a);
+        expect(r.status, path).toBe(403);
+        expect((await r.json()).code).toBe('mfa_required');
+      }
+      expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(401);
+      const ok = await api('POST', '/api/auth/mfa/verify', a, { code: authenticator.generate(secret) });
+      expect(ok.status).toBe(200);
+      const b = { sid: cookieVal(ok, '__Host-sid'), csrf: (await ok.json()).csrf_token };
+      expect(b.sid).not.toBe(a.sid);
+      expect((await api('GET', '/api/account/profile', b)).status).toBe(200);
+      expect((await legacyGet('/optouts', b)).status).toBe(200);
+      expect(await (await api('GET', '/api/me', b)).json()).toMatchObject({ mfa: true, limited: false, auth_method: p });
+      // Replaying the same TOTP step on a new limited session fails.
+      const c = await socialLogin(p);
+      expect((await api('POST', '/api/auth/mfa/verify', c, { code: authenticator.generate(secret) })).status).toBe(401);
+    });
+  }
+  it('password session is unchanged: limited until TOTP on /api and the older routes; mfa/verify does not apply', async () => {
+    const a = await socialLogin('google');
+    await env.DB.prepare("UPDATE sessions SET mfa = 0, auth_method = 'password'").run();
+    expect((await api('GET', '/api/account/profile', a)).status).toBe(403);
+    expect((await legacyGet('/optouts', a)).status).toBe(403);
+    expect((await api('POST', '/api/auth/mfa/verify', a, { code: '000000' })).status).toBe(400);
+    await env.DB.prepare("UPDATE sessions SET mfa = 1 WHERE auth_method = 'password'").run();
+    expect((await api('GET', '/api/account/profile', a)).status).toBe(200);
+  });
+});
+
 describe('password + TOTP fallback', () => {
   async function pwUser() {
     const id = crypto.randomUUID();

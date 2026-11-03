@@ -142,7 +142,7 @@ App origin (`/api`, JSON, cookie session `__Host-sid`; state-changing requests n
 - `POST /api/optouts/signup` – `{fullName, mailingAddress, email, texasResident, phone?}`. `phone` is optional: a US number, normalized to E.164 (`+1` + 10 digits); missing, empty and null all mean "no phone". Stored encrypted with the rest of the signup PII.
 
 Older session API (same Worker): `/auth/login`, `/auth/totp/*`, `/auth/refresh`, `/auth/logout`, `/auth/backup-codes/regenerate`, `/me`, `/optouts`, `/brokers`, `/profile` (step-up gated), `/tx-requests` (below), `/admin/bootstrap`.
-TOTP on the older routes: only **password** sessions need a finished TOTP for `/profile`, `/optouts` and `/tx-requests`. Google and Microsoft sessions are accepted, matching the newer `/api/*` routes. Before this change, those routes rejected social sessions with `mfa required`. *This is pending Ben's decision and should be reverted if social sessions must stay blocked there.*
+TOTP on the older routes and `/api/*`: a **password** session always needs a finished TOTP for `/profile`, `/optouts`, `/tx-requests` and the account routes. A Google or Microsoft session needs it too when the account has TOTP enrolled: until `POST /api/auth/mfa/verify` (`{code}`: a TOTP or backup code; same `login` rate limit and replay protection) rotates it to a verified session, it gets `403 {"error":"mfa required","code":"mfa_required"}` everywhere except `/api/me`, logout and mfa/verify. Social sessions on accounts without TOTP are unchanged.
 Legacy KV API (`Authorization: Bearer <API_TOKEN>`): `GET|POST /records`, `GET|PUT|DELETE /records/:id`, `/txrequests`, `/settings/profile`.
 
 ### Tests and checks
