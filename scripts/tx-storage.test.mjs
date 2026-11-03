@@ -110,10 +110,11 @@ test('auth failure keeps edits with the reason; flush() after sign-in sends them
   authed = true; await s.flush();
   assert.deepEqual(sent, ['tx-a']); assert.equal(s.pending.size, 0);
 });
-test('a full 445-broker pass stays well under the server tx limit (1 PUT per broker)', async () => {
+test('a full 445-broker pass debounces to exactly 1 PUT per broker (445 PUTs, so it spans ~8 windows of the 60/hour tx limit)', async () => {
   const tm = fakeTimers(); let n = 0;
   const s = createTxSaver({ save: async () => { n++; return true; }, timers: tm, now: tm.now });
   for (let i = 0; i < 445; i++) { s.queue({ id: `tx-${i}`, status: 'sent' }); s.queue({ id: `tx-${i}`, status: 'sent', notes: 'x' }); }
   await tm.advance(DEBOUNCE_MS);
   assert.equal(n, 445);
+  assert.ok(n > 60); // more than one hourly window at 60/hour; the saver pauses on 429 and keeps edits pending
 });
