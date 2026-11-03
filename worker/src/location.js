@@ -6,6 +6,7 @@
 //     - a same-origin path;
 //     - <APP_ORIGIN>/api/auth/complete?code=<base64url> and <APP_ORIGIN>/start[?auth_error=<reason>] (handoff back to the app);
 //     - the exact Google / Microsoft authorize endpoints.
+import { log } from './log.js';
 export const AUTHORIZE_URLS = [
   'https://accounts.google.com/o/oauth2/v2/auth',
   'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
@@ -31,6 +32,6 @@ export function locationAllowed(env, kind, loc) {
 export function guardLocation(env, kind, res) {
   const loc = res.headers.get('Location');
   if (loc === null || locationAllowed(env, kind, loc)) return res;
-  console.error('blocked redirect', JSON.stringify({ kind }));
+  log('blocked_redirect', { kind });
   return new Response(JSON.stringify({ error: 'internal error' }), { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
