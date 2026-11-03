@@ -63,3 +63,33 @@ test('concurrent 403s share one prompt', async () => {
   await Promise.all([api.sessions(), api.optouts()]);
   assert.equal(n, 1);
 });
+
+// ---- account page decision after /api/me (src/meFlow.js) ----
+const { resolveMe, canVerify } = await import('../src/meFlow.js');
+const seq = (...xs) => { let i = 0; const f = async () => xs[Math.min(i++, xs.length - 1)]; f.count = () => i; return f; };
+
+test('verifiable limited session: one probe, one re-read of /api/me, then signed in', async () => {
+  const me = seq({ limited: true, can_mfa_verify: true }, { limited: false });
+  let probes = 0;
+  assert.deepEqual((await resolveMe({ me, probe: async () => { probes++; } })).stage, 'signed-in');
+  assert.equal(probes, 1); assert.equal(me.count(), 2);
+});
+
+test('bounded: still limited after the upgrade -> stops (password stage), no second probe or loop', async () => {
+  const me = seq({ limited: true, can_mfa_verify: true }); // server keeps saying limited
+  let probes = 0;
+  const r = await resolveMe({ me, probe: async () => { probes++; } });
+  assert.equal(r.stage, 'password'); assert.equal(probes, 1); assert.equal(me.count(), 2);
+});
+
+test('limited password session (mfa/verify would 400): no prompt, no probe, keeps the TOTP-setup path', async () => {
+  const u = { limited: true, can_mfa_verify: false, mfa_required: true, auth_method: 'password', user: { totp_enabled: false } };
+  assert.equal(canVerify(u), false);
+  let probes = 0;
+  assert.equal((await resolveMe({ me: seq(u), probe: async () => { probes++; } })).stage, 'enroll');
+  assert.equal(probes, 0);
+});
+
+test('cancelled prompt: the probe error propagates (caller shows sign-in)', async () => {
+  await assert.rejects(resolveMe({ me: seq({ limited: true, can_mfa_verify: true }), probe: async () => { throw new Error('403'); } }));
+});

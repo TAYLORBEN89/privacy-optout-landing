@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "npm run -s test:labels && npm run -s test:storage && npm run -s test:tx && npm run -s test:mfa && npm --prefix worker test",
     "test:labels": "node --test scripts/status-labels.test.mjs",
     "test:storage": "node --test scripts/legacy-storage.test.mjs scripts/profile-storage.test.mjs",
     "preview": "vite preview",

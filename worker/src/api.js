@@ -317,6 +317,7 @@ async function me(ctx, cur) {
     user: { id: u.id, display_name: await displayName(ctx.env, u), has_password: hasPassword(u), totp_enabled: !!u.totp_enabled, created_at: u.created_at },
     providers: ids.map(publicIdentity),
     auth_method: cur.session.auth_method, mfa: !!cur.session.mfa, limited: !!cur.limited, mfa_required: !!cur.limited,
+    can_mfa_verify: !!cur.mfaRequired, // true only when POST /api/auth/mfa/verify can upgrade this session
     stepped_up_until: isSteppedUp(cur.session) ? cur.session.stepped_up_at + STEP_UP_SECONDS : null,
     csrf_token: cur.session.csrf,
   });

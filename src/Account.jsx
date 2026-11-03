@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import * as api from './authApi.js';
 import AccountArea from './AccountArea.jsx';
+import { resolveMe, canVerify } from './meFlow.js';
 
 const errText = (e) => (e?.status === 429 ? 'Too many attempts. Wait 15 minutes and try again.'
   : e?.status === 401 ? 'Invalid credentials.' : e?.message || 'Something went wrong.');
@@ -63,24 +64,21 @@ export default function Account() {
   const [mfaAsk, setMfaAsk] = useState(null); // { message, resolve } while a TOTP upgrade prompt is open
   const [mfaCode, setMfaCode] = useState('');
 
-  // 403 mfa_required on any request -> prompt for a TOTP or backup code; authApi verifies it and retries the request.
-  useEffect(() => {
-    api.setMfaPrompt((message) => new Promise((resolve) => { setMfaCode(''); setMfaAsk({ message, resolve }); }));
-    return () => api.setMfaPrompt(null);
-  }, []);
+  // 403 mfa_required -> prompt for a TOTP or backup code; authApi verifies it and retries the request. The prompt is
+  // registered only while the session can actually verify (can_mfa_verify); limited password sessions never see it.
+  const askMfa = (message) => new Promise((resolve) => { setMfaCode(''); setMfaAsk({ message, resolve }); });
+  useEffect(() => () => api.setMfaPrompt(null), []);
   const answerMfa = (value) => { const a = mfaAsk; setMfaAsk(null); setMfaCode(''); a?.resolve(value); };
 
   const refreshMe = async () => {
     try {
-      const u = await api.me();
-      setUser(u);
-      // limited + mfa_required with TOTP already enrolled: verify (prompt) instead of enrolling again.
-      if (u.limited && u.user?.totp_enabled) {
-        await api.sessions(); // protected probe: 403 mfa_required -> prompt -> verify -> retry
-        return refreshMe();
-      }
-      setStage(u.limited ? 'enroll' : 'signed-in');
-    } catch { setStage('password'); }
+      const r = await resolveMe({
+        me: async () => { const u = await api.me(); api.setMfaPrompt(canVerify(u) ? askMfa : null); return u; },
+        probe: () => api.sessions(),
+      });
+      api.setMfaPrompt(null);
+      setUser(r.user); setStage(r.stage);
+    } catch { api.setMfaPrompt(null); setStage('password'); }
   };
   useEffect(() => { refreshMe(); }, []);
 
