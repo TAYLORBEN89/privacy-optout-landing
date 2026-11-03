@@ -325,9 +325,9 @@ export function TdpsaPage() {
       </p>
       <h2>Who the chapter covers</h2>
       <p>
-        A consumer under Section 541.001(7) is a Texas resident acting in a personal or household
-        context. That term does not include someone acting in a commercial or employment context. The
-        section text is in{" "}
+        Section 541.001(7) defines a consumer as a resident of this state acting only in a private or
+        household context. The term does not include a person acting in a commercial or employment
+        context. The section text is in{" "}
         <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
           chapter 541
         </a>

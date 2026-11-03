@@ -14,7 +14,7 @@ export function RightsSection() {
   return (
     <section className="rights" aria-labelledby="rights-heading">
       <h2 id="rights-heading">Your rights under the TDPSA</h2>
-      {/* Plain English for a consumer: a Texas resident acting in a personal or household context. Sec. 541.001(7). */}
+      {/* Plain English for a consumer under Sec. 541.001(7): a resident of this state acting only in a private or household context. */}
       <p className="rights-body">
         The Texas Data Privacy and Security Act gives Texans rights over the personal data companies collect about them. DROP Texas helps you use them.
       </p>

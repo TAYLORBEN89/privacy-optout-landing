@@ -5,6 +5,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 describe("privacy page", () => {
+  it("renders the privacy contact address", () => {
+    const html = renderToStaticMarkup(createElement(PrivacyPage));
+    expect(html).toContain("The contact address for this page is help@droptexas.com.");
+  });
+
   it("returns the privacy sections without a certification or California claim", () => {
     const html = renderToStaticMarkup(createElement(PrivacyPage));
     expect(html).toContain("Texas privacy");
@@ -24,6 +29,7 @@ describe("privacy page", () => {
     expect(html).toContain(
       "We keep what you give us only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
     );
+    expect(html).toContain("The contact address for this page is help@droptexas.com.");
     expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
     expect(html).toContain("Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256).");
     expect(html).toContain("Coming soon");

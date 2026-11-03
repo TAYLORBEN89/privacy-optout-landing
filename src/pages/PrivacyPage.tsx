@@ -40,7 +40,9 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
     id: "limits",
     title: "What we don't do",
-    paragraphs: ["We do not sell your data. This site does not load advertising trackers."],
+    paragraphs: [
+      "We do not sell your data. This site does not load advertising trackers. The contact address for this page is help@droptexas.com.",
+    ],
   },
   {
     id: "compliance",
