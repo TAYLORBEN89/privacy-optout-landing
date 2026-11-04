@@ -35,7 +35,7 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
           />
         </picture>
         <div className="hero-inner">
-            <h1 id="page-title">Texas data broker opt-out</h1>
+            <h1 id="page-title">Privacy is a right.</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
             <p className="hero-focus">DROP Texas is a free Texas data broker opt-out for Texans.</p>
             <p className="lede hero-line">

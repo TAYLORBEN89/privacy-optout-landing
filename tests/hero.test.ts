@@ -5,7 +5,8 @@ describe("hero copy", () => {
   it("uses Privacy is a right as the headline and a subline under it", () => {
     const source = readFileSync("src/pages/HomePage.tsx", "utf8");
     const hero = source.slice(source.indexOf('id="overview"'), source.indexOf('className="explore"'));
-    expect(hero).toContain("Texas data broker opt-out");
+    expect(hero).toContain("<h1 id=\"page-title\">Privacy is a right.</h1>");
+    expect(hero).toContain("DROP Texas is a free Texas data broker opt-out for Texans.");
     expect(hero).toContain("Let's get you started.");
     expect(hero.match(/<h1/g)).toHaveLength(1);
     expect(hero).not.toContain("for the people");
