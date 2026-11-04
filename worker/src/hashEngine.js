@@ -45,18 +45,22 @@ export function stdEmail(v) {
   return /^[^\s@]+@[^\s@]+$/.test(s) ? s : null;
 }
 
-// Phone: digits only, last 10 digits (drops +1 country code). Fewer than 10 digits is not hashable.
+// Phone (DROP spec v1.2.0): strip all non-numeric characters, keep the last 10 digits, or all digits if fewer
+// than 10. No digits at all -> null (not hashable).
 export function stdPhone(v) {
   if (v == null) return null;
   const d = String(v).replace(/\D/g, '');
-  return d.length >= 10 ? d.slice(-10) : null;
+  return d ? d.slice(-10) : null;
 }
 
-// ZIP: first 5 digits (95811-6213 -> 95811).
+// ZIP (DROP spec v1.2.0): for ZIP+4 drop the +4 (everything from the first hyphen), keep letters and digits only,
+// lowercase, remove leading zeros, then take the first five characters present.
+// e.g. 91790-3771 -> 91790, M1B 1A1 -> m1b1a, 00712345 -> 71234, 00300-9999 -> 300.
+// Our rule where the spec is silent: an empty value, or one that is only zeros/symbols, -> null (not hashable).
 export function stdZip(v) {
   if (v == null) return null;
-  const d = String(v).trim().replace(/\D/g, '');
-  return d.length >= 5 ? d.slice(0, 5) : null;
+  const s = String(v).split('-')[0].replace(/[^\p{L}\p{N}]/gu, '').toLowerCase().replace(/^0+/, '').slice(0, 5);
+  return s || null;
 }
 
 // DOB -> YYYYMMDD. Accepts YYYY-MM-DD, YYYY/MM/DD, YYYYMMDD and US MM/DD/YYYY (or M-D-YYYY). Validates the date.

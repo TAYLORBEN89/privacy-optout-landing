@@ -26,8 +26,8 @@ record can't match that list type.
 | --- | --- | --- |
 | First / last name (separate fields) | Lowercase. Fold accented Latin letters to ASCII (å→a, ö→o, ñ→n). Transliterate Greek and Cyrillic, and map special Latin letters (ß→ss, æ→ae, œ→oe, ø→o, ð→d, þ→th, ł→l, đ→d, ħ→h, ŋ→n, ı→i, ĳ→ij, ŀ→l), using the DROP Transliteration Mapping (see 2a). Remove spaces, hyphens, apostrophes, punctuation, symbols, and any other non-letter or non-digit characters. Compound names become one value. Chinese, Japanese, Korean, Arabic and Hebrew characters are left unchanged. | `Juan Pablo` → `juanpablo`; `O'Connor-López` → `oconnorlopez` |
 | DOB | 8 digits, `YYYYMMDD`. Accepted inputs: `YYYY-MM-DD`, `YYYY/MM/DD`, `YYYYMMDD`, and US `MM/DD/YYYY`. A date that ends with the year is always read as month/day/year (US order). | `01/12/1990` → `19900112` (January 12) |
-| ZIP | first 5 digits | `95811-6213` → `95811` |
-| Phone | digits only, last 10 digits (drops the country code) | `+1 (987) 765-4321` → `9877654321` |
+| ZIP | Drop a ZIP+4 suffix (everything from the first hyphen), keep letters and digits only, lowercase, remove leading zeros, then take the first 5 characters. An empty value or one that is only zeros is not hashable. | `91790-3771` → `91790`; `M1B 1A1` → `m1b1a`; ` 00712345` → `71234`; ` 00300-9999` → `300` |
+| Phone | Strip every non-digit, then keep the last 10 digits, or all digits if there are fewer than 10. A value with no digits is not hashable. | `+1(415)555-9317` → `4155559317`; `+354(123)4567` → `3541234567`; `765-4321` → `7654321` |
 | Email | trim surrounding whitespace, lowercase. Other characters, including `.` and `+`, are kept. | ` Jane.Doe+TX@Example.COM ` → `jane.doe+tx@example.com` |
 
 ### 2a. Greek and Cyrillic transliteration
@@ -119,5 +119,5 @@ Validation rules:
 
 ## 10. Security and retention
 
-Built to SOC 2 standards. Lists contain only hashes and opaque ids. Finished request records are kept for 24 months,
+SOC 2-ready. Lists contain only hashes and opaque ids. Finished request records are kept for 24 months,
 and Texas request records for 3 years, then deleted.

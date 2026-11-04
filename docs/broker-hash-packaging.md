@@ -34,11 +34,14 @@ Raw values are never written to a file, a log, or the audit table.
 | first name | `Νίκος` | `nikos` |
 | last name | `Щербаков` | `shcherbakov` |
 | ZIP | `95811-6213` | `95811` |
+| ZIP | `M1B 1A1` | `m1b1a` |
+| ZIP | ` 00300-9999` | `300` (leading zeros removed) |
 | phone | `+1 (987) 765-4321` | `9877654321` |
+| phone | `765-4321` | `7654321` (fewer than 10 digits: all kept) |
 | email | ` Jane.Doe+TX@Example.COM ` | `jane.doe+tx@example.com` |
 
 Greek and Cyrillic names are transliterated with the official DROP Transliteration Mapping (CPPA DROP Technical and API Reference Documentation v1.2.0 (last updated July 2026), "Working with the data" > DROP Transliteration Mapping, https://privacy.ca.gov/drop-for-data-brokers/technical-specifications/working-with-data/); for example `Νίκος` → `nikos` and `Щербаков` → `shcherbakov`. Letters the mapping doesn't list are left unchanged. Names are lowercased, accents are folded to plain letters, and every space, hyphen, apostrophe and symbol is removed.
-Dates of birth are parsed in US order: `MM/DD/YYYY`, so `01/12/1990` is January 12. ISO `YYYY-MM-DD` and `YYYYMMDD` are also accepted. Emails are only trimmed and lowercased. The `.` and `+` are kept, because removing them would change the address.
+ZIPs follow the DROP spec: the +4 is dropped, letters and digits are kept, leading zeros are removed, and the first five characters are used. Phones keep the last 10 digits, or all digits when there are fewer. Dates of birth are parsed in US order: `MM/DD/YYYY`, so `01/12/1990` is January 12. ISO `YYYY-MM-DD` and `YYYYMMDD` are also accepted. Emails are only trimmed and lowercased. The `.` and `+` are kept, because removing them would change the address.
 
 ## 4. Hashing and composite keys
 
@@ -100,7 +103,9 @@ the audit log.
 
 ## 10. Audit and retention
 
-- `broker_hash_audit` is append-only, and database triggers block UPDATE and DELETE on it. It records list generation,
+- All four broker tables (`broker_lists`, `broker_list_items`, `broker_status`, `broker_hash_audit`) are write-once. Database triggers block UPDATE, DELETE, and REPLACE INTO / INSERT OR REPLACE (a BEFORE INSERT guard aborts when the key already exists).
+- The future retention purge will use a sanctioned path like the existing audit expiry: a reviewed migration adds a gate row with a minimum-age cutoff, opened and closed inside one D1 batch, and the DELETE guards allow only rows older than that cutoff. It is not built yet.
+- `broker_hash_audit` It records list generation,
   status ingests and rejections, with counts and reasons only.
 - Retention: finished records are kept for 24 months. Texas request records are kept for 3 years.
-- Built to SOC 2 standards.
+- SOC 2-ready.

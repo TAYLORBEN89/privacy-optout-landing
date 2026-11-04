@@ -44,3 +44,38 @@ CREATE TRIGGER IF NOT EXISTS broker_hash_audit_no_delete BEFORE DELETE ON broker
 BEGIN SELECT RAISE(ABORT, 'broker_hash_audit is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS broker_status_no_update BEFORE UPDATE ON broker_status
 BEGIN SELECT RAISE(ABORT, 'broker_status is write-once'); END;
+
+-- Immutability guards. REPLACE INTO / INSERT OR REPLACE resolve a key conflict by deleting the old row, and that delete
+-- only fires DELETE triggers when recursive_triggers is on, so the UPDATE/DELETE triggers alone are not enough.
+-- BEFORE INSERT guards abort whenever the key already exists, which blocks REPLACE regardless of that pragma.
+-- All four tables are write-once: no UPDATE, no DELETE, no replace.
+--
+-- Retention purge (24 months for finished records), NOT built here: it will ship as its own reviewed migration/job
+-- using a gate row like 0004's maintenance_gate (a 'broker_purge' gate with a minimum-age cutoff, opened and closed
+-- inside the same D1 batch), and these DELETE guards will gain a matching WHEN NOT EXISTS (gate) clause.
+CREATE TRIGGER IF NOT EXISTS broker_lists_no_replace BEFORE INSERT ON broker_lists
+WHEN EXISTS (SELECT 1 FROM broker_lists WHERE list_id = NEW.list_id)
+  OR EXISTS (SELECT 1 FROM broker_lists WHERE broker_id = NEW.broker_id AND list_type = NEW.list_type AND version = NEW.version)
+BEGIN SELECT RAISE(ABORT, 'broker_lists is write-once'); END;
+CREATE TRIGGER IF NOT EXISTS broker_lists_no_update BEFORE UPDATE ON broker_lists
+BEGIN SELECT RAISE(ABORT, 'broker_lists is write-once'); END;
+CREATE TRIGGER IF NOT EXISTS broker_lists_no_delete BEFORE DELETE ON broker_lists
+BEGIN SELECT RAISE(ABORT, 'broker_lists is write-once'); END;
+
+CREATE TRIGGER IF NOT EXISTS broker_list_items_no_replace BEFORE INSERT ON broker_list_items
+WHEN EXISTS (SELECT 1 FROM broker_list_items WHERE list_id = NEW.list_id AND item_id = NEW.item_id)
+BEGIN SELECT RAISE(ABORT, 'broker_list_items is write-once'); END;
+CREATE TRIGGER IF NOT EXISTS broker_list_items_no_update BEFORE UPDATE ON broker_list_items
+BEGIN SELECT RAISE(ABORT, 'broker_list_items is write-once'); END;
+CREATE TRIGGER IF NOT EXISTS broker_list_items_no_delete BEFORE DELETE ON broker_list_items
+BEGIN SELECT RAISE(ABORT, 'broker_list_items is write-once'); END;
+
+CREATE TRIGGER IF NOT EXISTS broker_status_no_replace BEFORE INSERT ON broker_status
+WHEN EXISTS (SELECT 1 FROM broker_status WHERE list_id = NEW.list_id AND item_id = NEW.item_id)
+BEGIN SELECT RAISE(ABORT, 'broker_status is write-once'); END;
+CREATE TRIGGER IF NOT EXISTS broker_status_no_delete BEFORE DELETE ON broker_status
+BEGIN SELECT RAISE(ABORT, 'broker_status is write-once'); END;
+
+CREATE TRIGGER IF NOT EXISTS broker_hash_audit_no_replace BEFORE INSERT ON broker_hash_audit
+WHEN NEW.id IS NOT NULL AND EXISTS (SELECT 1 FROM broker_hash_audit WHERE id = NEW.id)
+BEGIN SELECT RAISE(ABORT, 'broker_hash_audit is append-only'); END;

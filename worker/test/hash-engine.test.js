@@ -54,11 +54,28 @@ describe('standardization', () => {
   it('ZIP and ZIP+4 -> 5 digits', () => {
     expect(stdZip('95811-6213')).toBe('95811');
     expect(stdZip(' 958116213 ')).toBe('95811');
-    expect(stdZip('9581')).toBeNull();
+    // DROP spec v1.2.0 worked examples
+    expect(stdZip('91790-3771')).toBe('91790');
+    expect(stdZip('M1B 1A1')).toBe('m1b1a');
+    expect(stdZip(' 00712345')).toBe('71234');
+    expect(stdZip(' 00300-9999')).toBe('300');
+    expect(stdZip('07701')).toBe('7701');
+    // our rule where the spec is silent: empty / all zeros / symbols only -> not hashable
+    for (const v of ['', '   ', '00000', '00000-1234', '--']) expect(stdZip(v)).toBeNull();
   });
   it('phone -> last 10 digits', () => {
     for (const v of ['+1(987) 765-4321', '987.765.4321', '19877654321', '+1 987 765 4321']) expect(stdPhone(v)).toBe('9877654321');
-    expect(stdPhone('765-4321')).toBeNull();
+    expect(stdPhone('765-4321')).toBe('7654321'); // fewer than 10 digits: keep all
+    expect(stdPhone('+84(90)123 4567')).toBe('4901234567');
+    expect(stdPhone('+354(123)4567')).toBe('3541234567');
+    expect(stdPhone('n/a')).toBeNull();
+  });
+  it('reproduces the DROP spec v1.2.0 published ZIP and phone hashes', async () => {
+    // Hashes copied from the CPPA spec page and re-checked with openssl.
+    const z = { '91790-3771': '2FPZucR4x7U8KlM+SFAX4LPGhwNz/PIZUCSUdDh0o/s=', 'M1B 1A1': 'n8L9q8mVeT6Xt9/EeUNiTukGDrkbPJ3DvOEx14uElxk=', ' 00712345': 'aeNUYKh7Xw5sqpxSbSP9eOHsj6iXewbUyavv89DIuhQ=', ' 00300-9999': 'mDvWFLta/s5as7YCP3EUfNe2vCMU+dJ690IlQcZVg4k=' };
+    const p = { '+1(415)555-9317': 'vGM7y5n+hBXRSEAklhHDPCbysyNgYTmXdMcagGUOY8E=', '+84(90)123 4567': 'ptzVkgbv9DonwvPCHmXmJ2SEOaolSh37z3ZzY/Gmm+U=', '+354(123)4567': 'Btrzydf5K6ALAKKXJGFHSx7u5bDzHC9WlVYtpq1n2rY=', '5551273811': 'jr/RAWYVN+ODBf2vRxwBASPwiO4x27OGI1y3IDhcwLo=' };
+    for (const [raw, hash] of Object.entries(z)) expect(await hashValue(stdZip(raw))).toBe(hash);
+    for (const [raw, hash] of Object.entries(p)) expect(await hashFor('phone', { phone: raw })).toBe(hash);
   });
   it('email trimmed and lowercased, special characters kept', () => {
     expect(stdEmail('  Jane.Doe+TX@Example.COM ')).toBe('jane.doe+tx@example.com');
@@ -86,7 +103,7 @@ describe('hashing', () => {
   });
   it('reproduces every row of docs/samples/synthetic-test-vectors.csv', async () => {
     const rows = parseCsv(vectorsCsv);
-    expect(rows.length).toBeGreaterThanOrEqual(31);
+    expect(rows.length).toBeGreaterThanOrEqual(41);
     for (const r of rows) {
       if (r.field === 'ndz') {
         const [first_name, last_name, dob, zip] = r.raw.split('|');
@@ -173,6 +190,32 @@ describe('status ingest + audit', () => {
     await seed('brk4');
     await expect(env.DB.prepare('UPDATE broker_hash_audit SET event = ?1').bind('x').run()).rejects.toThrow(/append-only/);
     await expect(env.DB.prepare('DELETE FROM broker_hash_audit').run()).rejects.toThrow(/append-only/);
+  });
+  it('REPLACE INTO, INSERT OR REPLACE, UPDATE and DELETE all fail on every broker table (review 5774976999)', async () => {
+    const listId = await seed('brk5');
+    await ingestStatus(env, { brokerId: 'brk5', listId, version: 1, csv: 'Id,Status\nbrk5X1,3\n', now: T0 + DAY });
+    const aud = await env.DB.prepare('SELECT id FROM broker_hash_audit WHERE list_id = ?1 ORDER BY id LIMIT 1').bind(listId).first();
+    const cases = [
+      ['broker_lists', 'INTO broker_lists (list_id, broker_id, list_type, version, created_at, response_due, row_count, sha256) VALUES (?1, ?2, ?3, 1, 0, 0, 0, ?4)', [listId, 'brk5', 'email', 'x'],
+        'UPDATE broker_lists SET row_count = 0 WHERE list_id = ?1', 'DELETE FROM broker_lists WHERE list_id = ?1', [listId]],
+      ['broker_list_items', 'INTO broker_list_items (list_id, item_id, request_ref, hash) VALUES (?1, ?2, ?3, ?4)', [listId, 'brk5X1', 'req_evil', 'x'],
+        'UPDATE broker_list_items SET hash = 0 WHERE list_id = ?1', 'DELETE FROM broker_list_items WHERE list_id = ?1', [listId]],
+      ['broker_status', 'INTO broker_status (list_id, item_id, status, received_at) VALUES (?1, ?2, ?3, ?4)', [listId, 'brk5X1', 5, 0],
+        'UPDATE broker_status SET status = 5 WHERE list_id = ?1', 'DELETE FROM broker_status WHERE list_id = ?1', [listId]],
+      ['broker_hash_audit', 'INTO broker_hash_audit (id, at, event) VALUES (?1, ?2, ?3)', [aud.id, 0, 'forged'],
+        'UPDATE broker_hash_audit SET event = 0 WHERE list_id = ?1', 'DELETE FROM broker_hash_audit WHERE list_id = ?1', [listId]],
+    ];
+    for (const [table, into, args, upd, del, keyArgs] of cases) {
+      const re = new RegExp(`${table} is (write-once|append-only)`);
+      await expect(env.DB.prepare(`REPLACE ${into}`).bind(...args).run(), `${table} REPLACE`).rejects.toThrow(re);
+      await expect(env.DB.prepare(`INSERT OR REPLACE ${into}`).bind(...args).run(), `${table} INSERT OR REPLACE`).rejects.toThrow(re);
+      await expect(env.DB.prepare(upd).bind(...keyArgs).run(), `${table} UPDATE`).rejects.toThrow(re);
+      await expect(env.DB.prepare(del).bind(...keyArgs).run(), `${table} DELETE`).rejects.toThrow(re);
+    }
+    const st = await env.DB.prepare('SELECT status FROM broker_status WHERE list_id = ?1 AND item_id = ?2').bind(listId, 'brk5X1').first();
+    expect(st.status).toBe(3); // original value survived
+    const it = await env.DB.prepare('SELECT request_ref FROM broker_list_items WHERE list_id = ?1 AND item_id = ?2').bind(listId, 'brk5X1').first();
+    expect(it.request_ref).toBe('req_b');
   });
   it('status template has the right header and only valid codes', () => {
     const [head, ...rows] = statusTemplate.trim().split('\n');
