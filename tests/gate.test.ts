@@ -47,8 +47,11 @@ describe("auth gate", () => {
     expect(isSafeReturnPath("/start#step-1")).toBe(true);
     expect(isSafeReturnPath("/start#step-12")).toBe(true);
     expect(isSafeReturnPath("/start#step-99")).toBe(true);
-    expect(isSafeReturnPath("/start?for=child")).toBe(true);
-    expect(isSafeReturnPath("/security")).toBe(true);
+    expect(isSafeReturnPath("/start#step-0")).toBe(false);
+    expect(isSafeReturnPath("/start#step-100")).toBe(false);
+    expect(isSafeReturnPath("/start#step-01")).toBe(false);
+    expect(isSafeReturnPath("/start?for=child")).toBe(false);
+    expect(isSafeReturnPath("/security")).toBe(false);
     expect(isSafeReturnPath("//evil.example")).toBe(false);
     expect(isSafeReturnPath("//evil.example/start")).toBe(false);
     expect(isSafeReturnPath("https://evil.example")).toBe(false);
