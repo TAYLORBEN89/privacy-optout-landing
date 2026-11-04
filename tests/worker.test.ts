@@ -625,28 +625,21 @@ describe("POST /api/signup", () => {
     const account = await handleRequest(new Request("https://droptexas.com/account"), assets());
     expect(account.headers.get("x-robots-tag")).toBe("noindex");
     const signIn = await handleRequest(new Request("https://droptexas.com/signin"), assets());
-    expect(signIn.status).toBe(302);
-    expect(signIn.headers.get("x-robots-tag")).toBe("noindex");
+    expect(signIn.status).toBe(200);
+    expect(signIn.headers.get("location")).toBeNull();
   });
 
-  it("redirects /signin to the accounts host and drops an unsafe return path", async () => {
+  it("serves /signin on this site instead of sending it to the accounts host", async () => {
     const kept = await handleRequest(new Request("https://droptexas.com/signin?return_to=/account"), assets());
-    expect(kept.status).toBe(302);
-    expect(kept.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Faccount");
-
-    const step = await handleRequest(
-      new Request(`https://droptexas.com/signin?return_to=${encodeURIComponent("/start#step-4")}`),
-      assets(),
-    );
-    expect(step.status).toBe(302);
-    expect(step.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart%23step-4");
+    expect(kept.status).toBe(200);
+    expect(kept.headers.get("location")).toBeNull();
 
     const dropped = await handleRequest(
       new Request("https://droptexas.com/signin?return_to=//evil.example"),
       assets(),
     );
-    expect(dropped.status).toBe(302);
-    expect(dropped.headers.get("location")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+    expect(dropped.status).toBe(200);
+    expect(dropped.headers.get("location")).toBeNull();
   });
 
   it("forwards /api/auth/complete and every other API path instead of the SPA shell", async () => {

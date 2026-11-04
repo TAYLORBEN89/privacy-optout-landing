@@ -237,22 +237,22 @@ export const SEO_PAGES: readonly SeoPage[] = [
   },
   {
     path: "/account",
-    title: "Your DROP Texas account page is coming soon for now",
+    title: "Your DROP Texas account holds your opt-out requests",
     description:
-      "Your DROP Texas account is not available yet. This page is not for search indexing. Email help@droptexas.com if you need to see or delete saved data.",
+      "Your DROP Texas account holds the requests tied to your Google or Microsoft sign-in. This page is not for search indexing and is not a government site.",
     focus: "your DROP Texas account",
-    related: ["coming soon", "not indexed", "help email"],
+    related: ["not indexed", "opt-out requests", "help email"],
     indexable: false,
     wordsNote: "n/a (noindex account shell)",
     bodyNote: "n/a (noindex account shell)",
   },
   {
     path: "/signin",
-    title: "Sign in to DROP Texas is not open on this site yet",
+    title: "Sign in to DROP Texas with Google or with Microsoft",
     description:
-      "Sign in to DROP Texas is not offered on this page yet. Account sign-in is coming soon. This route is not for search indexing and is not a government login.",
+      "Sign in to DROP Texas with Google or Microsoft on this site. This private page is not indexed, and it is not a government login or a password form.",
     focus: "sign in to DROP Texas",
-    related: ["coming soon", "not indexed", "accounts host"],
+    related: ["not indexed", "Google or Microsoft", "no password"],
     indexable: false,
     wordsNote: "n/a (noindex auth route)",
     bodyNote: "n/a (noindex auth route)",

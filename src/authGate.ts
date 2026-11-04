@@ -1,7 +1,5 @@
-import { accountsSignInUrl, isSafeReturnPath } from "../shared/accounts";
+import { isSafeReturnPath } from "../shared/accounts";
 import { ME_PATH } from "./api";
-
-export const SIGN_IN_HREF = accountsSignInUrl("/start");
 
 /**
  * Draft default is on. Set VITE_AUTH_GATE=false at build time to show /start
@@ -13,22 +11,17 @@ export function authGateEnabled(raw?: string): boolean {
   return value !== "false" && value !== "0";
 }
 
-/**
- * Header sign-in stays hidden until the accounts host is ready.
- * Unset, empty, and "false" are off. Set VITE_ACCOUNTS_LIVE=true to show it.
- */
-export function accountsLive(raw?: string): boolean {
-  const value = raw === undefined ? import.meta.env.VITE_ACCOUNTS_LIVE : raw;
-  return value === "true" || value === "1";
+/** On-site sign-in. An unsafe return path falls back to /start. */
+export function signInHrefFor(returnTo: string): string {
+  const safe = isSafeReturnPath(returnTo) ? returnTo : "/start";
+  return `/signin?return_to=${encodeURIComponent(safe)}`;
 }
 
-export function startHref(
-  gateEnabled: boolean,
-  signedIn: boolean,
-  live: boolean = accountsLive(),
-): string {
+export const SIGN_IN_HREF = signInHrefFor("/start");
+
+export function startHref(gateEnabled: boolean, signedIn: boolean): string {
   if (!gateEnabled || signedIn) return "/start";
-  return signInHrefFor("/start", live);
+  return signInHrefFor("/start");
 }
 
 export type StartAction = "loading" | "form" | "redirect" | "unavailable";
@@ -36,23 +29,23 @@ export type StartAction = "loading" | "form" | "redirect" | "unavailable";
 export function startPageAction(
   gateEnabled: boolean,
   meStatus: number | "loading" | "error",
-  live: boolean = accountsLive(),
 ): StartAction {
   if (!gateEnabled) return "form";
   if (meStatus === 200) return "form";
-  if (live && meStatus === "loading") return "loading";
-  if (!live || meStatus === 401) return "redirect";
+  if (meStatus === "loading") return "loading";
+  if (meStatus === 401) return "redirect";
   return "unavailable";
 }
 
-/**
- * Signed-out form visitors go to the accounts host when it is live, and to the
- * on-site /signin page (Coming soon, no external redirect) when it is not.
- */
-export function signInHrefFor(returnTo: string, live = true): string {
-  const safe = isSafeReturnPath(returnTo) ? returnTo : "/start";
-  if (!live) return `/signin?return_to=${encodeURIComponent(safe)}`;
-  return accountsSignInUrl(safe);
+const PROVIDER_START = {
+  google: "/api/auth/google/start",
+  microsoft: "/api/auth/microsoft/start",
+} as const;
+
+/** Same-origin start URL for Google or Microsoft. No other provider. */
+export function providerStartHref(provider: "google" | "microsoft", returnTo: string | null): string {
+  const safe = returnTo && isSafeReturnPath(returnTo) ? returnTo : "/start";
+  return `${PROVIDER_START[provider]}?return_to=${encodeURIComponent(safe)}`;
 }
 
 export interface MeUser {

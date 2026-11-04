@@ -1,33 +1,30 @@
-import { useEffect } from "react";
-import { accountsSignInUrl } from "../../shared/accounts";
-import { accountsLive } from "../authGate";
-import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE } from "../copy";
+import { providerStartHref } from "../authGate";
 
-function replaceLocation(url: string): void {
-  window.location.replace(url);
+const PROVIDERS = [
+  { provider: "google", label: "Continue with Google", src: "/brand/google-sign-in.svg", width: 180, height: 40 },
+  { provider: "microsoft", label: "Continue with Microsoft", src: "/brand/microsoft-sign-in.svg", width: 215, height: 41 },
+] as const;
+
+function requestedReturnTo(returnTo: string | null | undefined): string | null {
+  if (returnTo !== undefined) return returnTo;
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("return_to");
 }
 
-export function SignInPage({
-  goTo = replaceLocation,
-  live = accountsLive(),
-}: {
-  goTo?: (url: string) => void;
-  live?: boolean;
-}) {
-  useEffect(() => {
-    if (!live) return;
-    const requested = new URLSearchParams(window.location.search).get("return_to");
-    goTo(accountsSignInUrl(requested ?? "/start"));
-  }, [goTo, live]);
-
-  if (!live) {
-    return (
-      <article className="panel">
-        <h1>{ACCOUNTS_COMING_SOON_TITLE}</h1>
-        <p>{ACCOUNTS_COMING_SOON}</p>
-      </article>
-    );
-  }
-
-  return <p className="panel">Sending you to sign in…</p>;
+export function SignInPage({ returnTo }: { returnTo?: string | null }) {
+  const requested = requestedReturnTo(returnTo);
+  return (
+    <article className="panel sign-in-page">
+      <h1>Sign in</h1>
+      <p>Use Google or Microsoft. There is no password on this page.</p>
+      <div className="sign-in-actions">
+        {PROVIDERS.map((item) => (
+          <a key={item.provider} className="provider-sign-in" href={providerStartHref(item.provider, requested)}>
+            <img src={item.src} alt="" width={item.width} height={item.height} />
+            <span className="visually-hidden">{item.label}</span>
+          </a>
+        ))}
+      </div>
+    </article>
+  );
 }

@@ -586,15 +586,37 @@ export function AccountPage({
       onLink={(provider) => void onLink(provider)}
       onUnlink={(provider) => void onUnlink(provider)}
     />;
-  if (action === "loading") body = <p className="panel">Checking sign-in…</p>;
-  else if (action === "redirect") body = <p className="panel">Sending you to sign in…</p>;
-  else if (action === "unavailable") {
+  if (action === "loading") {
     body = (
-      <p className="panel">
-        Sign-in could not be checked. You can try <a href={signInHrefFor("/account")}>sign in</a> again.
-      </p>
+      <>
+        <h1>Your account</h1>
+        <p className="panel">Checking sign-in…</p>
+      </>
     );
-  } else if (!loaded) body = <p className="panel">Loading your account…</p>;
+  } else if (action === "redirect") {
+    body = (
+      <>
+        <h1>Your account</h1>
+        <p className="panel">Sending you to sign in…</p>
+      </>
+    );
+  } else if (action === "unavailable") {
+    body = (
+      <>
+        <h1>Your account</h1>
+        <p className="panel">
+          Sign-in could not be checked. You can try <a href={signInHrefFor("/account")}>sign in</a> again.
+        </p>
+      </>
+    );
+  } else if (!loaded) {
+    body = (
+      <>
+        <h1>Your account</h1>
+        <p className="panel">Loading your account…</p>
+      </>
+    );
+  }
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { ACCOUNTS_COMING_SOON, ACCOUNTS_COMING_SOON_TITLE, DISCLAIMER } from "../copy";
+import { DISCLAIMER } from "../copy";
 
 /**
  * REVIEW: Cybersecurity and Compliance Agents must review this copy before launch.
@@ -31,11 +31,6 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
     id: "rest",
     title: "Encryption at rest",
     paragraphs: ["Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256)."],
-  },
-  {
-    id: "coming-soon",
-    title: ACCOUNTS_COMING_SOON_TITLE,
-    paragraphs: [ACCOUNTS_COMING_SOON],
   },
   {
     id: "limits",
@@ -85,14 +80,6 @@ function SectionIcon({ id }: { id: string }) {
         <ellipse cx="12" cy="7" rx="7" ry="3" />
         <path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7" />
         <path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5" />
-      </svg>
-    );
-  }
-  if (id === "coming-soon") {
-    return (
-      <svg {...common}>
-        <circle cx="12" cy="12" r="8" />
-        <path d="M12 8v4l3 2" />
       </svg>
     );
   }

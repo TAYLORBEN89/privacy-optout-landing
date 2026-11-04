@@ -32,10 +32,7 @@ describe("privacy page", () => {
     expect(html).toContain("The contact address for this page is help@droptexas.com.");
     expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
     expect(html).toContain("Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256).");
-    expect(html).toContain("Coming soon");
-    expect(html).toContain(
-      "Sign in with Google or Microsoft, secure session cookies, and self-service export and delete. Until then, email help@droptexas.com to see or delete your data.",
-    );
+    expect(html).not.toMatch(/coming soon/i);
     expect(html).not.toContain("Secure sign-in");
     expect(html).not.toContain("Your controls");
     expect(html).not.toContain("sign out of other sessions");
@@ -69,7 +66,6 @@ describe("privacy page", () => {
       ["collect", "Texas privacy data we collect", "M8 7h8M8 12h8M8 17h5"],
       ["transit", "Encryption in transit", "M8 11V8a4 4 0 0 1 8 0v3"],
       ["rest", "Encryption at rest", "M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"],
-      ["coming-soon", "Coming soon", "M12 8v4l3 2"],
       ["limits", "What we don&#x27;t do", "M8 12h8"],
       ["compliance", "Compliance", "M12 3.5 19 6.5v5c0 4-2.7 6.8-7 8.5-4.3-1.7-7-4.5-7-8.5v-5L12 3.5z"],
     ] as const;
@@ -79,8 +75,6 @@ describe("privacy page", () => {
       expect(items[index]).toContain(title);
       expect(items[index]).toContain(mark);
     }
-    expect(items[3]).toContain("<circle");
-    expect(items[5]).not.toContain("M12 8v4l3 2");
     expect(items[3]).not.toContain("M12 3.5 19 6.5v5");
   });
 });

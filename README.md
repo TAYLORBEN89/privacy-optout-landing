@@ -161,9 +161,11 @@ After deploy, both hostnames should resolve through Cloudflare to this Worker. T
 
 `VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session.
 
-`VITE_ACCOUNTS_LIVE` comes from the environment. When it is unset, `/account` shows Coming soon. Set it once the backend and the API binding are live. A direct request to `/signin` on the Worker still redirects to the accounts host.
+`VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session.
 
-Sign-in is hosted at `accounts.droptexas.com`, like a separate accounts site. `ACCOUNTS_ORIGIN` defaults to `https://accounts.droptexas.com` and can be overridden with `VITE_ACCOUNTS_ORIGIN`. The header Sign in link, the sign-in gate, and any other sign-in control leave this site with a full page load to `${ACCOUNTS_ORIGIN}/signin?return_to=/start` or `return_to=/account`. `return_to` may only be `/start`, `/account`, the exact path `/start?for=child`, or `/start#step-N` with N from 1 to 99. No other query string is allowed. It is rejected when it is longer than 2048 characters, contains a control character (tab, CR, LF, NUL, or DEL) before or after one decode, starts with `//` or `/\`, contains a backslash or `..`, contains a scheme (`https:`, `javascript:`, `data:`), or contains the encodings `%2F%2F` or `%5C`. Anything else falls back to `/start`. A local visit to `/signin` redirects there and keeps a valid `return_to`.
+`/signin` on this site is the sign-in page. It offers Google and Microsoft only. Those buttons go to `/api/auth/google/start` and `/api/auth/microsoft/start` on this origin. There is no password field and no Apple button. The header user icon links to `/signin` when signed out and to `/account` when signed in.
+
+Sign-in stays on this origin. `return_to` may only be `/start`, `/account`, the exact path `/start?for=child`, or `/start#step-N` with N from 1 to 99. No other query string is allowed. It is rejected when it is longer than 2048 characters, contains a control character (tab, CR, LF, NUL, or DEL) before or after one decode, starts with `//` or `/\`, contains a backslash or `..`, contains a scheme (`https:`, `javascript:`, `data:`), or contains the encodings `%2F%2F` or `%5C`. Anything else falls back to `/start`.
 
 After sign-in, the browser returns to `https://droptexas.com/api/auth/complete?code=...`. That request is under `/api/*` (`run_worker_first`), so the Worker forwards it through the API binding and does not serve the SPA shell.
 
@@ -237,7 +239,7 @@ These are real pages. The homepage does not use hash links for them.
 | `/security` | Security |
 | `/about` | About |
 
-`/start` is the opt-out form. `/account` is the account page only when `VITE_ACCOUNTS_LIVE=true`. Otherwise it shows Coming soon.
+`/start` is the opt-out form. `/signin` is the sign-in page. `/account` is the account page.
 
 ## Account API
 

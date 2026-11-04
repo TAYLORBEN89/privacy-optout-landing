@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { authGateEnabled, fetchMe, SIGN_IN_HREF, startHref, startPageAction } from "./authGate";
+import { authGateEnabled, fetchMe, startHref, startPageAction } from "./authGate";
 import { Header } from "./Header";
 import { SiteFooter } from "./Footer";
 import { usePathname } from "./router";
@@ -59,7 +59,6 @@ export function App() {
         <Header
           signedIn={signedIn}
           csrf={session.status === "in" ? session.me.csrf_token : null}
-          signInHref={SIGN_IN_HREF}
           onSignedOut={() => setSession({ status: "out", httpStatus: 401 })}
         />
       </div>
