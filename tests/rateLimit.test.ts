@@ -142,7 +142,7 @@ describe("client IP key", () => {
     const res = await handleRequest(
       new Request("https://droptexas.com/api/signup", {
         method: "POST",
-        headers: { "content-type": "application/json", origin: "https://droptexas.com" },
+        headers: { "content-type": "application/json", origin: "https://droptexas.com", cookie: "__Host-sid=abc" },
         body: JSON.stringify(valid),
       }),
       { signupStore: store, signupLimiter: { reserve: async () => { calls += 1; return 0; } }, ...session() },
@@ -193,7 +193,7 @@ describe("POST /api/signup rate limit", () => {
   it("does not count invalid submissions", async () => {
     let calls = 0;
     const signupLimiter = { reserve: async () => { calls += 1; return 0; } };
-    const res = await handleRequest(post("203.0.113.9", { ...valid, email: "" }), { signupStore: store, signupLimiter });
+    const res = await handleRequest(post("203.0.113.9", { ...valid, email: "" }), { signupStore: store, signupLimiter, ...session() });
     expect(res.status).toBe(400);
     expect(calls).toBe(0);
   });

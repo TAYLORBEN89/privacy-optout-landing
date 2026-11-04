@@ -39,6 +39,10 @@ function sessionDeps(): Pick<RequestDeps, "callApi" | "proxySigner"> {
   };
 }
 
+function signed(): RequestDeps {
+  return { ...assets(), ...sessionDeps() };
+}
+
 function saving(): { deps: RequestDeps; saved: SignupRecord[]; optouts: OptOutInsert[] } {
   const saved: SignupRecord[] = [];
   const optouts: OptOutInsert[] = [];
@@ -100,6 +104,80 @@ describe("POST /api/signup", () => {
     expect(saved).toHaveLength(0);
   });
 
+  it.each([
+    ["an empty body", ""],
+    ["malformed JSON", "{"],
+    ["a partial body", { name: "Test" }],
+    ["a full valid body", valid],
+  ])("returns 401 for %s with no session and stores nothing", async (_label, body) => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    vi.spyOn(console, "error").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    const { deps, saved } = saving();
+    const response = await handleRequest(post(body, { cookie: "" }), deps);
+    expect(response.status).toBe(401);
+    const text = await response.text();
+    expect(JSON.parse(text)).toEqual({
+      ok: false,
+      errors: {},
+      form: { code: "sign_in_required", message: "Sign in to submit this request." },
+    });
+    expect(text).not.toContain("Test");
+    expect(text).not.toContain("Ada");
+    expect(text).not.toContain("ada@example.com");
+    expect(saved).toHaveLength(0);
+    expect(lines.join("\n")).not.toMatch(/Test|Ada|ada@example|signup_rejected|invalid_json/);
+  });
+
+  it.each([
+    ["an empty body", ""],
+    ["malformed JSON", "{"],
+    ["a partial body", { name: "Test" }],
+    ["a full valid body", valid],
+  ])("returns 401 for %s with an expired session and stores nothing", async (_label, body) => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    vi.spyOn(console, "error").mockImplementation((message) => {
+      lines.push(String(message));
+    });
+    const { deps, saved } = saving();
+    const response = await handleRequest(post(body), {
+      ...deps,
+      callApi: {
+        fetch: async () => new Response("{}", { status: 401, headers: { "content-type": "application/json" } }),
+      },
+    });
+    expect(response.status).toBe(401);
+    const text = await response.text();
+    expect(JSON.parse(text)).toEqual({
+      ok: false,
+      errors: {},
+      form: { code: "sign_in_required", message: "Sign in to submit this request." },
+    });
+    expect(text).not.toContain("Test");
+    expect(text).not.toContain("Ada");
+    expect(text).not.toContain("ada@example.com");
+    expect(saved).toHaveLength(0);
+    expect(lines.join("\n")).not.toMatch(/Test|Ada|ada@example|signup_rejected|invalid_json/);
+  });
+
+  it("returns validation errors for a signed-in invalid body and stores nothing", async () => {
+    const { deps, saved } = saving();
+    const response = await handleRequest(post({ name: "Test" }), deps);
+    expect(response.status).toBe(400);
+    const payload = (await response.json()) as { ok: false; errors: Record<string, { code: string }> };
+    expect(payload.ok).toBe(false);
+    expect(payload.errors.firstName?.code).toBeTruthy();
+    expect(JSON.stringify(payload)).not.toContain("Test");
+    expect(saved).toHaveLength(0);
+  });
+
   it("accepts a non-Texan without echoing the submission", async () => {
     const { deps, saved } = saving();
     const response = await handleRequest(post(valid), deps);
@@ -117,7 +195,7 @@ describe("POST /api/signup", () => {
     for (const dob of [undefined, "2024-02-31"]) {
       const body = { ...valid, dob };
       const expected = validateSignup(body);
-      const response = await handleRequest(post(body), assets());
+      const response = await handleRequest(post(body), signed());
       const payload = (await response.json()) as { errors: { dob?: { code: string; message: string } } };
       expect(response.status).toBe(400);
       expect(expected.ok).toBe(false);
@@ -142,7 +220,7 @@ describe("POST /api/signup", () => {
       child: { firstName: "Grace", lastName: "Hopper", dob: latest, sameAddress: true },
     };
     const expected = validateSignup(body);
-    const response = await handleRequest(post(body), assets());
+    const response = await handleRequest(post(body), signed());
     const payload = (await response.json()) as { errors: Record<string, { code: string }> };
     expect(response.status).toBe(400);
     expect(expected.ok).toBe(false);
@@ -152,7 +230,7 @@ describe("POST /api/signup", () => {
     }
 
     const selfBody = { ...valid, submitter: "self", child: { firstName: "Grace" } };
-    const selfResponse = await handleRequest(post(selfBody), assets());
+    const selfResponse = await handleRequest(post(selfBody), signed());
     const selfPayload = (await selfResponse.json()) as { errors: { submitter?: { code: string } } };
     expect(selfResponse.status).toBe(400);
     expect(selfPayload.errors.submitter?.code).toBe("unexpected");
@@ -170,7 +248,7 @@ describe("POST /api/signup", () => {
       texasResident: "yes",
     };
     const expected = validateSignup(body);
-    const response = await handleRequest(post(body), assets());
+    const response = await handleRequest(post(body), signed());
     const payload = (await response.json()) as {
       ok: false;
       errors: Record<string, { code: string; message: string }>;
@@ -206,7 +284,7 @@ describe("POST /api/signup", () => {
     );
     expect(originResponse.status).toBe(403);
 
-    const jsonResponse = await handleRequest(post("{"), assets());
+    const jsonResponse = await handleRequest(post("{"), signed());
     expect(jsonResponse.status).toBe(400);
     const payload = (await jsonResponse.json()) as { form: { code: string } };
     expect(payload.form.code).toBe("invalid_json");
@@ -214,7 +292,7 @@ describe("POST /api/signup", () => {
 
   it("rejects an oversized body before treating it as field data", async () => {
     const huge = JSON.stringify({ ...valid, firstName: "A".repeat(9000) });
-    const response = await handleRequest(post(huge), assets());
+    const response = await handleRequest(post(huge), signed());
     expect(response.status).toBe(413);
     const payload = (await response.json()) as { form: { code: string } };
     expect(payload.form.code).toBe("payload_too_large");
@@ -341,7 +419,7 @@ describe("POST /api/signup", () => {
   });
 
   it("rejects a phone number that is not a US number", async () => {
-    const response = await handleRequest(post({ ...valid, phone: "123" }), assets());
+    const response = await handleRequest(post({ ...valid, phone: "123" }), signed());
     expect(response.status).toBe(400);
     const payload = (await response.json()) as {
       ok: false;
