@@ -38,11 +38,6 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <h1 id="page-title">Privacy is a right.</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
             <p className="hero-focus">DROP Texas is a free data broker delete and request opt-out platform that helps Texans gain control of their data. Your data. Your rules.</p>
-            <p className="lede hero-line">
-              <span className="hero-rule">DROP Texas is a free service that helps you </span>
-              <span className="hero-rule">gain control of your data. </span>
-              <span className="hero-rule">Your data. Your rules.</span>
-            </p>
             <AppLink className="cta" href={getStartedHref}>
               Start my opt-out
             </AppLink>

@@ -12,14 +12,11 @@ describe("hero copy", () => {
     expect(hero).not.toContain("for the people");
     expect(hero).not.toContain("Demanding privacy");
     expect(hero).not.toContain("by the people");
-    expect(hero).toContain('<span className="hero-rule">DROP Texas is a free service that helps you </span>');
-    expect(hero).toContain('<span className="hero-rule">gain control of your data. </span>');
-    expect(hero).toContain('<span className="hero-rule">Your data. Your rules.</span>');
+    expect(hero).not.toContain("DROP Texas is a free service that helps you");
     expect(hero).not.toContain("<br");
     expect(hero).not.toContain("Your data, your rules.");
     expect(hero).not.toContain("to request data brokers not sell their personal information");
-    expect(hero.match(/className="lede hero-line"/g)).toHaveLength(1);
-    expect(hero.match(/<p className="lede hero-line"/g)).toHaveLength(1);
+    expect(hero).not.toContain('className="lede hero-line"');
     expect(hero).not.toContain("You can ask data brokers to delete");
     expect(hero).not.toContain("If you live in Texas, check the box");
     expect(hero).not.toContain('className="lede note"');
