@@ -5,10 +5,18 @@ import { handleApp, isAppPath, allowedOrigins, corsHeaders, purge, expireAudit, 
 import { handleApi } from './api.js';
 import { handleAccounts } from './accounts.js';
 import { guardLocation } from './location.js';
+import { isBrokerPath, handleBroker, brokerPurge, monthlyLists, finishSignups, MONTHLY_CRON } from './brokerDelivery.js';
 
 // Every response (accounts host, legacy KV routes, 403/OPTIONS early returns, app/API, 500s) gets exactly one
 // request log line via src/log.js: method, normalized route, status, ms, and which surface served it. Nothing else.
 async function route(req, env, pathname, hostname) {
+  // Broker delivery API (server-to-server, per-broker bearer credentials) and its admin routes: any host, own auth.
+  if (isBrokerPath(pathname)) {
+    try { return [await handleBroker(req, env), 'broker']; } catch (e) {
+      logError('broker_error', e, { method: req.method, route: routeOf(pathname) });
+      return [new Response(JSON.stringify({ error: 'internal error' }), { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }), 'broker'];
+    }
+  }
   // accounts.droptexas.com (ACCOUNTS_HOST) is the sign-in host: its own routes, origin rule and security headers.
   if (env.ACCOUNTS_HOST && hostname === env.ACCOUNTS_HOST) {
     try { return [guardLocation(env, 'accounts', await handleAccounts(req, env)), 'accounts']; } catch (e) {
@@ -41,8 +49,9 @@ export default {
   },
   // One daily cron, one handler: runs every job independently (one failing job never stops the others) and logs
   // a failure by job name and error class only.
-  async scheduled(_event, env, ctx) {
-    ctx.waitUntil(runScheduled(env));
+  // Two crons: daily (purges) and the 1st of each month (broker list build).
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(event && event.cron === MONTHLY_CRON ? runScheduled(env, MONTHLY_JOBS) : runScheduled(env));
   },
 };
 
@@ -50,9 +59,12 @@ export const SCHEDULED_JOBS = [
   ['purge', purge],
   ['audit_expiry', expireAudit], // the only audit_log delete path
   ['inactive_accounts', inactiveAccounts],
+  ['signup_finish', (env) => finishSignups(env)], // sets finished_at once every list window (+45-day extension) closed
+  ['broker_purge', (env) => brokerPurge(env)], // gated 24-month purge of broker tables
 ];
-export async function runScheduled(env) {
-  const results = await Promise.allSettled(SCHEDULED_JOBS.map(([, fn]) => fn(env)));
-  results.forEach((r, i) => { if (r.status === 'rejected') logError('scheduled_job', r.reason, { job: SCHEDULED_JOBS[i][0] }); });
+export const MONTHLY_JOBS = [['broker_lists', (env) => monthlyLists(env)]];
+export async function runScheduled(env, jobs = SCHEDULED_JOBS) {
+  const results = await Promise.allSettled(jobs.map(([, fn]) => fn(env)));
+  results.forEach((r, i) => { if (r.status === 'rejected') logError('scheduled_job', r.reason, { job: jobs[i][0] }); });
   return results;
 }

@@ -66,7 +66,7 @@ database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
 [triggers]
-crons = ["0 8 * * *"]   # daily 08:00 UTC (2-3 AM US Central): purge PII, expired sessions, old audit rows
+crons = ["0 8 * * *", "0 9 1 * *"]   # daily 08:00 UTC: purges (PII, sessions, audit, broker 24-month); 1st of month 09:00 UTC: broker lists
 
 # NOT ATTACHED. Uncomment only when the owner approves moving the API to the droptexas.com zone.
 # A custom_domain route creates its own DNS record for api.droptexas.com on deploy; it does not touch MX/mail records.

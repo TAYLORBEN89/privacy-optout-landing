@@ -112,55 +112,97 @@ export const fileNameOf = (listId, createdAt) =>
 
 // Build one versioned per-broker list. `records` are { request_ref, ...decrypted fields } held in memory only.
 // Output CSV has Id,Hash only. Rows are sorted by Id (deterministic for a given set of ids).
+// Duplicate hashes (two requests that standardize to the same identifier): one row and one Id in the file; every
+// request ref is kept in item.refs (stored in broker_list_refs), so the broker's status for that Id applies to all.
 export async function buildList({ brokerId, listType, version, createdAt, records, idGen = randomId }) {
   if (!BROKER_ID.test(brokerId || '')) throw new Error('invalid broker id');
   if (!LIST_TYPES.includes(listType)) throw new Error('unknown list type');
   if (!Number.isInteger(version) || version < 1) throw new Error('invalid version');
-  const items = [];
-  const seen = new Set();
+  const byHash = new Map();
   let skipped = 0;
+  let merged = 0;
   for (const r of records) {
     const hash = await hashFor(listType, r);
-    if (!hash || seen.has(hash)) { skipped++; continue; } // missing fields or duplicate consumer hash
-    seen.add(hash);
-    items.push({ item_id: idGen(), request_ref: String(r.request_ref), hash });
+    if (!hash) { skipped++; continue; } // a required field is missing or not standardizable
+    const ref = String(r.request_ref);
+    const hit = byHash.get(hash);
+    if (hit) { if (!hit.refs.includes(ref)) { hit.refs.push(ref); merged++; } continue; }
+    byHash.set(hash, { item_id: idGen(), request_ref: ref, refs: [ref], hash });
   }
+  const items = [...byHash.values()];
+  for (const i of items) { i.refs.sort(); i.request_ref = i.refs[0]; }
   items.sort((a, b) => (a.item_id < b.item_id ? -1 : a.item_id > b.item_id ? 1 : 0));
-  const csv = 'Id,Hash\n' + items.map((i) => `${i.item_id},${i.hash}`).join('\n') + (items.length ? '\n' : '');
+  const csv = csvOf(items);
   const listId = listIdOf(brokerId, listType, version);
   const manifest = {
     list_id: listId, broker_id: brokerId, list_type: listType, version,
     created_at: createdAt, response_due: createdAt + RESPONSE_WINDOW_DAYS * DAY,
     row_count: items.length, file_name: fileNameOf(listId, createdAt),
-    sha256: hex(await crypto.subtle.digest('SHA-256', enc.encode(csv))),
+    sha256: await sha256HexOf(csv),
     hash: 'SHA-256/UTF-8/Base64', status_codes: STATUS,
   };
-  return { csv, manifest, items, skipped };
+  return { csv, manifest, items, skipped, merged };
 }
+
+// The exact file bytes: header, then one `Id,Hash` row per item sorted by Id, LF line endings.
+export const csvOf = (items) => 'Id,Hash\n' + items.map((i) => `${i.item_id},${i.hash}`).join('\n') + (items.length ? '\n' : '');
+export const sha256HexOf = async (text) => hex(await crypto.subtle.digest('SHA-256', enc.encode(text)));
 
 async function audit(env, at, event, brokerId, listId, detail) {
   await env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
     .bind(at, event, brokerId, listId, JSON.stringify(detail)).run();
 }
 
-// Persist a built list (prepared statements; one batch). Fails if that broker/type/version already exists.
-export async function saveList(env, { manifest, items, skipped }) {
+// D1 batches are sent in chunks of BATCH_CHUNK statements to stay well under per-batch limits.
+export const BATCH_CHUNK = 50;
+export async function batchChunked(env, stmts, size = BATCH_CHUNK) {
+  for (let i = 0; i < stmts.length; i += size) await env.DB.batch(stmts.slice(i, i + size));
+}
+
+// Writes a list in chunks of `chunk` statements per D1 batch (each batch is one transaction). The list row and items
+// and refs go first; the FINAL chunk carries `tail` (the monthly run row) and the list.generated audit row. That audit
+// row is the completion marker: a list without it is never served, never counts as "already listed" for the loader,
+// and never counts toward a signup's finish. So if a later chunk fails, the requests are simply listed again on the
+// next run (under the next version). The failure is loud: a counts-only list.save_failed audit row is written and
+// the error is rethrown.
+export async function saveList(env, { manifest, items, skipped, merged = 0 }, { tail = [], chunk = BATCH_CHUNK, at } = {}) {
   const m = manifest;
-  const stmts = [env.DB.prepare('INSERT INTO broker_lists (list_id, broker_id, list_type, version, created_at, response_due, row_count, sha256) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
+  const body = [env.DB.prepare('INSERT INTO broker_lists (list_id, broker_id, list_type, version, created_at, response_due, row_count, sha256) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
     .bind(m.list_id, m.broker_id, m.list_type, m.version, m.created_at, m.response_due, m.row_count, m.sha256)];
   for (const i of items) {
-    stmts.push(env.DB.prepare('INSERT INTO broker_list_items (list_id, item_id, request_ref, hash) VALUES (?1, ?2, ?3, ?4)').bind(m.list_id, i.item_id, i.request_ref, i.hash));
+    body.push(env.DB.prepare('INSERT INTO broker_list_items (list_id, item_id, request_ref, hash) VALUES (?1, ?2, ?3, ?4)').bind(m.list_id, i.item_id, i.request_ref, i.hash));
+    for (const ref of i.refs || [i.request_ref]) {
+      body.push(env.DB.prepare('INSERT INTO broker_list_refs (list_id, item_id, request_ref) VALUES (?1, ?2, ?3)').bind(m.list_id, i.item_id, ref));
+    }
   }
-  stmts.push(env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
-    .bind(m.created_at, 'list.generated', m.broker_id, m.list_id, JSON.stringify({ version: m.version, rows: m.row_count, skipped, sha256: m.sha256 })));
-  await env.DB.batch(stmts);
+  const final = [...tail, env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
+    .bind(m.created_at, 'list.generated', m.broker_id, m.list_id, JSON.stringify({ version: m.version, rows: m.row_count, skipped, merged, sha256: m.sha256 }))];
+  const size = Math.max(1, chunk);
+  const chunks = [];
+  for (let k = 0; k < body.length; k += size) chunks.push(body.slice(k, k + size));
+  const last = chunks[chunks.length - 1];
+  if (last.length + final.length <= size) last.push(...final); else chunks.push(final);
+  let done = 0;
+  try {
+    for (const c of chunks) { await env.DB.batch(c); done++; }
+  } catch (e) {
+    try {
+      await env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
+        .bind(at ?? m.created_at, 'list.save_failed', m.broker_id, m.list_id, JSON.stringify({ version: m.version, rows: m.row_count, chunks: chunks.length, chunks_written: done })).run();
+    } catch { /* audit best effort; the error below still propagates */ }
+    throw new Error(`list save failed after ${done} of ${chunks.length} chunks`);
+  }
 }
 
 // Ingest a broker status file (CSV "Id,Status"). Rules:
 // - file rejected whole if: unknown list, version mismatch, broker mismatch, bad header, or received after response_due;
 // - row rejected if: malformed, code not in {2,3,4,5}, Id not in this list, Id repeated in the file, or status already recorded.
 // Accepted rows are written once (write-once table). Every call is audited with counts only.
-export async function ingestStatus(env, { brokerId, listId, version, csv, now }) {
+// The broker is ALWAYS the authenticated credential's broker (credential.broker_id from authenticateBroker); nothing
+// in the file or request body can name a broker.
+export async function ingestStatus(env, { credential, listId, version, csv, now }) {
+  if (!credential || typeof credential.broker_id !== 'string' || !credential.kid) throw new Error('authenticated credential required');
+  const brokerId = credential.broker_id;
   const list = await env.DB.prepare('SELECT list_id, broker_id, version, response_due FROM broker_lists WHERE list_id = ?1').bind(listId).first();
   const fail = async (reason) => { await audit(env, now, 'status.rejected', brokerId, listId, { reason }); return { ok: false, reason, accepted: 0, rejected: [] }; };
   if (!list) return fail('unknown_list');
@@ -193,6 +235,6 @@ export async function ingestStatus(env, { brokerId, listId, version, csv, now })
   ok.forEach(([, c]) => counts[c]++);
   stmts.push(env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
     .bind(now, 'status.ingested', brokerId, listId, JSON.stringify({ accepted: ok.length, rejected: rejected.length, counts })));
-  await env.DB.batch(stmts);
+  await batchChunked(env, stmts);
   return { ok: true, accepted: ok.length, rejected, counts, outstanding: known.size - done.size - ok.length };
 }

@@ -87,13 +87,19 @@ AAA1example,7unXmzUnRdnshdyh+VVjfB/qr7kWSxUmH/beD4FXAJA=
 
 - **Primary method: secure download.** Lists are downloaded over HTTPS (TLS 1.2 or higher) with credentials issued to
   your organization alone. Credentials are separate for each broker, can be rotated, and only reach that broker's lists.
-  Every download is logged.
-- **Optional alternative: SFTP.** Available on request, with a per-broker key and a per-broker directory.
+  Every download is logged. Credentials are bearer tokens shown once at issue and expire after 365 days. Our server-key rotation does not change
+  your token; a signed link issued in the minutes before a rotation may need to be requested again. Endpoints:
+  `GET /broker/v1/lists`, `GET /broker/v1/lists/{list_id}/manifest`, `GET /broker/v1/lists/{list_id}/file`,
+  `POST /broker/v1/lists/{list_id}/link` (a signed download link valid for 5 minutes), and
+  `POST /broker/v1/lists/{list_id}/status?version={n}` for returning statuses. Your broker id comes from your credential.
+- **Optional alternative: SFTP (planned).** Will be available on request, with a per-broker key and a per-broker
+  directory. It is not offered yet.
 - Lists are never sent by email.
 
 ## 8. Response window and cadence
 
-- A new list version is published **monthly**.
+- A new list version is published **monthly**, on the 1st. An `Id` can stand for more than one of our requests when
+  they share a hash; return one status for it.
 - **You have 45 days** from `created_at` to return statuses for a list. The deadline is `response_due` in the manifest.
   A file received after that time is rejected and logged.
 
@@ -120,4 +126,5 @@ Validation rules:
 ## 10. Security and retention
 
 SOC 2-ready. Lists contain only hashes and opaque ids. Finished request records are kept for 24 months,
-and Texas request records for 3 years, then deleted.
+and Texas request records for 3 years, then deleted. A request counts as finished once every list it was on has
+reached 90 days (45-day window plus a possible 45-day extension).

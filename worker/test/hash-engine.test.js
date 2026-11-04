@@ -133,7 +133,9 @@ describe('list files', () => {
     const out = await buildList({ brokerId: 'acme-data', listType: 'email', version: 1, createdAt: T0, records: recs, idGen: ids('ZZZ1', 'AAA1') });
     expect(out.manifest).toMatchObject({ list_id: 'acme-data-email-v1', version: 1, row_count: 2, response_due: T0 + RESPONSE_WINDOW_DAYS * DAY });
     expect(out.manifest.file_name).toMatch(/^droptx_acme-data-email-v1_\d{8}\.csv$/);
-    expect(out.skipped).toBe(2);
+    expect(out.skipped).toBe(1); // no email
+    expect(out.merged).toBe(1);  // req_dup shares req_a's hash: same Id, both refs kept
+    expect(out.items.find((i) => i.refs.length === 2).refs).toEqual(['req_a', 'req_dup']);
     const lines = out.csv.trim().split('\n');
     expect(lines[0]).toBe('Id,Hash');
     expect(lines[1].startsWith('AAA1,')).toBe(true);
@@ -159,11 +161,11 @@ describe('status ingest + audit', () => {
   it('accepts valid codes, rejects unknown code / id / duplicates, writes once, audits counts only', async () => {
     const listId = await seed('brk1');
     const csv = 'Id,Status\nbrk1X1,3\nbrk1X2,9\nnope,5\nbrk1X1,4\n';
-    const r = await ingestStatus(env, { brokerId: 'brk1', listId, version: 1, csv, now: T0 + DAY });
+    const r = await ingestStatus(env, { credential: { kid: 'bk_test', broker_id: 'brk1' }, listId, version: 1, csv, now: T0 + DAY });
     expect(r.ok).toBe(true);
     expect(r.accepted).toBe(1);
     expect(r.rejected.map((x) => x.reason)).toEqual(['unknown_code', 'unknown_id', 'duplicate_in_file']);
-    const again = await ingestStatus(env, { brokerId: 'brk1', listId, version: 1, csv: 'Id,Status\nbrk1X1,2\nbrk1X2,5\n', now: T0 + 2 * DAY });
+    const again = await ingestStatus(env, { credential: { kid: 'bk_test', broker_id: 'brk1' }, listId, version: 1, csv: 'Id,Status\nbrk1X1,2\nbrk1X2,5\n', now: T0 + 2 * DAY });
     expect(again.rejected.map((x) => x.reason)).toEqual(['already_recorded']);
     expect(again.accepted).toBe(1);
     expect(again.outstanding).toBe(0);
@@ -174,10 +176,10 @@ describe('status ingest + audit', () => {
   });
   it('rejects whole file: unknown list, version or broker mismatch, late, bad header', async () => {
     const listId = await seed('brk2');
-    const base = { brokerId: 'brk2', listId, version: 1, csv: 'Id,Status\nbrk2X1,3\n', now: T0 + DAY };
+    const base = { credential: { kid: 'bk_test', broker_id: 'brk2' }, listId, version: 1, csv: 'Id,Status\nbrk2X1,3\n', now: T0 + DAY };
     expect((await ingestStatus(env, { ...base, listId: 'brk2-email-v9' })).reason).toBe('unknown_list');
     expect((await ingestStatus(env, { ...base, version: 2 })).reason).toBe('version_mismatch');
-    expect((await ingestStatus(env, { ...base, brokerId: 'other' })).reason).toBe('broker_mismatch');
+    expect((await ingestStatus(env, { ...base, credential: { kid: 'bk_x', broker_id: 'other' } })).reason).toBe('broker_mismatch');
     expect((await ingestStatus(env, { ...base, now: T0 + 45 * DAY + 1 })).reason).toBe('late');
     expect((await ingestStatus(env, { ...base, csv: 'id;status\n' })).reason).toBe('bad_header');
     expect((await ingestStatus(env, { ...base, now: T0 + 45 * DAY })).accepted).toBe(1); // due date itself is on time
@@ -193,7 +195,7 @@ describe('status ingest + audit', () => {
   });
   it('REPLACE INTO, INSERT OR REPLACE, UPDATE and DELETE all fail on every broker table (review 5774976999)', async () => {
     const listId = await seed('brk5');
-    await ingestStatus(env, { brokerId: 'brk5', listId, version: 1, csv: 'Id,Status\nbrk5X1,3\n', now: T0 + DAY });
+    await ingestStatus(env, { credential: { kid: 'bk_test', broker_id: 'brk5' }, listId, version: 1, csv: 'Id,Status\nbrk5X1,3\n', now: T0 + DAY });
     const aud = await env.DB.prepare('SELECT id FROM broker_hash_audit WHERE list_id = ?1 ORDER BY id LIMIT 1').bind(listId).first();
     const cases = [
       ['broker_lists', 'INTO broker_lists (list_id, broker_id, list_type, version, created_at, response_due, row_count, sha256) VALUES (?1, ?2, ?3, 1, 0, 0, 0, ?4)', [listId, 'brk5', 'email', 'x'],
