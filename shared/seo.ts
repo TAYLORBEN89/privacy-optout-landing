@@ -236,6 +236,15 @@ export const SEO_PAGES: readonly SeoPage[] = [
     indexable: true,
   },
   {
+    path: "/texas-proposal",
+    title: "The Texas Proposal: a free opt-out for every Texan",
+    description:
+      "The Texas Proposal is a free one-request deletion and opt-out for every Texan. Texas has no state-run platform like California's DROP today.",
+    focus: "Texas proposal",
+    related: ["free opt-out", "hashed match", "no state platform"],
+    indexable: true,
+  },
+  {
     path: "/account",
     title: "Your DROP Texas account holds your opt-out requests",
     description:
