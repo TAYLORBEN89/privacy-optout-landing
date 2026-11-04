@@ -44,7 +44,7 @@ function ProviderSignInButton({
   if (!brand) return null;
   return (
     <button type="button" className="brand-sign-in" aria-label={brand.label} onClick={onClick}>
-      <img src={brand.src} alt={brand.label} width={brand.width} height={brand.height} />
+      <img src={brand.src} alt="" width={brand.width} height={brand.height} />
     </button>
   );
 }

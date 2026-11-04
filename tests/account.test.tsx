@@ -177,12 +177,10 @@ describe("step-up", () => {
     expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sign in with Google" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sign in with Microsoft" })).toBeTruthy();
-    const googleLogo = screen.getByRole("img", { name: "Sign in with Google" });
-    const microsoftLogo = screen.getByRole("img", { name: "Sign in with Microsoft" });
-    expect(googleLogo.getAttribute("src")).toBe("/brand/google-sign-in.svg");
-    expect(microsoftLogo.getAttribute("src")).toBe("/brand/microsoft-sign-in.svg");
-    expect(googleLogo.getAttribute("alt")).toBe("Sign in with Google");
-    expect(microsoftLogo.getAttribute("alt")).toBe("Sign in with Microsoft");
+    const googleLogo = document.querySelector('img[src="/brand/google-sign-in.svg"]');
+    const microsoftLogo = document.querySelector('img[src="/brand/microsoft-sign-in.svg"]');
+    expect(googleLogo?.getAttribute("alt")).toBe("");
+    expect(microsoftLogo?.getAttribute("alt")).toBe("");
     expect(screen.queryByText("Password + authenticator code")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Sign in with Google" }));
 
