@@ -27,6 +27,20 @@ const notFound = () => secure(new Response('Not found', { status: 404, headers: 
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Official brand marks, inline so the CSP (img-src 'self', style-src nonce-only) needs no change. Colors are the
+// brands' own and must not be altered. Presentation attributes only (no style=""), aria-hidden: the visible text
+// is the accessible name.
+const GOOGLE_G = '<svg class="logo" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">'
+  + '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>'
+  + '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>'
+  + '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>'
+  + '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>'
+  + '</svg>';
+const MS_SQUARES = '<svg class="logo" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">'
+  + '<rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>'
+  + '<rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/>'
+  + '</svg>';
+
 function signinPage(env, returnTo, nonce) {
   const rt = encodeURIComponent(returnTo);
   const app = esc(appOrigin(env));
@@ -37,13 +51,13 @@ function signinPage(env, returnTo, nonce) {
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f6f7f9;color:#111;display:flex;min-height:100vh;align-items:center;justify-content:center}
 main{background:#fff;border:1px solid #e3e5e8;border-radius:12px;padding:32px;width:100%;max-width:360px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 h1{font-size:20px;margin:0 0 4px}p{margin:0 0 24px;color:#555;font-size:14px}
-a.btn{display:block;text-align:center;padding:12px;border:1px solid #c9ccd1;border-radius:8px;color:#111;text-decoration:none;font-weight:600;margin-bottom:12px}
-a.btn:hover{background:#f2f3f5}.alt{font-size:13px;text-align:center;margin-top:16px}.alt a{color:#1a56db}
+a.btn{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 12px;border:1px solid #747775;border-radius:8px;background:#fff;color:#1f1f1f;text-decoration:none;font-weight:600;margin-bottom:12px}
+a.btn:hover{background:#f2f3f5}a.btn .logo{flex:none;width:20px;height:20px}.alt{font-size:13px;text-align:center;margin-top:16px}.alt a{color:#1a56db}
 </style></head>
 <body><main>
 <h1>DROP Texas</h1><p>Sign in to your account</p>
-<a class="btn" href="${app}/api/auth/google/start?return_to=${rt}">Continue with Google</a>
-<a class="btn" href="${app}/api/auth/microsoft/start?return_to=${rt}">Continue with Microsoft</a>
+<a class="btn" href="${app}/api/auth/google/start?return_to=${rt}">${GOOGLE_G}<span>Sign in with Google</span></a>
+<a class="btn" href="${app}/api/auth/microsoft/start?return_to=${rt}">${MS_SQUARES}<span>Sign in with Microsoft</span></a>
 <div class="alt"><a href="${app}/account">Use email, password and authenticator code instead</a></div>
 </main></body></html>`;
 }

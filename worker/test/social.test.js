@@ -957,8 +957,8 @@ describe('accounts host + handoff', () => {
     expect(r.status).toBe(200);
     const html = await r.text();
     expect(html).toContain('DROP Texas');
-    expect(html).toContain('Continue with Google');
-    expect(html).toContain('Continue with Microsoft');
+    expect(html).toContain('<span>Sign in with Google</span>');
+    expect(html).toContain('<span>Sign in with Microsoft</span>');
     expect(html).not.toMatch(/oauth\/apple|with apple/i);
     expect(html).toContain(`${BASE}/account`);
     expect(html).not.toMatch(/<script/i);
@@ -969,6 +969,24 @@ describe('accounts host + handoff', () => {
     expect(html).toContain(`<style nonce="${nonce}">`);
     expect(r.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(r.headers.get('Referrer-Policy')).toBe('no-referrer');
+  });
+
+  it('sign-in page: official Google and Microsoft logos inline, decorative, CSP unchanged, nothing external', async () => {
+    const r = await SELF.fetch(`${ACC}/signin?return_to=%2Faccount`, { headers: hdrs() });
+    const html = await r.text();
+    const csp = r.headers.get('Content-Security-Policy');
+    expect(csp).toMatch(/^default-src 'none'; style-src 'nonce-[^']+'; img-src 'self'; script-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'$/);
+    const g = html.match(/<a class="btn" href="[^"]*\/api\/auth\/google\/start[^"]*">([\s\S]*?)<\/a>/)[1];
+    const m = html.match(/<a class="btn" href="[^"]*\/api\/auth\/microsoft\/start[^"]*">([\s\S]*?)<\/a>/)[1];
+    for (const c of ['#EA4335', '#4285F4', '#FBBC05', '#34A853']) expect(g).toContain(`fill="${c}"`);
+    for (const c of ['#f25022', '#00a4ef', '#7fba00', '#ffb900']) expect(m).toContain(`fill="${c}"`);
+    for (const b of [g, m]) {
+      expect(b).toMatch(/^<svg class="logo" aria-hidden="true" focusable="false"/);
+      expect(b.replace(/<svg[\s\S]*?<\/svg>/, '').replace(/<[^>]+>/g, '').trim()).toMatch(/^Sign in with (Google|Microsoft)$/);
+    }
+    expect(html).not.toMatch(/\sstyle=/);
+    expect(html).not.toMatch(/<img|<foreignObject|url\(|data:|@import/i);
+    expect(html.match(/https?:\/\/[^"'\s<]+/g).every((u) => u === 'http://www.w3.org/2000/svg' || u.startsWith(BASE))).toBe(true);
   });
 
   it('step-up start token is POSTed, single use, provider-bound, origin-checked and tamper-evident; step-up applies only to the same session', async () => {
