@@ -63,3 +63,13 @@ describe("benefit pages", () => {
     );
   });
 });
+
+describe("homepage benefit cards", () => {
+  it("are square and trim icon spacing instead of shrinking text", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/styles.css", "utf8");
+    const block = css.slice(css.indexOf("/* Square benefit cards"));
+    expect(block).toContain("aspect-ratio: 1 / 1;");
+    expect(block).not.toMatch(/\.feature-card p \{[^}]*font-size/);
+  });
+});

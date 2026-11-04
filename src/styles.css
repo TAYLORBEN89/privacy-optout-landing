@@ -3059,3 +3059,47 @@ textarea {
     object-position: left center;
   }
 }
+
+/* Square benefit cards: trim the space above and below the icon instead of shrinking text. */
+.feature-card {
+  aspect-ratio: 1 / 1;
+  justify-content: center;
+  padding: 34px 18px 18px;
+}
+
+.feature-card .benefit-art {
+  width: 80px;
+  height: 80px;
+  flex: none;
+}
+
+.feature-card h3 {
+  margin: 6px 0 6px;
+}
+
+.feature-card .feature-btn {
+  margin-top: 12px;
+}
+
+@media (max-width: 639px) {
+  .feature-card {
+    padding: 30px 14px 14px;
+  }
+
+  .feature-card .benefit-art {
+    width: 64px;
+    height: 64px;
+  }
+
+  .feature-card h3 {
+    margin: 4px 0 4px;
+  }
+
+  .feature-card p {
+    max-width: none;
+  }
+
+  .feature-card .feature-btn {
+    margin-top: 10px;
+  }
+}
