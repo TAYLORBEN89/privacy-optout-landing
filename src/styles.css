@@ -3221,3 +3221,30 @@ textarea {
     margin-top: 20px;
   }
 }
+
+/* Full-bleed hero banner: the hills photo spans the viewport edge to edge; text stays centered and constrained. */
+body {
+  overflow-x: clip;
+}
+
+.hero.hero--hills {
+  margin-inline: calc(50% - 50vw);
+  border-radius: 0;
+}
+
+.hero.hero--hills .hero-inner {
+  box-sizing: border-box;
+  width: min(1100px, 100%);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+@media (max-width: 640px) {
+  .hero.hero--hills {
+    border-radius: 0;
+  }
+
+  .hero.hero--hills .hero-inner {
+    padding-inline: 24px;
+  }
+}
