@@ -175,10 +175,14 @@ describe("step-up", () => {
 
     render(<AccountPage action="form" me={me} fetchImpl={fetchImpl} goTo={goTo} />);
     expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Continue with Microsoft" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign in with Google" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign in with Microsoft" })).toBeTruthy();
+    const googleLogo = document.querySelector('img[src="/brand/google-sign-in.svg"]');
+    const microsoftLogo = document.querySelector('img[src="/brand/microsoft-sign-in.svg"]');
+    expect(googleLogo?.getAttribute("alt")).toBe("");
+    expect(microsoftLogo?.getAttribute("alt")).toBe("");
     expect(screen.queryByText("Password + authenticator code")).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Continue with Google" }));
+    await user.click(screen.getByRole("button", { name: "Sign in with Google" }));
 
     const step = calls.find((call) => call.url.endsWith("/api/auth/google/stepup"));
     expect(step?.init?.method).toBe("POST");
@@ -225,7 +229,7 @@ describe("step-up", () => {
       />,
     );
     expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Continue with Microsoft" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign in with Microsoft" })).toBeTruthy();
     expect(screen.getByText("Password + authenticator code")).toBeTruthy();
     await user.type(screen.getByLabelText("Password"), "secret-pass");
     await user.type(screen.getByLabelText("Authenticator code"), "123456");
