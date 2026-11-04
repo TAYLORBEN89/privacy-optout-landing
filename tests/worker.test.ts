@@ -470,6 +470,35 @@ describe("POST /api/signup", () => {
     const shell = await indexed.text();
     expect(shell).toContain('name="robots" content="noindex, nofollow"');
     expect(shell).not.toContain("index, follow");
+    const rewritten = await handleRequest(new Request("https://droptexas.com/account/history"), {
+      fetchAsset: async () =>
+        new Response("<head><title>Account</title></head>", {
+          status: 200,
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "999",
+            etag: '"stale"',
+          },
+        }),
+    });
+    expect(rewritten.status).toBe(200);
+    expect(rewritten.headers.get("x-robots-tag")).toBe("noindex");
+    expect(rewritten.headers.get("content-length")).toBeNull();
+    expect(rewritten.headers.get("etag")).toBeNull();
+    const notModified = await handleRequest(new Request("https://droptexas.com/signin/callback"), {
+      fetchAsset: async () =>
+        new Response(null, {
+          status: 304,
+          headers: {
+            etag: '"abc"',
+            "content-type": "text/html",
+          },
+        }),
+    });
+    expect(notModified.status).toBe(304);
+    expect(notModified.headers.get("x-robots-tag")).toBe("noindex");
+    expect(notModified.headers.get("etag")).toBe('"abc"');
+    expect(await notModified.text()).toBe("");
     const account = await handleRequest(new Request("https://droptexas.com/account"), assets());
     expect(account.headers.get("x-robots-tag")).toBe("noindex");
     const signIn = await handleRequest(new Request("https://droptexas.com/signin"), assets());

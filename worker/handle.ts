@@ -400,11 +400,15 @@ export async function handleRequest(
   const headers = new Headers(asset.headers);
   headers.set("x-robots-tag", "noindex");
   const type = asset.headers.get("content-type") ?? "";
-  if (!type.includes("text/html")) {
+  // 304 (and any non-200) must keep a null body. Reading it and rebuilding the
+  // response throws, which the Worker turns into a 500.
+  if (asset.status !== 200 || !type.includes("text/html")) {
     return new Response(asset.body, { status: asset.status, headers });
   }
+  headers.delete("content-length");
+  headers.delete("etag");
   const html = noindexRobotsMeta(await asset.text());
-  return new Response(html, { status: asset.status, headers });
+  return new Response(html, { status: 200, headers });
 }
 
 const NOINDEX_META = '<meta name="robots" content="noindex, nofollow" />';
