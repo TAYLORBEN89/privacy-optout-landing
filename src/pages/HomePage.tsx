@@ -24,6 +24,11 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
             <AppLink className="cta" href={getStartedHref}>
               Start my opt-out
             </AppLink>
+            <p className="hero-secondary">
+              <AppLink className="hero-proposal-link" href="/texas-proposal">
+                Read the Texas Proposal
+              </AppLink>
+            </p>
         </div>
       </section>
 

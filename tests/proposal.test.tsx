@@ -1,12 +1,12 @@
 /**
  * @vitest-environment happy-dom
  */
-import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { TEXAS_PROPOSAL_MISSION } from "../src/copy";
 import { Header } from "../src/Header";
+import { HomePage } from "../src/pages/HomePage";
 import { TexasProposalPage } from "../src/pages/TexasProposalPage";
 import { canonicalFor, pageByPath } from "../shared/seo";
 
@@ -57,45 +57,24 @@ describe("Texas Proposal page", () => {
   });
 });
 
-describe("Texas Proposal header link", () => {
-  it("links the header to /texas-proposal and keeps the account link", () => {
+describe("Header and hero links", () => {
+  it("header has only the brand and the account icon: no Texas Proposal link, no Menu button", () => {
     render(<Header signedIn={false} csrf={null} onSignedOut={() => undefined} />);
-    const links = screen.getAllByRole("link", { name: "Texas Proposal" });
-    expect(links.length).toBeGreaterThan(0);
-    for (const link of links) expect(link.getAttribute("href")).toBe("/texas-proposal");
+    expect(screen.queryByRole("link", { name: "Texas Proposal" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Menu" })).toBeNull();
+    expect(document.querySelector(".proposal-menu-panel")).toBeNull();
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
+    expect(document.querySelector("a.account-button")).toBeTruthy();
+  });
+
+  it("homepage hero links to /texas-proposal below the primary CTA", () => {
+    render(<HomePage getStartedHref="/start" />);
+    const hero = document.querySelector("section.hero") as HTMLElement;
+    const link = within(hero).getByRole("link", { name: "Read the Texas Proposal" });
+    expect(link.getAttribute("href")).toBe("/texas-proposal");
+    expect(link.className).not.toContain("cta");
     const css = readFileSync("src/styles.css", "utf8");
-    expect(css).toContain(".proposal-link:focus-visible");
-    expect(css).toContain("outline: 3px solid var(--blue)");
-  });
-
-  it("opens the mobile menu so the Texas Proposal link is visible and reachable", async () => {
-    const user = userEvent.setup();
-    render(<Header signedIn={false} csrf={null} onSignedOut={() => undefined} />);
-    const button = screen.getByRole("button", { name: "Menu" });
-    expect(button.getAttribute("aria-expanded")).toBe("false");
-    expect(button.getAttribute("aria-controls")).toBeTruthy();
-    expect(screen.getAllByRole("link", { name: "Texas Proposal" })).toHaveLength(1);
-
-    await user.click(button);
-    expect(button.getAttribute("aria-expanded")).toBe("true");
-    const links = screen.getAllByRole("link", { name: "Texas Proposal" });
-    const mobile = links.find((link) => link.closest(".proposal-menu-panel"));
-    expect(mobile?.getAttribute("href")).toBe("/texas-proposal");
-    expect(mobile?.hidden).toBe(false);
-    await user.click(mobile!);
-    expect(button.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.getAllByRole("link", { name: "Texas Proposal" })).toHaveLength(1);
-
-    await user.click(button);
-    await user.keyboard("{Escape}");
-    expect(button.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
-  });
-
-  it("marks the proposal link as the current page", () => {
-    render(<Header signedIn={false} csrf={null} path="/texas-proposal" onSignedOut={() => undefined} />);
-    expect(screen.getByRole("link", { name: "Texas Proposal" }).getAttribute("aria-current")).toBe("page");
+    expect(css).toContain(".hero-proposal-link:focus-visible");
   });
 });
 
