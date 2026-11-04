@@ -67,6 +67,20 @@ describe("Header and hero links", () => {
     expect(document.querySelector("a.account-button")).toBeTruthy();
   });
 
+  it("homepage hero uses the decorative hills picture with high fetch priority", () => {
+    render(<HomePage getStartedHref="/start" />);
+    const hero = document.querySelector("section.hero.hero--hills") as HTMLElement;
+    const picture = hero.querySelector("picture.hero-bg");
+    expect(picture?.getAttribute("aria-hidden")).toBe("true");
+    expect(picture?.querySelectorAll('source[type="image/webp"]').length).toBe(2);
+    const img = picture?.querySelector("img");
+    expect(img?.getAttribute("alt")).toBe("");
+    expect(img?.getAttribute("width")).toBe("1744");
+    expect(img?.getAttribute("height")).toBe("1136");
+    expect(img?.getAttribute("fetchpriority")).toBe("high");
+    expect(within(hero).getByRole("link", { name: /Start my opt-out/i })).toBeTruthy();
+  });
+
   it("homepage hero links to /texas-proposal below the primary CTA", () => {
     render(<HomePage getStartedHref="/start" />);
     const hero = document.querySelector("section.hero") as HTMLElement;
