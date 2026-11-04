@@ -75,8 +75,8 @@ describe("Header and hero links", () => {
     expect(picture?.querySelectorAll('source[type="image/webp"]').length).toBe(2);
     const img = picture?.querySelector("img");
     expect(img?.getAttribute("alt")).toBe("");
-    expect(img?.getAttribute("width")).toBe("1920");
-    expect(img?.getAttribute("height")).toBe("640");
+    expect(img?.getAttribute("width")).toBe("1744");
+    expect(img?.getAttribute("height")).toBe("1136");
     expect(img?.getAttribute("fetchpriority")).toBe("high");
     expect(within(hero).getByRole("link", { name: /Start my opt-out/i })).toBeTruthy();
   });

@@ -6,12 +6,12 @@ import { RightsSection } from "../components/Rights";
 import { ValuesSection } from "../components/Values";
 import { Stats } from "../components/Stats";
 import { AppLink } from "../router";
-import hills1280Jpg from "../assets/hero/hills-1280.jpg";
-import hills1280Webp from "../assets/hero/hills-1280.webp";
-import hills1920Jpg from "../assets/hero/hills-1920.jpg";
-import hills1920Webp from "../assets/hero/hills-1920.webp";
-import hillsMobileJpg from "../assets/hero/hills-mobile-750.jpg";
-import hillsMobileWebp from "../assets/hero/hills-mobile-750.webp";
+import hero1280Jpg from "../assets/hero/hero-photo-1280.jpg";
+import hero1280Webp from "../assets/hero/hero-photo-1280.webp";
+import hero1744Jpg from "../assets/hero/hero-photo-1744.jpg";
+import hero1744Webp from "../assets/hero/hero-photo-1744.webp";
+import heroLeftJpg from "../assets/hero/hero-photo-left-640.jpg";
+import heroLeftWebp from "../assets/hero/hero-photo-left-640.webp";
 import { storageNotice } from "../../worker/storage";
 
 export function HomePage({ getStartedHref }: { getStartedHref: string }) {
@@ -19,15 +19,15 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
     <>
       <section id="overview" className="hero hero--hills" aria-labelledby="page-title">
         <picture className="hero-bg" aria-hidden="true">
-          <source media="(max-width: 640px)" type="image/webp" srcSet={`${hillsMobileWebp} 750w`} sizes="100vw" />
-          <source media="(max-width: 640px)" type="image/jpeg" srcSet={`${hillsMobileJpg} 750w`} sizes="100vw" />
-          <source type="image/webp" srcSet={`${hills1280Webp} 1280w, ${hills1920Webp} 1920w`} sizes="100vw" />
+          <source media="(max-width: 640px)" type="image/webp" srcSet={`${heroLeftWebp} 640w`} sizes="100vw" />
+          <source media="(max-width: 640px)" type="image/jpeg" srcSet={`${heroLeftJpg} 640w`} sizes="100vw" />
+          <source type="image/webp" srcSet={`${hero1280Webp} 1280w, ${hero1744Webp} 1744w`} sizes="100vw" />
           <img
-            src={hills1920Jpg}
-            srcSet={`${hills1280Jpg} 1280w, ${hills1920Jpg} 1920w`}
+            src={hero1744Jpg}
+            srcSet={`${hero1280Jpg} 1280w, ${hero1744Jpg} 1744w`}
             sizes="100vw"
-            width={1920}
-            height={640}
+            width={1744}
+            height={1136}
             alt=""
             loading="eager"
             decoding="async"

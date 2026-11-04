@@ -3007,7 +3007,7 @@ textarea {
 .hero-bg img {
   display: block;
   object-fit: cover;
-  object-position: center 60%;
+  object-position: center 55%;
 }
 
 .hero-bg::after {
@@ -3056,6 +3056,6 @@ textarea {
   }
 
   .hero-bg img {
-    object-position: center bottom;
+    object-position: left center;
   }
 }
