@@ -47,8 +47,128 @@ body {
 }
 
 .topbar {
+  position: relative;
   background: #fff;
   border-bottom: 1px solid var(--line);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.proposal-link {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.proposal-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.proposal-link:focus-visible,
+.proposal-menu:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.proposal-link-desktop {
+  display: none;
+}
+
+.proposal-menu {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.proposal-menu-panel {
+  padding: 12px 24px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+
+.proposal-menu-panel[hidden] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .proposal-link-desktop {
+    display: inline-flex;
+  }
+
+  .proposal-menu,
+  .proposal-menu-panel {
+    display: none;
+  }
+}
+
+.proposal-mission {
+  margin: 0 0 28px;
+  padding: 20px 18px;
+  background: #f4f7fb;
+  border-left: 4px solid var(--blue);
+}
+
+.proposal-mission p {
+  margin: 12px 0 0;
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.proposal-quote {
+  font-style: italic;
+  font-weight: 700;
+  quotes: none;
+}
+
+.hash-flow {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+
+.hash-flow li {
+  position: relative;
+  margin: 0 0 0 16px;
+  padding: 0 0 22px 36px;
+  border-left: 2px solid var(--line);
+}
+
+.hash-flow li:last-child {
+  border-left-color: transparent;
+  padding-bottom: 0;
+}
+
+.hash-badge {
+  position: absolute;
+  left: -16px;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 32px;
+  text-align: center;
+}
+
+.hash-flow h3 {
+  margin: 4px 0 8px;
+  font-size: 1.05rem;
 }
 
 .topbar-inner,

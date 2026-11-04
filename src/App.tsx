@@ -59,6 +59,7 @@ export function App() {
         <Header
           signedIn={signedIn}
           csrf={session.status === "in" ? session.me.csrf_token : null}
+          path={path}
           onSignedOut={() => setSession({ status: "out", httpStatus: 401 })}
         />
       </div>

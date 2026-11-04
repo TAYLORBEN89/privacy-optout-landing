@@ -238,6 +238,7 @@ These are real pages. The homepage does not use hash links for them.
 | `/privacy` | Privacy |
 | `/security` | Security |
 | `/about` | About |
+| `/texas-proposal` | The Texas Proposal |
 
 `/start` is the opt-out form. `/signin` is the sign-in page. `/account` is the account page.
 
