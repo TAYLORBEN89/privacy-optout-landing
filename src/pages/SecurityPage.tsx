@@ -1,12 +1,15 @@
-import { DISCLAIMER, TRUST_LABEL } from "../copy";
+import { DISCLAIMER } from "../copy";
 import { storageNotice } from "../../worker/storage";
 
 export function SecurityPage() {
   return (
     <article className="panel security-page">
-      <h1>{TRUST_LABEL}</h1>
-      <p className="todo">TODO: replace this placeholder with final security copy before launch.</p>
-      <h2>Data minimization</h2>
+      <h1>HTTPS in transit</h1>
+      <p>
+        HTTPS in transit protects pages and form submissions on DROP Texas. The notes below say what the
+        form asks for and what this page does not claim. This is not a government security seal.
+      </p>
+      <h2>Data minimization for HTTPS in transit pages</h2>
       <p>The form asks for your name (including an optional middle name), date of birth, mailing address, email, Texas residency, and (if you choose to provide it) your phone number. For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.</p>
       <h2>What is stored</h2>
       <p>

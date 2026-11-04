@@ -181,6 +181,7 @@ export function filterResponse(response: Response, ownUrl: string): Response {
   }
   // Every proxied /api response is per-user or one-shot (sessions, exports, OAuth handoffs): never cache.
   headers.set("cache-control", "no-store");
+  headers.set("x-robots-tag", "noindex");
   return new Response(response.body, { status: response.status, headers });
 }
 

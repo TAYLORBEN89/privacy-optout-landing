@@ -61,6 +61,7 @@ function json(body: { ok: true } | ErrorBody, status: number): Response {
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      "x-robots-tag": "noindex",
     },
   });
 }
@@ -376,6 +377,7 @@ export async function handleRequest(
       headers: {
         location: accountsSignInUrl(requested),
         "cache-control": "no-store",
+        "x-robots-tag": "noindex",
       },
     });
   }
@@ -393,5 +395,36 @@ export async function handleRequest(
   if (!deps.fetchAsset) {
     return new Response("Not found", { status: 404 });
   }
-  return deps.fetchAsset();
+  const asset = await deps.fetchAsset();
+  if (!privateShell(url.pathname)) return asset;
+  const headers = new Headers(asset.headers);
+  headers.set("x-robots-tag", "noindex");
+  const type = asset.headers.get("content-type") ?? "";
+  // 304 (and any non-200) must keep a null body. Reading it and rebuilding the
+  // response throws, which the Worker turns into a 500.
+  if (asset.status !== 200 || !type.includes("text/html")) {
+    return new Response(asset.body, { status: asset.status, headers });
+  }
+  headers.delete("content-length");
+  headers.delete("etag");
+  const html = noindexRobotsMeta(await asset.text());
+  return new Response(html, { status: 200, headers });
+}
+
+const NOINDEX_META = '<meta name="robots" content="noindex, nofollow" />';
+
+/** Match the X-Robots-Tag on shells served for /account/* and /signin/*. */
+function noindexRobotsMeta(html: string): string {
+  if (/<meta\s+[^>]*name=["']robots["'][^>]*>/i.test(html)) {
+    return html.replace(/<meta\s+[^>]*name=["']robots["'][^>]*>/i, NOINDEX_META);
+  }
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, (open) => `${open}${NOINDEX_META}`);
+  }
+  return `${NOINDEX_META}${html}`;
+}
+
+/** Account and sign-in paths, including SPA fallbacks such as /account/history. */
+function privateShell(pathname: string): boolean {
+  return pathname === "/account" || pathname.startsWith("/account/") || pathname.startsWith("/signin/");
 }

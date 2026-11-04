@@ -19,13 +19,13 @@ import {
 } from "../src/pages/topics";
 
 const PAGES = [
-  ["/overview", "Overview", OverviewPage],
-  ["/how-it-works", "How DROP works", HowItWorksPage],
+  ["/overview", "Delete personal information", OverviewPage],
+  ["/how-it-works", "Opt out of data brokers", HowItWorksPage],
   ["/personal-information", "Personal information", PersonalInformationPage],
   ["/data-brokers", "Data brokers", DataBrokersPage],
-  ["/unique-identifiers", "Unique identifiers", UniqueIdentifiersPage],
+  ["/unique-identifiers", "People search sites", UniqueIdentifiersPage],
   ["/tdpsa", "The Texas Data Privacy and Security Act", TdpsaPage],
-  ["/help", "Help", HelpPage],
+  ["/help", "Privacy help", HelpPage],
   ["/share", "Share DROP Texas", SharePage],
 ] as const;
 
@@ -67,7 +67,7 @@ describe("explore pages", () => {
 
   it("explains children's information with sources and opens the child request", () => {
     render(<ChildrenPage />);
-    expect(screen.getByRole("heading", { level: 1, name: "Protecting children's information" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Children's data" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "The Philadelphia Inquirer" }).getAttribute("href")).toContain("inquirer.com");
     expect(screen.getByRole("link", { name: "The Record" }).getAttribute("href")).toContain("therecord.media");
     expect(screen.getAllByRole("link", { name: "Federal Trade Commission" })).toHaveLength(3);
@@ -99,7 +99,7 @@ describe("explore pages", () => {
     }
     cleanup();
     render(<HelpPage />);
-    expect(screen.getByRole("heading", { level: 2, name: "Questions" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Privacy help questions" })).toBeTruthy();
     expect(document.querySelectorAll("details").length).toBeGreaterThanOrEqual(10);
   });
 

@@ -5,10 +5,15 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 describe("privacy page", () => {
+  it("renders the privacy contact address", () => {
+    const html = renderToStaticMarkup(createElement(PrivacyPage));
+    expect(html).toContain("The contact address for this page is help@droptexas.com.");
+  });
+
   it("returns the privacy sections without a certification or California claim", () => {
     const html = renderToStaticMarkup(createElement(PrivacyPage));
-    expect(html).toContain("Privacy &amp; Security");
-    expect(html).toContain("Data we collect");
+    expect(html).toContain("Texas privacy");
+    expect(html).toContain("Texas privacy data we collect");
     expect(html).toContain("Encryption in transit");
     expect(html).toContain("Encryption at rest");
     expect(html).toContain("Cloudflare D1");
@@ -24,6 +29,7 @@ describe("privacy page", () => {
     expect(html).toContain(
       "We keep what you give us only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
     );
+    expect(html).toContain("The contact address for this page is help@droptexas.com.");
     expect(html).toContain("Every page and API call is served over HTTPS (TLS 1.2 or newer) through Cloudflare.");
     expect(html).toContain("Saved information is stored in Cloudflare D1 and Workers KV, which Cloudflare encrypts at rest (AES-256).");
     expect(html).toContain("Coming soon");
@@ -60,7 +66,7 @@ describe("privacy page", () => {
     const html = renderToStaticMarkup(createElement(PrivacyPage));
     const items = html.split("<li>").slice(1);
     const expected = [
-      ["collect", "Data we collect", "M8 7h8M8 12h8M8 17h5"],
+      ["collect", "Texas privacy data we collect", "M8 7h8M8 12h8M8 17h5"],
       ["transit", "Encryption in transit", "M8 11V8a4 4 0 0 1 8 0v3"],
       ["rest", "Encryption at rest", "M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"],
       ["coming-soon", "Coming soon", "M12 8v4l3 2"],

@@ -1,0 +1,10 @@
+/account
+  X-Robots-Tag: noindex
+/account/*
+  X-Robots-Tag: noindex
+/signin
+  X-Robots-Tag: noindex
+/signin/*
+  X-Robots-Tag: noindex
+/api/*
+  X-Robots-Tag: noindex

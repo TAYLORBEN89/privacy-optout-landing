@@ -50,7 +50,7 @@ describe("explore list", () => {
   it("uses a labeled panel, compact rows on a phone, and two columns on a wide screen", () => {
     const page = readFileSync("src/pages/HomePage.tsx", "utf8");
     const css = readFileSync("src/styles.css", "utf8");
-    expect(page).toContain("Explore DROP Texas");
+    expect(page).toContain("Explore the Texas data broker opt-out");
     expect(css).toContain("width: 32px");
     expect(css).toContain("min-height: 87px");
     expect(css).toContain("padding: 48px 0");

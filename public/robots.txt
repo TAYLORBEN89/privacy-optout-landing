@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /signin
+Disallow: /api/
+Sitemap: https://droptexas.com/sitemap.xml

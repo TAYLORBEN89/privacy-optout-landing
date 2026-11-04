@@ -37,6 +37,22 @@ export function StartPage({
 
   return (
     <>
+      <header className="panel">
+        <h1>Free data broker removal</h1>
+        <p>
+          Free data broker removal on DROP Texas starts with this form. You enter the details a broker
+          uses to find a record. You send the request. This is not a government form.
+        </p>
+        <h2>Before you start free data broker removal</h2>
+        <p>
+          Phone is optional. The form does not ask for a Social Security number. Read the{" "}
+          <a href="/personal-information">personal information</a> page for the field list, and the{" "}
+          <a href="https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm" target="_blank" rel="noopener noreferrer">
+            Texas statute
+          </a>{" "}
+          for the opt-out right.
+        </p>
+      </header>
       <AuthErrorNotice />
       {body}
     </>

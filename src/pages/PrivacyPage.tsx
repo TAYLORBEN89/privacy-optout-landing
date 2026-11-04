@@ -14,9 +14,9 @@ const COLLECTED =
 const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
     id: "collect",
-    title: "Data we collect",
+    title: "Texas privacy data we collect",
     paragraphs: [
-      `The form asks for ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
+      `Texas privacy on this page means the fields the form asks for: ${COLLECTED}. The browser checks those fields, and the server checks them again.`,
       "For a child request, a parent or guardian also provides the child's name, date of birth and, if different, address.",
       "If you provide a phone number, it is used only to find your records at data brokers and to fill in the opt-out, do-not-sell, and deletion requests sent to them. It is not used for marketing, calls, or texts, and it is not sold or shared except with the brokers as part of those requests.",
       "We keep what you give us only as long as your requests need it. Email help@droptexas.com to have it deleted at any time.",
@@ -40,7 +40,9 @@ const SECTIONS: { id: string; title: string; paragraphs: string[] }[] = [
   {
     id: "limits",
     title: "What we don't do",
-    paragraphs: ["We do not sell your data. This site does not load advertising trackers."],
+    paragraphs: [
+      "We do not sell your data. This site does not load advertising trackers. The contact address for this page is help@droptexas.com.",
+    ],
   },
   {
     id: "compliance",
@@ -112,7 +114,7 @@ function SectionIcon({ id }: { id: string }) {
 export function PrivacyPage() {
   return (
     <article className="panel privacy-page">
-      <h1>Privacy & Security</h1>
+      <h1>Texas privacy</h1>
       <ul className="privacy-list">
         {SECTIONS.map((section) => (
           <li key={section.id}>

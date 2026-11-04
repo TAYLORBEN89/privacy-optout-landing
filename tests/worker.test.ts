@@ -453,6 +453,59 @@ describe("POST /api/signup", () => {
     expect(response.status).toBe(200);
   });
 
+  it("sends noindex for account and sign-in paths that fall back to the shell", async () => {
+    for (const path of ["/account/history", "/account/settings/export", "/signin/callback", "/signin/oauth/callback"]) {
+      const response = await handleRequest(new Request(`https://droptexas.com${path}`), assets());
+      expect(response.status, path).toBe(200);
+      expect(response.headers.get("content-type"), path).toContain("text/html");
+      expect(response.headers.get("x-robots-tag"), path).toBe("noindex");
+      expect(await response.text(), path).toContain('name="robots" content="noindex, nofollow"');
+    }
+    const indexed = await handleRequest(new Request("https://droptexas.com/account/history"), {
+      fetchAsset: async () =>
+        new Response('<head><meta name="robots" content="index, follow" /></head>', {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+    });
+    const shell = await indexed.text();
+    expect(shell).toContain('name="robots" content="noindex, nofollow"');
+    expect(shell).not.toContain("index, follow");
+    const rewritten = await handleRequest(new Request("https://droptexas.com/account/history"), {
+      fetchAsset: async () =>
+        new Response("<head><title>Account</title></head>", {
+          status: 200,
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "999",
+            etag: '"stale"',
+          },
+        }),
+    });
+    expect(rewritten.status).toBe(200);
+    expect(rewritten.headers.get("x-robots-tag")).toBe("noindex");
+    expect(rewritten.headers.get("content-length")).toBeNull();
+    expect(rewritten.headers.get("etag")).toBeNull();
+    const notModified = await handleRequest(new Request("https://droptexas.com/signin/callback"), {
+      fetchAsset: async () =>
+        new Response(null, {
+          status: 304,
+          headers: {
+            etag: '"abc"',
+            "content-type": "text/html",
+          },
+        }),
+    });
+    expect(notModified.status).toBe(304);
+    expect(notModified.headers.get("x-robots-tag")).toBe("noindex");
+    expect(notModified.headers.get("etag")).toBe('"abc"');
+    expect(await notModified.text()).toBe("");
+    const account = await handleRequest(new Request("https://droptexas.com/account"), assets());
+    expect(account.headers.get("x-robots-tag")).toBe("noindex");
+    const signIn = await handleRequest(new Request("https://droptexas.com/signin"), assets());
+    expect(signIn.status).toBe(302);
+    expect(signIn.headers.get("x-robots-tag")).toBe("noindex");
+  });
+
   it("redirects /signin to the accounts host and drops an unsafe return path", async () => {
     const kept = await handleRequest(new Request("https://droptexas.com/signin?return_to=/account"), assets());
     expect(kept.status).toBe(302);

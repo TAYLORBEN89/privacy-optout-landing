@@ -45,7 +45,7 @@ describe("site footer", () => {
 
     window.history.pushState({}, "", "/privacy");
     const sub = render(<App />);
-    expect(sub.getByRole("heading", { name: "Privacy & Security" })).toBeTruthy();
+    expect(sub.getByRole("heading", { name: "Texas privacy" })).toBeTruthy();
     expect(sub.getByRole("contentinfo")).toBeTruthy();
   });
 
