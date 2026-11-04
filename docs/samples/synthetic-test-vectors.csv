@@ -1,0 +1,20 @@
+# SYNTHETIC TEST DATA - fictional values only, not real people. Hashes computed independently with openssl (SHA-256, UTF-8, Base64).
+field,raw_input,standardized,sha256_base64
+first_name,"Juan Pablo",juanpablo,91hIbrbzNeqHs3o81O5yNrXUj7wDd2shvZ6THKi9qz8=
+last_name,"Martinez",martinez,2wRPGbwBNxhShjRczx8GfS2c4cjvs4NJskeWloUNtp8=
+last_name,"O'Connor-López",oconnorlopez,wRhK2NSl7s5y9KV3LUYofirbKMVFXQB04RsLM00gbiI=
+first_name,"Björn",bjorn,OQ7mbeDftplbSl1U26xOIGldt0qjCHkZg6kWHUQDvmU=
+first_name,"  ZOË ",zoe,nQF+JoG38xcl4cD74mEuiQecIoBrAs96iUtQDdWiGcE=
+last_name,"Strauß",strauss,K90pL8r/YxCbdHAMrwSKj2vvqU3gBEC+d+PsVWAftpA=
+first_name,"Renée",renee,oGcKD9O1ya6GuRhvrBVD487vShA+XU77nbOHh8OpwdE=
+first_name,"Jean-Luc",jeanluc,f+84Bm25kA+ZL6mSbuqMxkj0TCr1DE1RHEFUIhlsjvU=
+dob,"1990-01-12",19900112,Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=
+dob,"01/12/1990",19900112,Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=
+dob,"19900112",19900112,Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=
+zip,"95811-6213",95811,hhrJ0lmzrCGQGqGD36pCucffqrftb5k70CV4OogYNKM=
+zip,"78701",78701,OEJIsYBVd31pQDtHnXThCpbsxsbdbwIwhoTT2U6qytE=
+phone,"+1 (987) 765-4321",9877654321,Kqb5sWi/zGQOa1P0G8oKcQ4lrzPEwui2TgQ/I6G8h3s=
+phone,"987.765.4321",9877654321,Kqb5sWi/zGQOa1P0G8oKcQ4lrzPEwui2TgQ/I6G8h3s=
+phone,"19877654321",9877654321,Kqb5sWi/zGQOa1P0G8oKcQ4lrzPEwui2TgQ/I6G8h3s=
+email,"  Jane.Doe+TX@Example.COM ",jane.doe+tx@example.com,7unXmzUnRdnshdyh+VVjfB/qr7kWSxUmH/beD4FXAJA=
+ndz,"Jane|Doe|1990-01-12|78701-1234",gfj23eiDZfOSh5bseqU/coILBtuGZPX+dqfrE+JFRqI=eZ75KhGvkY4/t0HfQpNPO1aO0tk6wd908bjUGieTKm8=Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=OEJIsYBVd31pQDtHnXThCpbsxsbdbwIwhoTT2U6qytE=,ZAVB12m/ySO0zl9zSI8xgd6RFJFBVpHSOkQhMeMfRrY=
