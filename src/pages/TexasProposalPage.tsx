@@ -1,5 +1,11 @@
 import { DISCLAIMER, TEXAS_PROPOSAL_MISSION } from "../copy";
 import { AppLink } from "../router";
+import banner1500Jpg from "../assets/banner/x-banner-1500.jpg";
+import banner1500Webp from "../assets/banner/x-banner-1500.webp";
+import banner750Jpg from "../assets/banner/x-banner-750.jpg";
+import banner750Webp from "../assets/banner/x-banner-750.webp";
+
+const BANNER_SIZES = "(max-width: 960px) calc(100vw - 32px), 900px";
 
 const TECH_URL = "https://privacy.ca.gov/drop-for-data-brokers/technical-specifications/working-with-data/";
 const REG_URL = "https://cppa.ca.gov/regulations/pdf/data_broker_drop_reg.pdf";
@@ -30,6 +36,20 @@ export function TexasProposalPage() {
           <MissionCopy text={TEXAS_PROPOSAL_MISSION} />
         </p>
       </section>
+
+      <picture className="proposal-banner">
+        <source type="image/webp" srcSet={`${banner750Webp} 750w, ${banner1500Webp} 1500w`} sizes={BANNER_SIZES} />
+        <img
+          src={banner1500Jpg}
+          srcSet={`${banner750Jpg} 750w, ${banner1500Jpg} 1500w`}
+          sizes={BANNER_SIZES}
+          width={1500}
+          height={500}
+          loading="lazy"
+          decoding="async"
+          alt="Dark blue Texas hill country at dusk with the words: A right you can't enforce isn't a right at all, droptexas.com"
+        />
+      </picture>
 
       <section className="proposal-hash" aria-labelledby="hash-heading">
         <h2 id="hash-heading">How the hash system works</h2>

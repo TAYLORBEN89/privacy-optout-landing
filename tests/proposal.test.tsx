@@ -25,6 +25,20 @@ describe("Texas Proposal page", () => {
     expect(screen.getByRole("heading", { level: 1, name: "The Texas Proposal" })).toBeTruthy();
   });
 
+  it("shows the X banner after the mission with WebP, JPG fallback and fixed size", () => {
+    render(<TexasProposalPage />);
+    const picture = document.querySelector("picture.proposal-banner");
+    expect(picture).toBeTruthy();
+    expect(picture?.previousElementSibling?.className).toContain("proposal-mission");
+    const source = picture?.querySelector('source[type="image/webp"]');
+    expect(source?.getAttribute("srcset")).toMatch(/750w.*1500w/);
+    const img = picture?.querySelector("img");
+    expect(img?.getAttribute("width")).toBe("1500");
+    expect(img?.getAttribute("height")).toBe("500");
+    expect(img?.getAttribute("srcset")).toMatch(/750w.*1500w/);
+    expect(img?.getAttribute("alt")).toMatch(/droptexas\.com/);
+  });
+
   it("uses the pull quote once, inside the mission", () => {
     render(<TexasProposalPage />);
     const text = document.body.textContent ?? "";
