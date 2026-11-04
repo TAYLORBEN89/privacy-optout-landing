@@ -10,7 +10,6 @@ export function Header({
   signedIn: boolean;
   csrf: string | null;
   onSignedOut: () => void;
-  path?: string;
 }) {
   async function signOut() {
     if (!csrf) return;
