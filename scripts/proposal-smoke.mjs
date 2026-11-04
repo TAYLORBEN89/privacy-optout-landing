@@ -6,7 +6,8 @@ export function proposalSmokeProblems(text) {
   const hasHref =
     text.includes('href="/texas-proposal"') ||
     text.includes("href='/texas-proposal'") ||
-    text.includes("href:`/texas-proposal`");
+    text.includes("href:`/texas-proposal`") ||
+    text.includes('href:"/texas-proposal"');
   const hasHeroLink = hasHref && text.includes("hero-proposal-link") && text.includes("Read the Texas Proposal");
   if (!hasHeroLink) problems.push("missing hero 'Read the Texas Proposal' link to /texas-proposal");
   if (/proposal-link-desktop|proposal-menu|header-nav/.test(text)) problems.push("header still has a Texas Proposal link or Menu");
