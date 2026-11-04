@@ -43,12 +43,14 @@ export function AppLink({
   children,
   onClick,
   role,
+  ariaCurrent,
 }: {
   href: string;
   className?: string;
   children: ReactNode;
   onClick?: () => void;
   role?: string;
+  ariaCurrent?: "page";
 }) {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -60,7 +62,7 @@ export function AppLink({
   }
 
   return (
-    <a href={href} className={className} role={role} onClick={handleClick}>
+    <a href={href} className={className} role={role} aria-current={ariaCurrent} onClick={handleClick}>
       {children}
     </a>
   );

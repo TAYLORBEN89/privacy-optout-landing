@@ -7,10 +7,12 @@ export function Header({
   signedIn,
   csrf,
   onSignedOut,
+  path = typeof window === "undefined" ? "/" : window.location.pathname,
 }: {
   signedIn: boolean;
   csrf: string | null;
   onSignedOut: () => void;
+  path?: string;
 }) {
   const menuId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,7 +43,11 @@ export function Header({
           <Wordmark header />
         </AppLink>
         <nav className="header-nav" aria-label="Primary">
-          <AppLink className="proposal-link proposal-link-desktop" href="/texas-proposal">
+          <AppLink
+            className="proposal-link proposal-link-desktop"
+            href="/texas-proposal"
+            ariaCurrent={path === "/texas-proposal" ? "page" : undefined}
+          >
             Texas Proposal
           </AppLink>
           <button
@@ -49,6 +55,7 @@ export function Header({
             className="proposal-menu"
             aria-expanded={menuOpen}
             aria-controls={menuId}
+            onClick={() => setMenuOpen((open) => !open)}
           >
             Menu
           </button>
@@ -65,7 +72,12 @@ export function Header({
         </div>
       </div>
       <div className="proposal-menu-panel" id={menuId} hidden={!menuOpen}>
-        <AppLink className="proposal-link" href="/texas-proposal" onClick={() => setMenuOpen(false)}>
+        <AppLink
+          className="proposal-link"
+          href="/texas-proposal"
+          ariaCurrent={path === "/texas-proposal" ? "page" : undefined}
+          onClick={() => setMenuOpen(false)}
+        >
           Texas Proposal
         </AppLink>
       </div>

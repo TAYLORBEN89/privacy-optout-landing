@@ -2,6 +2,7 @@
  * @vitest-environment happy-dom
  */
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { TEXAS_PROPOSAL_MISSION } from "../src/copy";
@@ -63,6 +64,35 @@ describe("Texas Proposal header link", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(css).toContain(".proposal-link:focus-visible");
     expect(css).toContain("outline: 3px solid var(--blue)");
+  });
+
+  it("opens the mobile menu so the Texas Proposal link is visible and reachable", async () => {
+    const user = userEvent.setup();
+    render(<Header signedIn={false} csrf={null} onSignedOut={() => undefined} />);
+    const button = screen.getByRole("button", { name: "Menu" });
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(button.getAttribute("aria-controls")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Texas Proposal" })).toHaveLength(1);
+
+    await user.click(button);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    const links = screen.getAllByRole("link", { name: "Texas Proposal" });
+    const mobile = links.find((link) => link.closest(".proposal-menu-panel"));
+    expect(mobile?.getAttribute("href")).toBe("/texas-proposal");
+    expect(mobile?.hidden).toBe(false);
+    await user.click(mobile!);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getAllByRole("link", { name: "Texas Proposal" })).toHaveLength(1);
+
+    await user.click(button);
+    await user.keyboard("{Escape}");
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
+  });
+
+  it("marks the proposal link as the current page", () => {
+    render(<Header signedIn={false} csrf={null} path="/texas-proposal" onSignedOut={() => undefined} />);
+    expect(screen.getByRole("link", { name: "Texas Proposal" }).getAttribute("aria-current")).toBe("page");
   });
 });
 
