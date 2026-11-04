@@ -31,12 +31,14 @@ Raw values are never written to a file, a log, or the audit table.
 | last name | `O'Connor-López` | `oconnorlopez` |
 | last name | `Strauß` | `strauss` |
 | DOB | `01/12/1990` or `1990-01-12` | `19900112` |
+| first name | `Νίκος` | `nikos` |
+| last name | `Щербаков` | `shcherbakov` |
 | ZIP | `95811-6213` | `95811` |
 | phone | `+1 (987) 765-4321` | `9877654321` |
 | email | ` Jane.Doe+TX@Example.COM ` | `jane.doe+tx@example.com` |
 
-Names are lowercased, accents are folded to plain letters, and every space, hyphen, apostrophe and symbol is removed.
-Emails are only trimmed and lowercased. The `.` and `+` are kept, because removing them would change the address.
+Greek and Cyrillic names are transliterated with the official DROP Transliteration Mapping (CPPA DROP Technical and API Reference Documentation v1.2.0 (last updated July 2026), "Working with the data" > DROP Transliteration Mapping, https://privacy.ca.gov/drop-for-data-brokers/technical-specifications/working-with-data/); for example `Νίκος` → `nikos` and `Щербаков` → `shcherbakov`. Letters the mapping doesn't list are left unchanged. Names are lowercased, accents are folded to plain letters, and every space, hyphen, apostrophe and symbol is removed.
+Dates of birth are parsed in US order: `MM/DD/YYYY`, so `01/12/1990` is January 12. ISO `YYYY-MM-DD` and `YYYYMMDD` are also accepted. Emails are only trimmed and lowercased. The `.` and `+` are kept, because removing them would change the address.
 
 ## 4. Hashing and composite keys
 
@@ -61,7 +63,7 @@ published schema and synthetic test vectors are in `docs/samples/`.
 
 ## 7. Cadence and the 45-day window
 
-New list versions are published on a regular cadence. The default is monthly. Each list's `response_due` is 45 days
+New list versions are published monthly. Each list's `response_due` is 45 days
 after it is created. Status files that arrive after that time are rejected and logged.
 
 ## 8. How brokers return statuses

@@ -19,7 +19,7 @@ const STD = { first_name: stdName, last_name: stdName, dob: stdDob, zip: stdZip,
 
 function parseCsv(text) {
   return text.split('\n').filter((l) => l && !l.startsWith('#')).slice(1).map((l) => {
-    const g = l.match(/^([a-z_]+),"(.*)",([^,]+),([^,]+)$/);
+    const g = l.match(/^([a-z_]+),"(.*)",([^,]+),([^,]+)$/u);
     return { field: g[1], raw: g[2], std: g[3], hash: g[4] };
   });
 }
@@ -33,6 +33,18 @@ describe('standardization', () => {
     expect(stdName('  ZOË. ')).toBe('zoe');
     expect(stdName('李')).toBe('李');
     expect(stdName(' -- ')).toBeNull();
+  });
+  it('Greek and Cyrillic follow the DROP Transliteration Mapping (spec v1.2.0)', async () => {
+    expect(stdName('Νίκος Παπαδόπουλος')).toBe('nikospapadopoylos');
+    expect(stdName('ΘΕΟΔΩΡΊΔΗΣ')).toBe('theodoridis'); // uppercase + final sigma
+    expect(stdName('Щербаков')).toBe('shcherbakov');
+    expect(stdName('Мар\u2019яна')).toBe('maryana'); // apostrophe dropped
+    expect(stdName('Объедков')).toBe('obedkov'); // ъ removed per spec
+    expect(stdName('Ђорђе')).toBe('ђorђe'); // not in the spec table: left unchanged
+    expect(stdName('Ħaġar')).toBe('hagar');
+    // printf %s nikos | openssl dgst -sha256 -binary | base64
+    expect(await hashValue(stdName('Νίκος'))).toBe('M1xU87YGGwuLseP9/0x3HDaAyqaNEpnDb9fgj33PZH8=');
+    expect(await hashValue(stdName('Дмитрий'))).toBe('ey5Zt2eQwoKSsmmTusVHzRD6V3Yg11+s6iGJqfpVRvc=');
   });
   it('DOB formats -> YYYYMMDD, invalid dates rejected', () => {
     for (const v of ['1990-01-12', '1990/1/12', '19900112', '01/12/1990', '1-12-1990']) expect(stdDob(v)).toBe('19900112');
@@ -74,7 +86,7 @@ describe('hashing', () => {
   });
   it('reproduces every row of docs/samples/synthetic-test-vectors.csv', async () => {
     const rows = parseCsv(vectorsCsv);
-    expect(rows.length).toBeGreaterThanOrEqual(15);
+    expect(rows.length).toBeGreaterThanOrEqual(31);
     for (const r of rows) {
       if (r.field === 'ndz') {
         const [first_name, last_name, dob, zip] = r.raw.split('|');

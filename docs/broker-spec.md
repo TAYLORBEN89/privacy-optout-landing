@@ -24,11 +24,21 @@ record can't match that list type.
 
 | Field | Rule | Example (synthetic) |
 | --- | --- | --- |
-| First / last name (separate fields) | Lowercase. Fold accented Latin letters to ASCII (å→a, ö→o, ñ→n). Map ß→ss, æ→ae, œ→oe, ø→o, ł→l. Remove spaces, hyphens, apostrophes, punctuation, symbols, and any other non-letter or non-digit characters. Compound names become one value. Chinese, Japanese, Korean, Arabic and Hebrew characters are left unchanged. | `Juan Pablo` → `juanpablo`; `O'Connor-López` → `oconnorlopez` |
-| DOB | 8 digits, `YYYYMMDD` | `01/12/1990` → `19900112` |
+| First / last name (separate fields) | Lowercase. Fold accented Latin letters to ASCII (å→a, ö→o, ñ→n). Transliterate Greek and Cyrillic, and map special Latin letters (ß→ss, æ→ae, œ→oe, ø→o, ð→d, þ→th, ł→l, đ→d, ħ→h, ŋ→n, ı→i, ĳ→ij, ŀ→l), using the DROP Transliteration Mapping (see 2a). Remove spaces, hyphens, apostrophes, punctuation, symbols, and any other non-letter or non-digit characters. Compound names become one value. Chinese, Japanese, Korean, Arabic and Hebrew characters are left unchanged. | `Juan Pablo` → `juanpablo`; `O'Connor-López` → `oconnorlopez` |
+| DOB | 8 digits, `YYYYMMDD`. Accepted inputs: `YYYY-MM-DD`, `YYYY/MM/DD`, `YYYYMMDD`, and US `MM/DD/YYYY`. A date that ends with the year is always read as month/day/year (US order). | `01/12/1990` → `19900112` (January 12) |
 | ZIP | first 5 digits | `95811-6213` → `95811` |
 | Phone | digits only, last 10 digits (drops the country code) | `+1 (987) 765-4321` → `9877654321` |
 | Email | trim surrounding whitespace, lowercase. Other characters, including `.` and `+`, are kept. | ` Jane.Doe+TX@Example.COM ` → `jane.doe+tx@example.com` |
+
+### 2a. Greek and Cyrillic transliteration
+
+We use the official DROP Transliteration Mapping, character for character. Source: CPPA DROP Technical and API Reference Documentation v1.2.0 (last updated July 2026), "Working with the data" > DROP Transliteration Mapping, https://privacy.ca.gov/drop-for-data-brokers/technical-specifications/working-with-data/.
+
+- Greek: α→a β→v γ→g δ→d ε→e ζ→z η→i θ→th ι→i κ→k λ→l μ→m ν→n ξ→x ο→o π→p ρ→r σ/ς→s τ→t υ→y φ→f χ→ch ψ→ps ω→o; the accented forms ά έ ί ή ύ ό ώ ϊ ΐ ϋ ΰ map to their base letter.
+- Cyrillic: а→a б→b в→v г→g д→d е→e ё→yo ж→zh з→z и→i й→y к→k л→l м→m н→n о→o п→p р→r с→s т→t у→u ф→f х→kh ц→ts ч→ch ш→sh щ→shch ъ→(removed) ы→y ь→(removed) э→e ю→yu я→ya є→e і→i ї→i ґ→g ў→u.
+- Characters the mapping doesn't list (for example Serbian/Macedonian ђ ј љ њ ћ џ ѕ ѓ ќ) are left unchanged.
+
+Examples (synthetic): `Νίκος` → `nikos`, `Παπαδόπουλος` → `papadopoylos`, `Щербаков` → `shcherbakov`, `Мар'яна` → `maryana`.
 
 ## 3. Hashing
 
@@ -83,8 +93,7 @@ AAA1example,7unXmzUnRdnshdyh+VVjfB/qr7kWSxUmH/beD4FXAJA=
 
 ## 8. Response window and cadence
 
-- A new list version is published on a regular cadence. The default is monthly, and the exact schedule is agreed
-  during onboarding.
+- A new list version is published **monthly**.
 - **You have 45 days** from `created_at` to return statuses for a list. The deadline is `response_due` in the manifest.
   A file received after that time is rejected and logged.
 

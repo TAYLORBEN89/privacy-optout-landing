@@ -7,16 +7,34 @@ export const RESPONSE_WINDOW_DAYS = 45;
 export const STATUS = { 2: 'exempt', 3: 'deleted', 4: 'opted_out', 5: 'not_found' };
 export const LIST_TYPES = ['email', 'phone', 'ndz'];
 
-// Special Latin letters that NFD does not decompose (DROP spec list, plus a few common ones).
-const SPECIAL = { 'ß': 'ss', 'æ': 'ae', 'œ': 'oe', 'ø': 'o', 'ł': 'l', 'đ': 'd', 'ð': 'd', 'þ': 'th', 'ı': 'i' };
+// DROP Transliteration Mapping, copied verbatim from the CPPA DROP technical spec v1.2.0 (last updated July 2026),
+// "Working with the data" > Name standardization > DROP Transliteration Mapping:
+// https://privacy.ca.gov/drop-for-data-brokers/technical-specifications/working-with-data/ (fetched 2026-11-04).
+// Letters not in the table (e.g. Serbian/Macedonian ђ ј љ њ ћ џ ѕ ѓ ќ) are left unchanged, as the spec gives no mapping.
+const GREEK = {
+  'α': 'a', 'β': 'v', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'i', 'θ': 'th', 'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm',
+  'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'r', 'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'φ': 'f', 'χ': 'ch', 'ψ': 'ps',
+  'ω': 'o', 'ά': 'a', 'έ': 'e', 'ί': 'i', 'ή': 'i', 'ύ': 'y', 'ό': 'o', 'ώ': 'o', 'ϊ': 'i', 'ΐ': 'i', 'ϋ': 'y', 'ΰ': 'y',
+};
+const CYRILLIC = {
+  'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k',
+  'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+  'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya', 'є': 'e', 'і': 'i', 'ї': 'i',
+  'ґ': 'g', 'ў': 'u',
+};
+const SPECIAL_LATIN = {
+  'ß': 'ss', 'æ': 'ae', 'œ': 'oe', 'ø': 'o', 'ð': 'd', 'þ': 'th', 'ł': 'l', 'đ': 'd', 'ħ': 'h', 'ŋ': 'n', 'ı': 'i', 'ĳ': 'ij', 'ŀ': 'l',
+};
+export const TRANSLIT = { ...GREEK, ...CYRILLIC, ...SPECIAL_LATIN };
+const translit = (s) => Array.from(s, (c) => (c in TRANSLIT ? TRANSLIT[c] : c)).join('');
 
-// Names (first and last are separate fields): lowercase, fold accents to ASCII, map special Latin letters,
-// then drop everything that is not a letter or digit (spaces, hyphens, apostrophes, punctuation, symbols).
-// Non-Latin scripts (CJK, Arabic, Hebrew, and for now Greek/Cyrillic) are kept unchanged.
+// Names (first and last are separate fields): lowercase, apply the DROP mapping (precomposed Greek accents included),
+// fold remaining accents (NFD, drop combining marks), map again for any base letter exposed by NFD, then drop every
+// non-letter/non-digit (spaces, hyphens, apostrophes, punctuation, symbols). CJK, Arabic and Hebrew stay unchanged.
 export function stdName(v) {
   if (v == null) return null;
-  let s = String(v).toLowerCase().replace(/[ßæœøłđðþı]/g, (c) => SPECIAL[c]);
-  s = s.normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]/gu, '');
+  let s = translit(String(v).toLowerCase());
+  s = translit(s.normalize('NFD').replace(/\p{M}/gu, '')).replace(/[^\p{L}\p{N}]/gu, '');
   return s || null;
 }
 
