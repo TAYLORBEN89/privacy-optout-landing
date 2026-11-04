@@ -70,6 +70,9 @@ describe("homepage benefit cards", () => {
     const css = readFileSync("src/styles.css", "utf8");
     const block = css.slice(css.indexOf("/* Square benefit cards"));
     expect(block).toContain("aspect-ratio: 1 / 1;");
-    expect(block).not.toMatch(/\.feature-card p \{[^}]*font-size/);
+    for (const m of block.matchAll(/\.feature-card p \{[^}]*font-size:\s*([^;]+);/g)) {
+      expect(m[1]).toMatch(/^clamp\(17px,/);
+    }
+    expect(block).toContain("container-type: inline-size;");
   });
 });
