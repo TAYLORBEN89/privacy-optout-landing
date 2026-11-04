@@ -6,7 +6,7 @@ describe("hero copy", () => {
     const source = readFileSync("src/pages/HomePage.tsx", "utf8");
     const hero = source.slice(source.indexOf('id="overview"'), source.indexOf('className="explore"'));
     expect(hero).toContain("<h1 id=\"page-title\">Privacy is a right.</h1>");
-    expect(hero).toContain("DROP Texas is a free Texas data broker opt-out for Texans.");
+    expect(hero).toContain("A free Texas data broker opt-out for Texans.");
     expect(hero).toContain("Let's get you started.");
     expect(hero.match(/<h1/g)).toHaveLength(1);
     expect(hero).not.toContain("for the people");
