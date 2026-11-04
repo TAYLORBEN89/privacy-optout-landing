@@ -2720,6 +2720,20 @@ textarea {
   background: var(--danger);
 }
 
+.account-page button.brand-sign-in {
+  background: transparent;
+  padding: 0;
+  border: 0;
+  line-height: 0;
+}
+
+.account-page button.brand-sign-in img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+}
+
 .device-badge {
   display: inline-block;
   margin-left: 8px;

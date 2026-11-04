@@ -28,6 +28,27 @@ import { type StartAction, signInHrefFor } from "../authGate";
 
 const EMPTY_PROFILE: AccountProfile = { display_name: null, identifiers_locked: true };
 
+const PROVIDER_SIGN_IN: Record<string, { label: string; src: string; width: number; height: number }> = {
+  google: { label: "Sign in with Google", src: "/brand/google-sign-in.svg", width: 180, height: 40 },
+  microsoft: { label: "Sign in with Microsoft", src: "/brand/microsoft-sign-in.svg", width: 215, height: 41 },
+};
+
+function ProviderSignInButton({
+  provider,
+  onClick,
+}: {
+  provider: string;
+  onClick: () => void;
+}) {
+  const brand = PROVIDER_SIGN_IN[provider];
+  if (!brand) return null;
+  return (
+    <button type="button" className="brand-sign-in" aria-label={brand.label} onClick={onClick}>
+      <img src={brand.src} alt={brand.label} width={brand.width} height={brand.height} />
+    </button>
+  );
+}
+
 function providerLabel(provider: string): string {
   if (provider === "google") return "Google";
   if (provider === "microsoft") return "Microsoft";
@@ -318,9 +339,7 @@ export function AccountView({
             <p>Sign in again to continue.</p>
             <div className="account-actions">
               {stepUpProviders.map((provider) => (
-                <button key={provider} type="button" onClick={() => onStepUp(provider)}>
-                  Continue with {providerLabel(provider)}
-                </button>
+                <ProviderSignInButton key={provider} provider={provider} onClick={() => onStepUp(provider)} />
               ))}
             </div>
             {offerPassword ? <PasswordStepUpForm onSubmit={onPasswordStepUp} /> : null}
