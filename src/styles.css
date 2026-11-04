@@ -65,6 +65,20 @@ body {
   line-height: 1.45;
 }
 
+.proposal-banner {
+  display: block;
+  margin: 0 0 28px;
+}
+
+.proposal-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  border-radius: 8px;
+  background: #0f1c33;
+}
+
 .proposal-quote {
   font-style: italic;
   font-weight: 700;
@@ -2964,6 +2978,48 @@ textarea {
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* Site-wide nav bar: text-free hills crop from the X banner, with a dark overlay for contrast. */
+.topbar--hills {
+  background-color: #0b1628;
+  background-image:
+    linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+    url("./assets/banner/nav-hills-750.jpg");
+  background-image:
+    linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+    image-set(url("./assets/banner/nav-hills-750.webp") type("image/webp"), url("./assets/banner/nav-hills-750.jpg") type("image/jpeg"));
+  background-size: cover;
+  background-position: center bottom;
+  border-bottom-color: #0b1628;
+}
+
+@media (min-width: 768px) {
+  .topbar--hills {
+    background-image:
+      linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+      url("./assets/banner/nav-hills-1500.jpg");
+    background-image:
+      linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+      image-set(url("./assets/banner/nav-hills-1500.webp") type("image/webp"), url("./assets/banner/nav-hills-1500.jpg") type("image/jpeg"));
+  }
+}
+
+.topbar--hills .brand,
+.topbar--hills .sign-out,
+.topbar--hills .sign-in-link {
+  color: #fff;
+}
+
+.topbar--hills .tagline {
+  color: #d6deea;
+}
+
+.topbar--hills .brand-home:focus-visible,
+.topbar--hills .account-button:focus-visible,
+.topbar--hills .sign-out:focus-visible {
+  outline-color: #fff;
+}
+
 
 /* Keep the account icon on screen: the brand shrinks (tagline ellipsizes), the icon never does. */
 .topbar-inner {

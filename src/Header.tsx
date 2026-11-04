@@ -23,7 +23,7 @@ export function Header({
   }
 
   return (
-    <header className="topbar">
+    <header className="topbar topbar--hills">
       <div className="topbar-inner">
         <AppLink className="brand-home" href="/">
           <Wordmark header />
