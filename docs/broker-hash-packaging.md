@@ -23,8 +23,12 @@ receive only one-way hashes of standardized values.
    side, in `broker_list_items` and `broker_list_refs`.
 6. Write the CSV (`Id,Hash` only), sorted by `Id`, and compute its SHA-256 checksum.
 7. Store the list and its manifest in `broker_lists`, and append a `list.generated` entry to the audit log. Large lists
-   are written in chunks of 50 statements per D1 batch; the `list.generated` row is written last, and a list is only
-   served once its item count matches the manifest and that row exists.
+   are written in chunks of 50 statements per D1 batch. The monthly run row and the `list.generated` row go in the
+   final chunk; `list.generated` marks the list complete. Until it exists the list is never served, its requests
+   don't count as listed, and it doesn't count toward a signup's finish. If a later chunk fails, the save fails
+   loudly: a counts-only `list.save_failed` audit row is written, the monthly job reports an error, and the same
+   requests are listed again on the next run under the next version number. The partial rows are inert and purged
+   with other broker data.
 
 Raw values are never written to a file, a log, or the audit table.
 
@@ -69,6 +73,13 @@ published schema and synthetic test vectors are in `docs/samples/`.
   are constant-time. Credentials expire after 365 days and can be rotated (issue new, then revoke old). A broker can
   only reach its own lists (another broker's list returns the same 404 as an unknown one). Short-lived signed links
   (5 minutes) are available. Responses are `no-store`.
+- **Server-key rotation (built):** the HMAC key is `BROKER_CRED_KEYS` (JSON `{kid: key}`) plus
+  `BROKER_CRED_ACTIVE_KID`. Each credential stores the `key_kid` its HMAC was made with and is checked with that key,
+  so the current and the previous key both work. An HMAC can't be re-wrapped without the secret, so after a successful
+  check under an old key the credential is re-computed with the active key (`credential.rewrapped` in the audit log);
+  0013 allows that update and revocation, nothing else. A revoked credential is permanent: no UPDATE of a revoked row
+  is allowed (re-wrap included), and a BEFORE INSERT guard blocks REPLACE INTO / INSERT OR REPLACE on an existing kid
+  (those would otherwise bypass the guards, since D1 runs with recursive_triggers off). Steps are in the README.
 - **Every download is logged (built):** each download appends `list.downloaded` with the credential id and row count.
 - **Optional (planned):** SFTP with a per-broker key, for brokers who ask for it. Not built yet.
 - Lists are never sent by email.
@@ -116,9 +127,16 @@ the audit log.
 - All four broker tables (`broker_lists`, `broker_list_items`, `broker_status`, `broker_hash_audit`) are write-once. Database triggers block UPDATE, DELETE, and REPLACE INTO / INSERT OR REPLACE (a BEFORE INSERT guard aborts when the key already exists).
 - `broker_hash_audit` records list generation, downloads, credential issue and revocation, status ingests and
   rejections, and purges, with counts and reasons only.
+- Broker-data aging starts at the finish point, so the full 24 months runs after it: an answered item from when its
+  status arrived; an unanswered item, its list and run row from the list's close (issue + 90 days: the 45-day window
+  plus a possible 45-day extension). Audit rows age from their own time, so download and credential history
+  (`list.downloaded`, `credential.*`) is dropped 24 months after each event.
 - Retention purge (built, migration 0013): a daily job opens a `broker_purge` gate row, deletes, and closes the gate
   inside one D1 batch. The database refuses a gate cutoff younger than 730 days, and the DELETE guards allow only rows
   older than the cutoff while the gate is open. A dry run reports counts without deleting. Each run appends a
   counts-only `purge.completed` (or `purge.dry_run`) entry and a `maintenance_log` row.
 - Retention: finished records are kept for 24 months. Texas request records are kept for 3 years.
+- A signup is **finished** once every broker list it appears on has closed its response window including a possible
+  45-day extension, i.e. the latest such list's issue date + 90 days (built: the daily `signup_finish` job). Its
+  24-month clock starts then. A signup that is on no list yet is not finished.
 - SOC 2-ready.

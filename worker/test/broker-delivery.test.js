@@ -2,7 +2,8 @@ import { env } from 'cloudflare:test';
 import { describe, it, expect } from 'vitest';
 import worker from '../src/index.js';
 import { buildList, saveList, ingestStatus, sha256HexOf } from '../src/hashEngine.js';
-import { issueCredential, revokeCredential, authenticateBroker, monthlyLists, brokerPurge, periodOf, loadSignupRecords } from '../src/brokerDelivery.js';
+import { issueCredential, revokeCredential, authenticateBroker, monthlyLists, brokerPurge, periodOf, loadSignupRecords, credentialKeyReport, finishSignups } from '../src/brokerDelivery.js';
+import { purge } from '../src/app.js';
 import { encryptPii } from '../src/crypto.js';
 
 const DAY = 86400;
@@ -151,7 +152,7 @@ describe('duplicate hashes', () => {
     let batches = 0;
     const spy = { ...env, DB: new Proxy(env.DB, { get: (t, k) => (k === 'batch' ? (s) => { batches++; return t.batch(s); } : (typeof t[k] === 'function' ? t[k].bind(t) : t[k])) }) };
     await saveList(spy, out, { chunk: 50 });
-    expect(batches).toBe(Math.ceil((1 + 130 * 2 + 1) / 50));
+    expect(batches).toBe(Math.ceil((1 + 130 * 2 + 1) / 50)); // list.generated rides in the last chunk
     const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM broker_list_items WHERE list_id = ?1').bind('big-a-email-v1').first();
     expect(n.n).toBe(130);
   });
@@ -198,11 +199,11 @@ describe('retention purge (gated, 24 months)', () => {
   it('dry run counts and deletes nothing; real run deletes only rows older than the cutoff; audited with counts', async () => {
     const t = NOW();
     await addBroker('pg-a');
-    const old = await makeList('pg-a', { createdAt: t - 800 * DAY, version: 1 });
-    const mixed = await makeList('pg-a', { createdAt: t - 780 * DAY, version: 2, records: [{ request_ref: 'pg-m1', email: 'm1@pg.example' }, { request_ref: 'pg-m2', email: 'm2@pg.example' }] });
+    const old = await makeList('pg-a', { createdAt: t - 830 * DAY, version: 1 });
+    const mixed = await makeList('pg-a', { createdAt: t - 825 * DAY, version: 2, records: [{ request_ref: 'pg-m1', email: 'm1@pg.example' }, { request_ref: 'pg-m2', email: 'm2@pg.example' }] });
     const young = await makeList('pg-a', { createdAt: t - 10 * DAY, version: 3 });
     const ins = (l, item, at) => env.DB.prepare('INSERT INTO broker_status (list_id, item_id, status, received_at) VALUES (?1, ?2, 3, ?3)').bind(l, item, at).run();
-    await ins(old.manifest.list_id, old.items[0].item_id, t - 790 * DAY);       // old status -> purged
+    await ins(old.manifest.list_id, old.items[0].item_id, t - 800 * DAY);       // old status -> purged
     await ins(mixed.manifest.list_id, mixed.items[0].item_id, t - 100 * DAY);   // young status on an old list -> kept
     await ins(young.manifest.list_id, young.items[0].item_id, t - 5 * DAY);
     const dry = await brokerPurge(env, t, { dryRun: true });
@@ -246,5 +247,187 @@ describe('retention purge (gated, 24 months)', () => {
     expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM broker_list_items WHERE list_id = ?1').bind(l.manifest.list_id).first()).n).toBe(2);
     // 4) audit-expiry gate is unchanged (365 days)
     await expect(env.DB.prepare("INSERT INTO maintenance_gate (name, cutoff) VALUES ('audit_expiry', ?1)").bind(t - 10 * DAY).run()).rejects.toThrow(/too recent/);
+  });
+});
+
+describe('server-key rotation (BROKER_CRED_KEYS + BROKER_CRED_ACTIVE_KID)', () => {
+  const req = (t) => new Request('https://api.test/broker/v1/lists', { headers: { Authorization: `Bearer ${t}` } });
+  const row = (kid) => env.DB.prepare('SELECT key_kid, secret_hmac FROM broker_credentials WHERE kid = ?1').bind(kid).first();
+  it('old-kid credential verifies, is re-wrapped to the active kid, and keeps working', async () => {
+    await addBroker('rot-a');
+    const c = await issueCredential(env, 'rot-a'); // active t1
+    const before = await row(c.kid);
+    expect(before.key_kid).toBe('t1');
+    const rotated = { ...env, BROKER_CRED_ACTIVE_KID: 't2' };
+    const rep0 = await credentialKeyReport(rotated);
+    expect(rep0.active_kid).toBe('t2');
+    expect(rep0.on_old_kids).toBeGreaterThanOrEqual(1);
+    expect(await authenticateBroker(rotated, req(c.token))).toEqual({ kid: c.kid, broker_id: 'rot-a' });
+    const after = await row(c.kid);
+    expect(after.key_kid).toBe('t2');
+    expect(after.secret_hmac).not.toBe(before.secret_hmac);
+    const ev = await env.DB.prepare("SELECT detail FROM broker_hash_audit WHERE event = 'credential.rewrapped' AND broker_id = 'rot-a'").first();
+    expect(JSON.parse(ev.detail)).toEqual({ kid: c.kid, from: 't1', to: 't2' });
+    // old key removed: the re-wrapped credential still works
+    const onlyNew = { ...env, BROKER_CRED_KEYS: JSON.stringify({ t2: JSON.parse(env.BROKER_CRED_KEYS).t2 }), BROKER_CRED_ACTIVE_KID: 't2' };
+    expect(await authenticateBroker(onlyNew, req(c.token))).not.toBeNull();
+    expect((await credentialKeyReport(onlyNew)).live_by_kid['t1'] || 0).toBe((await credentialKeyReport(onlyNew)).on_old_kids);
+    // and new credentials are issued on the active kid
+    expect((await row((await issueCredential(rotated, 'rot-a')).kid)).key_kid).toBe('t2');
+  });
+  it('a credential whose key was removed fails; an unknown key kid fails; a bad active kid refuses to issue', async () => {
+    await addBroker('rot-b');
+    const c = await issueCredential(env, 'rot-b'); // on t1
+    const removed = { ...env, BROKER_CRED_KEYS: JSON.stringify({ t2: JSON.parse(env.BROKER_CRED_KEYS).t2 }), BROKER_CRED_ACTIVE_KID: 't2' };
+    expect(await authenticateBroker(removed, req(c.token))).toBeNull();
+    expect((await row(c.kid)).key_kid).toBe('t1'); // not re-wrapped
+    const rep = await credentialKeyReport(removed);
+    expect(rep.on_missing_kids).toBeGreaterThanOrEqual(1);
+    // a row pointing at a kid that was never configured
+    const c2 = await issueCredential(env, 'rot-b');
+    await env.DB.prepare("UPDATE broker_credentials SET key_kid = 'zz9', secret_hmac = ?2 WHERE kid = ?1").bind(c2.kid, 'a'.repeat(64)).run();
+    expect(await authenticateBroker(env, req(c2.token))).toBeNull();
+    await expect(issueCredential({ ...env, BROKER_CRED_ACTIVE_KID: 'nope' }, 'rot-b')).rejects.toThrow(/ACTIVE_KID/);
+  });
+  it('0013 allows only revocation or a re-wrap to a different key kid', async () => {
+    await addBroker('rot-c');
+    const c = await issueCredential(env, 'rot-c');
+    await expect(env.DB.prepare('UPDATE broker_credentials SET secret_hmac = ?2 WHERE kid = ?1').bind(c.kid, 'b'.repeat(64)).run()).rejects.toThrow(/only revocation or key re-wrap/);
+    await expect(env.DB.prepare("UPDATE broker_credentials SET key_kid = 't2', expires_at = expires_at + 1 WHERE kid = ?1").bind(c.kid).run()).rejects.toThrow(/only revocation/);
+    await expect(env.DB.prepare("UPDATE broker_credentials SET key_kid = 't2', revoked_at = 1 WHERE kid = ?1").bind(c.kid).run()).rejects.toThrow(/only revocation/);
+    await revokeCredential(env, 'rot-c', c.kid);
+    await expect(env.DB.prepare("UPDATE broker_credentials SET key_kid = 't2', secret_hmac = ?2 WHERE kid = ?1").bind(c.kid, 'c'.repeat(64)).run()).rejects.toThrow(/only revocation/);
+  });
+  it('admin key report requires API_TOKEN and returns counts only', async () => {
+    expect((await call('/admin/broker-delivery/credential-keys', { token: 'nope' })).status).toBe(401);
+    const r = await (await call('/admin/broker-delivery/credential-keys', { token: 'test-legacy-token' })).json();
+    expect(r.active_kid).toBe('t1');
+    expect(r.configured_kids).toEqual(['t1', 't2']);
+    expect(JSON.stringify(r)).not.toMatch(/BwcH|CAgI/);
+  });
+});
+
+describe('signup finish (list issued + 90 days)', () => {
+  const T = 2_000_000_000; // fixed clock
+  async function signup(id) {
+    await env.DB.prepare("INSERT OR IGNORE INTO users (id, email, pw_hash, created_at) VALUES ('fin-user', 'fin@fin.example', 'x', 1)").run();
+    await env.DB.prepare("INSERT INTO optout_requests (id, user_id, status, created_at, updated_at, kind, service_id) VALUES (?1, 'fin-user', 'queued', ?2, ?2, 'tx', 'signup')").bind(id, T).run();
+  }
+  const fin = async (id) => (await env.DB.prepare('SELECT finished_at FROM optout_requests WHERE id = ?1').bind(id).first()).finished_at;
+  it('not finished on no list, nor while any list window (+45 extension) is open; finished after; idempotent', async () => {
+    await addBroker('fin-a'); await addBroker('fin-b');
+    for (const id of ['fin-none', 'fin-one', 'fin-two']) await signup(id);
+    await makeList('fin-a', { createdAt: T, records: [{ request_ref: 'fin-one', email: 'one@fin.example' }, { request_ref: 'fin-two', email: 'two@fin.example' }] });
+    await makeList('fin-b', { createdAt: T + 30 * DAY, records: [{ request_ref: 'fin-two', email: 'two@fin.example' }] });
+    await finishSignups(env, T + 45 * DAY);            // past the base window only
+    await finishSignups(env, T + 90 * DAY - 1);
+    expect(await fin('fin-one')).toBeNull();
+    await finishSignups(env, T + 90 * DAY);
+    expect(await fin('fin-one')).toBe(T + 90 * DAY);
+    expect(await fin('fin-two')).toBeNull();           // fin-b list still open
+    expect(await fin('fin-none')).toBeNull();
+    await finishSignups(env, T + 120 * DAY);
+    expect(await fin('fin-two')).toBe(T + 120 * DAY);  // latest list + 90 days
+    const again = await finishSignups(env, T + 400 * DAY);
+    expect(await fin('fin-one')).toBe(T + 90 * DAY);   // unchanged
+    expect(again.finished).toBe(0);
+    expect(await fin('fin-none')).toBeNull();
+  });
+  it('finished signups follow the 24-month clock; Texas broker requests stay 3 years', async () => {
+    await env.DB.prepare("INSERT OR IGNORE INTO users (id, email, pw_hash, created_at) VALUES ('fin-user', 'fin@fin.example', 'x', 1)").run();
+    const now = Math.floor(Date.now() / 1000);
+    const ins = (id, svc, f) => env.DB.prepare("INSERT INTO optout_requests (id, user_id, status, created_at, updated_at, kind, service_id, finished_at) VALUES (?1, 'fin-user', 'confirmed', 1, 1, 'tx', ?2, ?3)").bind(id, svc, f).run();
+    await ins('ret-signup-old', 'signup', now - 740 * DAY);
+    await ins('ret-signup-young', 'signup', now - 700 * DAY);
+    await ins('ret-tx-800', 'tx-acme', now - 800 * DAY);
+    await ins('ret-tx-1100', 'tx-beta', now - 1100 * DAY);
+    await purge(env, now);
+    const left = (await env.DB.prepare("SELECT id FROM optout_requests WHERE id LIKE 'ret-%' ORDER BY id").all()).results.map((r) => r.id);
+    expect(left).toEqual(['ret-signup-young', 'ret-tx-800']);
+  });
+});
+
+describe('review 5775555002 fixes', () => {
+  const req = (t) => new Request('https://api.test/broker/v1/lists', { headers: { Authorization: `Bearer ${t}` } });
+  it('REPLACE INTO / INSERT OR REPLACE cannot un-revoke or re-key a credential; revoked rows are never re-wrapped', async () => {
+    await addBroker('rep-a');
+    const c = await issueCredential(env, 'rep-a');
+    await revokeCredential(env, 'rep-a', c.kid);
+    const ins = (verb) => env.DB.prepare(`${verb} INTO broker_credentials (kid, broker_id, secret_hmac, key_kid, created_at, expires_at, revoked_at) VALUES (?1, 'rep-a', ?2, 't2', 1, 9999999999, NULL)`).bind(c.kid, 'd'.repeat(64)).run();
+    await expect(ins('INSERT OR REPLACE')).rejects.toThrow(/kid exists/);
+    await expect(ins('REPLACE')).rejects.toThrow(/kid exists/);
+    await expect(ins('INSERT OR IGNORE')).rejects.toThrow(/kid exists/);
+    const row = await env.DB.prepare('SELECT revoked_at, key_kid FROM broker_credentials WHERE kid = ?1').bind(c.kid).first();
+    expect(row.revoked_at).not.toBeNull();
+    expect(row.key_kid).toBe('t1');
+    // a revoked credential under an old key: auth fails and nothing is re-wrapped, even directly
+    const rotated = { ...env, BROKER_CRED_ACTIVE_KID: 't2' };
+    expect(await authenticateBroker(rotated, req(c.token))).toBeNull();
+    expect((await env.DB.prepare('SELECT key_kid FROM broker_credentials WHERE kid = ?1').bind(c.kid).first()).key_kid).toBe('t1');
+    await expect(env.DB.prepare("UPDATE broker_credentials SET key_kid = 't2', secret_hmac = ?2 WHERE kid = ?1").bind(c.kid, 'e'.repeat(64)).run()).rejects.toThrow(/only revocation/);
+    await expect(env.DB.prepare('UPDATE broker_credentials SET revoked_at = revoked_at + 1 WHERE kid = ?1').bind(c.kid).run()).rejects.toThrow(/only revocation/);
+    // live credentials still re-wrap through the sanctioned UPDATE
+    const live = await issueCredential(env, 'rep-a');
+    expect(await authenticateBroker(rotated, req(live.token))).not.toBeNull();
+    expect((await env.DB.prepare('SELECT key_kid FROM broker_credentials WHERE kid = ?1').bind(live.kid).first()).key_kid).toBe('t2');
+  });
+  it('a failure partway through saveList fails loudly, marks nothing as listed, and the next run lists those requests', async () => {
+    await addBroker('pf-a', 'email');
+    const recs = Array.from({ length: 40 }, (_, i) => ({ request_ref: `pf-${i}`, email: `p${i}@pf.example` }));
+    const load = async (_e, b, t) => {
+      const done = (await env.DB.prepare(
+        "SELECT r.request_ref FROM broker_list_refs r JOIN broker_hash_audit a ON a.list_id = r.list_id AND a.event = 'list.generated' WHERE r.list_id LIKE 'pf-a-%'",
+      ).all()).results.map((x) => x.request_ref);
+      return b === 'pf-a' && t === 'email' ? recs.filter((r) => !done.includes(r.request_ref)) : [];
+    };
+    let n = 0;
+    const flaky = { ...env, DB: new Proxy(env.DB, { get: (tgt, k) => (k === 'batch' ? (st) => (++n === 2 ? Promise.reject(new Error('boom')) : tgt.batch(st)) : (typeof tgt[k] === 'function' ? tgt[k].bind(tgt) : tgt[k])) }) };
+    const at = Date.UTC(2027, 0, 1, 9) / 1000;
+    // direct saveList with a small chunk: throws, writes list.save_failed with counts only
+    const built = await buildList({ brokerId: 'pf-a', listType: 'email', version: 1, createdAt: at, idGen: ids, records: recs });
+    await expect(saveList(flaky, built, { chunk: 20, at })).rejects.toThrow(/list save failed after 1 of/);
+    const f = await env.DB.prepare("SELECT detail FROM broker_hash_audit WHERE event = 'list.save_failed' AND list_id = 'pf-a-email-v1'").first();
+    expect(Object.keys(JSON.parse(f.detail)).sort()).toEqual(['chunks', 'chunks_written', 'rows', 'version']);
+    expect(f.detail).not.toMatch(/@|pf-\d/);
+    expect(await env.DB.prepare("SELECT 1 FROM broker_list_runs WHERE broker_id = 'pf-a'").first()).toBeNull();
+    expect((await load(env, 'pf-a', 'email')).length).toBe(40); // nothing counts as listed
+    // next run (healthy DB) lists all 40
+    const r = await monthlyLists(env, at, { loadRecords: load });
+    expect(r.built).toBe(1);
+    expect((await load(env, 'pf-a', 'email')).length).toBe(0);
+  });
+  it('the cron job rejects (and logs) when a list save fails', async () => {
+    await addBroker('pf-b', 'email');
+    const broken = { ...env, DB: new Proxy(env.DB, { get: (tgt, k) => (k === 'batch' ? () => Promise.reject(new Error('x')) : (typeof tgt[k] === 'function' ? tgt[k].bind(tgt) : tgt[k])) }) };
+    const at = Date.UTC(2027, 1, 1, 9) / 1000;
+    await expect(monthlyLists(broken, at, { loadRecords: async (_e, b) => (b === 'pf-b' ? [{ request_ref: 'pfb-1', email: 'x@pfb.example' }] : []) }))
+      .rejects.toThrow(/broker list build failed/);
+  });
+  it('broker-data aging starts at the 90-day close: an unanswered item survives until close + 24 months', async () => {
+    const t = NOW();
+    await addBroker('ag-a');
+    const keep = await makeList('ag-a', { createdAt: t - (730 + 89) * DAY, version: 1 });  // closed 729 days ago
+    const drop = await makeList('ag-a', { createdAt: t - (730 + 91) * DAY, version: 2 });  // closed 731 days ago
+    await brokerPurge(env, t);
+    const left = (await env.DB.prepare("SELECT list_id FROM broker_lists WHERE broker_id = 'ag-a' ORDER BY list_id").all()).results.map((x) => x.list_id);
+    expect(left).toEqual([keep.manifest.list_id]);
+    expect(drop.manifest.list_id).toBe('ag-a-email-v2');
+    // and the trigger enforces it even with an open gate
+    await expect(env.DB.batch([
+      env.DB.prepare("INSERT INTO maintenance_gate (name, cutoff) VALUES ('broker_purge', ?1)").bind(t - 731 * DAY),
+      env.DB.prepare('DELETE FROM broker_list_items WHERE list_id = ?1').bind(keep.manifest.list_id),
+    ])).rejects.toThrow(/write-once/);
+  });
+  it('status upload has a streaming 5 MB cap; BROKER_ADMIN_TOKEN replaces API_TOKEN once set', async () => {
+    await addBroker('cap-a');
+    const a = await issueCredential(env, 'cap-a');
+    await makeList('cap-a');
+    const big = new ReadableStream({ start(c) { const k = new Uint8Array(1024 * 1024).fill(65); for (let i = 0; i < 6; i++) c.enqueue(k); c.close(); } });
+    const r = await worker.fetch(new Request('https://api.test/broker/v1/lists/cap-a-email-v1/status?version=1', { method: 'POST', body: big, duplex: 'half', headers: { Authorization: `Bearer ${a.token}` } }), env);
+    expect(r.status).toBe(413);
+    const sep = { ...env, BROKER_ADMIN_TOKEN: 'separate-admin-token-for-tests' };
+    const get = (tok) => worker.fetch(new Request('https://api.test/admin/broker-delivery/credential-keys', { headers: { Authorization: `Bearer ${tok}` } }), sep);
+    expect((await get('test-legacy-token')).status).toBe(401);
+    expect((await get('separate-admin-token-for-tests')).status).toBe(200);
   });
 });

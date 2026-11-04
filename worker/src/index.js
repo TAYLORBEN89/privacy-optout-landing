@@ -5,7 +5,7 @@ import { handleApp, isAppPath, allowedOrigins, corsHeaders, purge, expireAudit, 
 import { handleApi } from './api.js';
 import { handleAccounts } from './accounts.js';
 import { guardLocation } from './location.js';
-import { isBrokerPath, handleBroker, brokerPurge, monthlyLists, MONTHLY_CRON } from './brokerDelivery.js';
+import { isBrokerPath, handleBroker, brokerPurge, monthlyLists, finishSignups, MONTHLY_CRON } from './brokerDelivery.js';
 
 // Every response (accounts host, legacy KV routes, 403/OPTIONS early returns, app/API, 500s) gets exactly one
 // request log line via src/log.js: method, normalized route, status, ms, and which surface served it. Nothing else.
@@ -59,6 +59,7 @@ export const SCHEDULED_JOBS = [
   ['purge', purge],
   ['audit_expiry', expireAudit], // the only audit_log delete path
   ['inactive_accounts', inactiveAccounts],
+  ['signup_finish', (env) => finishSignups(env)], // sets finished_at once every list window (+45-day extension) closed
   ['broker_purge', (env) => brokerPurge(env)], // gated 24-month purge of broker tables
 ];
 export const MONTHLY_JOBS = [['broker_lists', (env) => monthlyLists(env)]];

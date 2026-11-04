@@ -625,11 +625,13 @@ export async function purge(env, at = now()) {
     env.DB.prepare('DELETE FROM auth_handoffs WHERE expires_at < ?1').bind(at),         // handoff codes live 60 s; drop once expired
     // Cascades to confirmations and pii_payloads.
     env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'optout' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.finishedDays * day),
-    env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'tx' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.txDays * day),
-    purgeRateLimitsStmt(env, at), // all[7]: rate-limit windows that have ended (not reported)
+    // Texas broker requests: 3 years. Signup rows (service_id 'signup', finished by finishSignups) use the 24-month clock.
+    env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'tx' AND service_id IS NOT 'signup' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.txDays * day),
+    env.DB.prepare("DELETE FROM optout_requests WHERE kind = 'tx' AND service_id = 'signup' AND finished_at IS NOT NULL AND finished_at < ?1").bind(at - r.finishedDays * day),
+    purgeRateLimitsStmt(env, at), // all[8]: rate-limit windows that have ended (not reported)
   ]);
   const all = res.map((x) => x.meta.changes);
-  const counts = [all[0], all[1], all[2], all[5], all[6]]; // all[3] oauth_states_used, all[4] auth_handoffs (not reported)
+  const counts = [all[0], all[1], all[2], all[5], all[6] + all[7]]; // last = tx requests + finished signups // all[3] oauth_states_used, all[4] auth_handoffs (not reported)
   log('purge', { counts: { pii_hard: counts[0], pii_after_confirm: counts[1], sessions: counts[2], optout_records: counts[3], tx_records: counts[4] } });
   return counts;
 }

@@ -87,7 +87,8 @@ AAA1example,7unXmzUnRdnshdyh+VVjfB/qr7kWSxUmH/beD4FXAJA=
 
 - **Primary method: secure download.** Lists are downloaded over HTTPS (TLS 1.2 or higher) with credentials issued to
   your organization alone. Credentials are separate for each broker, can be rotated, and only reach that broker's lists.
-  Every download is logged. Credentials are bearer tokens shown once at issue and expire after 365 days. Endpoints:
+  Every download is logged. Credentials are bearer tokens shown once at issue and expire after 365 days. Our server-key rotation does not change
+  your token; a signed link issued in the minutes before a rotation may need to be requested again. Endpoints:
   `GET /broker/v1/lists`, `GET /broker/v1/lists/{list_id}/manifest`, `GET /broker/v1/lists/{list_id}/file`,
   `POST /broker/v1/lists/{list_id}/link` (a signed download link valid for 5 minutes), and
   `POST /broker/v1/lists/{list_id}/status?version={n}` for returning statuses. Your broker id comes from your credential.
@@ -125,4 +126,5 @@ Validation rules:
 ## 10. Security and retention
 
 SOC 2-ready. Lists contain only hashes and opaque ids. Finished request records are kept for 24 months,
-and Texas request records for 3 years, then deleted.
+and Texas request records for 3 years, then deleted. A request counts as finished once every list it was on has
+reached 90 days (45-day window plus a possible 45-day extension).

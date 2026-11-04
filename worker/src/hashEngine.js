@@ -159,23 +159,39 @@ export async function batchChunked(env, stmts, size = BATCH_CHUNK) {
   for (let i = 0; i < stmts.length; i += size) await env.DB.batch(stmts.slice(i, i + size));
 }
 
-// Persist a built list (prepared statements). Chunked: chunk 1 starts with the broker_lists row (plus the optional
-// `head` statements, e.g. the monthly run ledger row), then items and refs, and the `list.generated` audit row goes
-// in the LAST chunk. A list is only "complete" (downloadable) once that audit row exists and the stored item count
-// equals row_count, so a crash between chunks never serves a partial file.
-export async function saveList(env, { manifest, items, skipped, merged = 0 }, { head = [], chunk = BATCH_CHUNK } = {}) {
+// Writes a list in chunks of `chunk` statements per D1 batch (each batch is one transaction). The list row and items
+// and refs go first; the FINAL chunk carries `tail` (the monthly run row) and the list.generated audit row. That audit
+// row is the completion marker: a list without it is never served, never counts as "already listed" for the loader,
+// and never counts toward a signup's finish. So if a later chunk fails, the requests are simply listed again on the
+// next run (under the next version). The failure is loud: a counts-only list.save_failed audit row is written and
+// the error is rethrown.
+export async function saveList(env, { manifest, items, skipped, merged = 0 }, { tail = [], chunk = BATCH_CHUNK, at } = {}) {
   const m = manifest;
-  const stmts = [env.DB.prepare('INSERT INTO broker_lists (list_id, broker_id, list_type, version, created_at, response_due, row_count, sha256) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
-    .bind(m.list_id, m.broker_id, m.list_type, m.version, m.created_at, m.response_due, m.row_count, m.sha256), ...head];
+  const body = [env.DB.prepare('INSERT INTO broker_lists (list_id, broker_id, list_type, version, created_at, response_due, row_count, sha256) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
+    .bind(m.list_id, m.broker_id, m.list_type, m.version, m.created_at, m.response_due, m.row_count, m.sha256)];
   for (const i of items) {
-    stmts.push(env.DB.prepare('INSERT INTO broker_list_items (list_id, item_id, request_ref, hash) VALUES (?1, ?2, ?3, ?4)').bind(m.list_id, i.item_id, i.request_ref, i.hash));
+    body.push(env.DB.prepare('INSERT INTO broker_list_items (list_id, item_id, request_ref, hash) VALUES (?1, ?2, ?3, ?4)').bind(m.list_id, i.item_id, i.request_ref, i.hash));
     for (const ref of i.refs || [i.request_ref]) {
-      stmts.push(env.DB.prepare('INSERT INTO broker_list_refs (list_id, item_id, request_ref) VALUES (?1, ?2, ?3)').bind(m.list_id, i.item_id, ref));
+      body.push(env.DB.prepare('INSERT INTO broker_list_refs (list_id, item_id, request_ref) VALUES (?1, ?2, ?3)').bind(m.list_id, i.item_id, ref));
     }
   }
-  stmts.push(env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
-    .bind(m.created_at, 'list.generated', m.broker_id, m.list_id, JSON.stringify({ version: m.version, rows: m.row_count, skipped, merged, sha256: m.sha256 })));
-  await batchChunked(env, stmts, chunk);
+  const final = [...tail, env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
+    .bind(m.created_at, 'list.generated', m.broker_id, m.list_id, JSON.stringify({ version: m.version, rows: m.row_count, skipped, merged, sha256: m.sha256 }))];
+  const size = Math.max(1, chunk);
+  const chunks = [];
+  for (let k = 0; k < body.length; k += size) chunks.push(body.slice(k, k + size));
+  const last = chunks[chunks.length - 1];
+  if (last.length + final.length <= size) last.push(...final); else chunks.push(final);
+  let done = 0;
+  try {
+    for (const c of chunks) { await env.DB.batch(c); done++; }
+  } catch (e) {
+    try {
+      await env.DB.prepare('INSERT INTO broker_hash_audit (at, event, broker_id, list_id, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
+        .bind(at ?? m.created_at, 'list.save_failed', m.broker_id, m.list_id, JSON.stringify({ version: m.version, rows: m.row_count, chunks: chunks.length, chunks_written: done })).run();
+    } catch { /* audit best effort; the error below still propagates */ }
+    throw new Error(`list save failed after ${done} of ${chunks.length} chunks`);
+  }
 }
 
 // Ingest a broker status file (CSV "Id,Status"). Rules:

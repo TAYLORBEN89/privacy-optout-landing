@@ -73,7 +73,7 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 | `OAUTH_COOKIE_KEY` | seals the `__Host-oauth` state cookie and the single-use start token | `openssl rand -base64 32` |
 | `TOTP_ENC_KEY` | encrypts TOTP secrets at rest | `openssl rand -base64 32` |
 | `PII_ENC_KEY` | encrypts signup/PII payloads (name, DOB, address, email, phone, and a child signup's name, DOB and address) | `openssl rand -base64 32` (separate from TOTP_ENC_KEY) |
-| `BROKER_CRED_KEY` | HMAC key for broker delivery credentials and signed download links | `openssl rand -base64 32` |
+| `BROKER_CRED_KEYS` | JSON `{kid: base64 key}` (kid `[a-z0-9]{1,16}`, key >= 32 bytes) for broker credential HMACs and signed links; pair with var `BROKER_CRED_ACTIVE_KID` | `openssl rand -base64 32` per key |
 | `API_TOKEN` | shared bearer key for the legacy KV `/records`, `/txrequests`, `/settings` API | `openssl rand -base64 32` |
 | `ADMIN_BOOTSTRAP_TOKEN` | optional, **off by default**: enables `POST /admin/bootstrap` while it is set | `openssl rand -base64 48` (>=32 chars); delete after use |
 | `INTERNAL_PROXY_KEYS` | JSON map `{"<kid>": "<base64 key>"}` of HMAC keys shared with the landing Worker for `X-Internal-Auth` (see Landing proxy contract). Each key >= 32 random bytes and distinct from `PII_ENC_KEY`/`SIGNUP_PII_KEY` and every other secret; shorter or reused keys are dropped at load | `openssl rand -base64 32` per key; kid `[a-z0-9]{1,16}` |
@@ -211,7 +211,15 @@ npm run check            # wrangler deploy --dry-run
 ## Broker deletion lists
 - Broker-facing spec: [docs/broker-spec.md](docs/broker-spec.md)
 - How data is compiled, packaged, delivered and retained: [docs/broker-hash-packaging.md](docs/broker-hash-packaging.md)
-- Admin (API_TOKEN): `POST /admin/broker-delivery/brokers`, `POST /admin/broker-delivery/brokers/{id}/credentials` (token shown once), `POST /admin/broker-delivery/brokers/{id}/credentials/{kid}/revoke`. Secret: `BROKER_CRED_KEY`.
+- Admin (API_TOKEN): `POST /admin/broker-delivery/brokers`, `POST /admin/broker-delivery/brokers/{id}/credentials` (token shown once), `POST /admin/broker-delivery/brokers/{id}/credentials/{kid}/revoke`. `GET /admin/broker-delivery/credential-keys` reports live credentials per key kid. Optional secret `BROKER_ADMIN_TOKEN` (unset): once set, it replaces `API_TOKEN` for `/admin/broker-delivery/*`. Status uploads are capped at 5 MB while streaming. Secret `BROKER_CRED_KEYS` + var `BROKER_CRED_ACTIVE_KID` (not set yet; set before deploy).
+- Rotating `BROKER_CRED_KEYS` (same pattern as `INTERNAL_PROXY_KEYS`):
+  1. Add the new kid to the JSON map, keeping the old one, and update the secret.
+  2. Set `BROKER_CRED_ACTIVE_KID` to the new kid and deploy. New credentials and signed links use it; old credentials still verify.
+  3. Each old credential is re-wrapped to the new kid the next time it authenticates (audited as `credential.rewrapped`).
+  4. Check `GET /admin/broker-delivery/credential-keys` until `on_old_kids` is 0, or revoke and re-issue the stragglers.
+  5. Remove the old kid from the map. Any credential still on it stops working.
+- Signups: the daily `signup_finish` job sets `finished_at` once every list a signup is on is 90 days old (45-day window + extension); signups then follow the 24-month clock. Texas broker requests stay at 3 years.
+- A failed list save is loud: a counts-only `list.save_failed` audit row, a `scheduled_job` error log for `broker_lists`, and the requests are listed again next run. Broker data ages from the finish point (status received, or list issue + 90 days), and download/credential audit history is dropped 24 months after each event.
 
 ## Adding a new opt-out service
 Edit `src/services.js` and add an entry to `SERVICES`:
