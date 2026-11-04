@@ -11,12 +11,12 @@ import { AppLink } from "../router";
 
 const BLURBS: Record<string, string> = {
   overview: "Ask brokers to stop selling your information. No fee to send it.",
-  "how-drop-works": "Fill out one form. We send the opt-out requests to the brokers.",
+  "how-drop-works": "Fill out one form. You send the opt-out requests to the brokers. Our goal is one form for every data broker: One place. One form. One click.",
   "personal-information": "We ask only for what a broker needs, and we never sell it.",
   "data-brokers": "One request goes to companies that trade your name and phone.",
   "unique-identifiers": "Your name, birth date, and address help match your record.",
   tdpsa: "Texas law gives you the right to opt out of the sale of your data.",
-  help: "Answers on what we send, what we keep, and what we skip.",
+  help: "Answers on what you send, what we keep, and what we skip.",
   share: "Pass this page to a Texan who wants their data sold less often.",
 };
 
