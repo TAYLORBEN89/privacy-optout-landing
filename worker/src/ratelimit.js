@@ -15,6 +15,7 @@ export const LIMITS = {
   oauth_start: { max: 30, windowSec: 600 }, // OAuth flow starts / 10 min per IP
   oauth_cb: { max: 30, windowSec: 600 },    // OAuth callbacks / 10 min per IP
   handoff: { max: 30, windowSec: 600 },     // handoff code redemptions / 10 min per IP
+  broker: { max: 120, windowSec: 600 },     // broker delivery API + its admin routes: 120 requests / 10 min per IP
 };
 
 const nowSec = () => Math.floor(Date.now() / 1000);

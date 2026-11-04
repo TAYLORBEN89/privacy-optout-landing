@@ -12,14 +12,19 @@ receive only one-way hashes of standardized values.
 
 ## 2. How a list is compiled
 
-1. For a given broker and list type, select the open opt-out requests.
+1. For a given broker and list type, select the Texas signup requests that have not yet been listed to that broker
+   for that type (the monthly job, section 7).
 2. Decrypt each record **in memory only**. This uses the existing PII key handling, which is unchanged.
 3. Standardize each field (section 3), then hash it (section 4).
-4. Drop records that are missing a required field, and duplicate hashes.
-5. Give each row a new random work-item `Id`. The mapping from `Id` to our internal request reference stays on our side,
-   in `broker_list_items`.
+4. Drop records that are missing a required field. When two requests standardize to the same hash, the list carries
+   that hash **once**, with one `Id`, and every request reference is kept: `broker_list_refs` maps the `Id` to all of
+   them, so one returned status covers each of those requests.
+5. Give each row a new random work-item `Id`. The mapping from `Id` to our internal request references stays on our
+   side, in `broker_list_items` and `broker_list_refs`.
 6. Write the CSV (`Id,Hash` only), sorted by `Id`, and compute its SHA-256 checksum.
-7. Store the list and its manifest in `broker_lists`, and append a `list.generated` entry to the audit log.
+7. Store the list and its manifest in `broker_lists`, and append a `list.generated` entry to the audit log. Large lists
+   are written in chunks of 50 statements per D1 batch; the `list.generated` row is written last, and a list is only
+   served once its item count matches the manifest and that row exists.
 
 Raw values are never written to a file, a log, or the audit table.
 
@@ -59,14 +64,19 @@ published schema and synthetic test vectors are in `docs/samples/`.
 
 ## 6. Packaging and delivery
 
-- **Primary method:** secure HTTPS download, with credentials issued separately to each broker. A broker can only
-  reach its own lists, and every download is logged.
-- **Optional:** SFTP with a per-broker key, for brokers who ask for it.
+- **Primary method (built):** secure HTTPS download (`/broker/v1/...`), with credentials issued separately to each
+  broker. A credential is a bearer token shown once at issue; only an HMAC-SHA256 of its secret is stored, and checks
+  are constant-time. Credentials expire after 365 days and can be rotated (issue new, then revoke old). A broker can
+  only reach its own lists (another broker's list returns the same 404 as an unknown one). Short-lived signed links
+  (5 minutes) are available. Responses are `no-store`.
+- **Every download is logged (built):** each download appends `list.downloaded` with the credential id and row count.
+- **Optional (planned):** SFTP with a per-broker key, for brokers who ask for it. Not built yet.
 - Lists are never sent by email.
 
 ## 7. Cadence and the 45-day window
 
-New list versions are published monthly. Each list's `response_due` is 45 days
+New list versions are published monthly (built: a cron on the 1st at 09:00 UTC; rerunning in the same month builds
+nothing new, and each version is the previous one plus one). Each list's `response_due` is 45 days
 after it is created. Status files that arrive after that time are rejected and logged.
 
 ## 8. How brokers return statuses
@@ -104,8 +114,11 @@ the audit log.
 ## 10. Audit and retention
 
 - All four broker tables (`broker_lists`, `broker_list_items`, `broker_status`, `broker_hash_audit`) are write-once. Database triggers block UPDATE, DELETE, and REPLACE INTO / INSERT OR REPLACE (a BEFORE INSERT guard aborts when the key already exists).
-- The future retention purge will use a sanctioned path like the existing audit expiry: a reviewed migration adds a gate row with a minimum-age cutoff, opened and closed inside one D1 batch, and the DELETE guards allow only rows older than that cutoff. It is not built yet.
-- `broker_hash_audit` It records list generation,
-  status ingests and rejections, with counts and reasons only.
+- `broker_hash_audit` records list generation, downloads, credential issue and revocation, status ingests and
+  rejections, and purges, with counts and reasons only.
+- Retention purge (built, migration 0013): a daily job opens a `broker_purge` gate row, deletes, and closes the gate
+  inside one D1 batch. The database refuses a gate cutoff younger than 730 days, and the DELETE guards allow only rows
+  older than the cutoff while the gate is open. A dry run reports counts without deleting. Each run appends a
+  counts-only `purge.completed` (or `purge.dry_run`) entry and a `maintenance_log` row.
 - Retention: finished records are kept for 24 months. Texas request records are kept for 3 years.
 - SOC 2-ready.

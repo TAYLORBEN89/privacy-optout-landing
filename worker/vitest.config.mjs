@@ -19,6 +19,7 @@ export default defineWorkersConfig(async () => {
               // Dev/test origin list (production wrangler.toml has no localhost/pages.dev).
               ALLOWED_ORIGIN: 'https://droptexas.com,https://www.droptexas.com,https://privacy-dashboard-bt.pages.dev,http://localhost:5173',
               API_TOKEN: 'test-legacy-token',
+              BROKER_CRED_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=', // test-only HMAC key
               TOTP_ENC_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
               PII_ENC_KEY: 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
               ADMIN_BOOTSTRAP_TOKEN: 'test-bootstrap-token-0123456789abcdef',

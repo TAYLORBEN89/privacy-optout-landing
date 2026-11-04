@@ -98,12 +98,12 @@ describe('inactive accounts', () => {
 describe('scheduled handler', () => {
   it('runs purge, audit expiry and inactive accounts in one handler; a failing job does not stop the others', async () => {
     const { SCHEDULED_JOBS, runScheduled } = await import('../src/index.js');
-    expect(SCHEDULED_JOBS.map(([n]) => n)).toEqual(['purge', 'audit_expiry', 'inactive_accounts']);
+    expect(SCHEDULED_JOBS.map(([n]) => n)).toEqual(['purge', 'audit_expiry', 'inactive_accounts', 'broker_purge']);
     const nowS = Math.floor(Date.now() / 1000); // runScheduled uses the real clock
     const id = await user('sched@example.test', nowS - 900 * DAY, nowS - 30 * DAY); // warned long ago, past 24 months
     const broken = { ...env, DB: new Proxy(env.DB, { get: (t, k) => (k === 'batch' ? () => Promise.reject(new Error('x')) : (typeof t[k] === 'function' ? t[k].bind(t) : t[k])) }) };
     const r = await runScheduled(broken);
-    expect(r.map((x) => x.status)).toEqual(['rejected', 'rejected', 'fulfilled']); // purge and audit expiry use batch
+    expect(r.map((x) => x.status)).toEqual(['rejected', 'rejected', 'fulfilled', 'rejected']); // purge, audit expiry and broker purge use batch
     expect(await exists(id)).toBe(false); // inactive_accounts still ran
   });
 });
