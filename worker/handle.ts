@@ -1,4 +1,3 @@
-import { accountsSignInUrl } from "../shared/accounts";
 import { validateSignup, type FieldIssue, type SignupInput, type SignupIssues } from "../shared/signup";
 import { csrfOk, filterResponse, prepareProxy, proxyAllowed } from "./apiProxy";
 import type { ProxySigner } from "./internalAuth";
@@ -395,17 +394,6 @@ export async function handleRequest(
       { ok: false, errors: {}, form: { code: "not_found", message: "Not found." } },
       404,
     );
-  }
-  if (url.pathname === "/signin" || url.pathname === "/signin/") {
-    const requested = url.searchParams.get("return_to") ?? "/start";
-    return new Response(null, {
-      status: 302,
-      headers: {
-        location: accountsSignInUrl(requested),
-        "cache-control": "no-store",
-        "x-robots-tag": "noindex",
-      },
-    });
   }
   if (url.pathname.startsWith("/api/")) {
     if (deps.forwardApi && proxyAllowed(request.method, url.pathname)) {

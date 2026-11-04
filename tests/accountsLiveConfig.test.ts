@@ -17,7 +17,7 @@ describe("accounts live flag", () => {
     expect(resolved.define?.["import.meta.env.VITE_ACCOUNTS_LIVE"]).toBeUndefined();
   });
 
-  it("builds /account as Coming soon when the flag is unset", () => {
+  it("builds sign-in into the shipped script without a coming-soon placeholder", () => {
     const env = { ...process.env };
     delete env.VITE_ACCOUNTS_LIVE;
     execFileSync("npx", ["vite", "build", "--minify", "false"], {
@@ -28,10 +28,13 @@ describe("accounts live flag", () => {
       .filter((name) => name.endsWith(".js"))
       .map((name) => readFileSync(`dist/assets/${name}`, "utf8"))
       .join("\n");
-    expect(js).toContain("Coming soon");
-    expect(js).toContain("Start my opt-out");
-    const liveCheck = js.match(/function accountsLive\(raw\) \{[\s\S]*?\n\}/);
-    expect(liveCheck?.[0]).toContain("void 0");
-    expect(liveCheck?.[0]).not.toContain('? "true"');
+    expect(js).toContain("Continue with Google");
+    expect(js).toContain("Continue with Microsoft");
+    expect(js).toContain("/api/auth/google/start");
+    expect(js).toContain("/api/auth/microsoft/start");
+    expect(js).toContain("return_to=");
+    expect(js).toContain("/brand/google-sign-in.svg");
+    expect(js).toContain("/brand/microsoft-sign-in.svg");
+    expect(js).not.toMatch(/coming soon/i);
   });
 });

@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { accountsLive, type MeOk, type StartAction } from "./authGate";
+import { type MeOk, type StartAction } from "./authGate";
 import {
   ChildrenBenefitPage,
   ControlBenefitPage,
@@ -9,7 +9,6 @@ import {
   SpamBenefitPage,
   TimeBenefitPage,
 } from "./pages/benefits";
-import { AccountComingSoon } from "./pages/AccountComingSoon";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { BrokersPage } from "./pages/BrokersPage";
@@ -61,7 +60,6 @@ export function routePage(
   if (path === "/about") return <AboutPage />;
   if (path === "/signin") return <SignInPage />;
   if (path === "/start") return <StartPage action={ctx.action} csrfToken={ctx.csrfToken} />;
-  if (path === "/account" && !accountsLive()) return <AccountComingSoon />;
   if (path === "/account") return <AccountPage action={ctx.action} me={ctx.me} />;
   return <HomePage getStartedHref={ctx.getStartedHref} />;
 }

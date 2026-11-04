@@ -14,14 +14,14 @@ describe("opt-out form sign-in gate", () => {
   it("sends a signed-out visitor to sign-in with return_to", () => {
     const goTo = vi.fn();
     window.history.pushState({}, "", "/start?for=child");
-    render(<StartPage action="redirect" goTo={goTo} live />);
+    render(<StartPage action="redirect" goTo={goTo} />);
     expect(screen.getByText("Sending you to sign in…")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Submit" })).toBeNull();
-    expect(goTo).toHaveBeenCalledWith(accountsSignInUrl("/start?for=child"));
+    expect(goTo).toHaveBeenCalledWith("/signin?return_to=%2Fstart%3Ffor%3Dchild");
     cleanup();
     goTo.mockClear();
     window.history.pushState({}, "", "/start#step-2");
-    render(<StartPage action="redirect" goTo={goTo} live={false} />);
+    render(<StartPage action="redirect" goTo={goTo} />);
     expect(goTo).toHaveBeenCalledWith("/signin?return_to=%2Fstart%23step-2");
   });
 

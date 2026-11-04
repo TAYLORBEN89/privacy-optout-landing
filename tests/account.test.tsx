@@ -8,7 +8,7 @@ import { exportAccount, linkIdentity, optOutLabel, patchDisplayName, submitStart
 import { isStepUpRequired, stepUpChoices } from "../src/api/stepUp";
 import { LOGOUT_PATH } from "../src/api";
 import { App } from "../src/App";
-import { fetchMe, signInHrefFor, type MeOk } from "../src/authGate";
+import { fetchMe, type MeOk } from "../src/authGate";
 import { Header } from "../src/Header";
 import { AccountPage, AccountView } from "../src/pages/AccountPage";
 
@@ -115,9 +115,8 @@ describe("csrf_token", () => {
 
     const user = userEvent.setup();
     vi.stubGlobal("fetch", fetchImpl);
-    render(<Header signedIn csrf="csrf-1" signInHref={signInHrefFor("/start")} accountsLive onSignedOut={() => undefined} />);
-    await user.click(screen.getByRole("button", { name: "Account" }));
-    await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    render(<Header signedIn csrf="csrf-1" onSignedOut={() => undefined} />);
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
     const logout = calls.find((call) => call.url === LOGOUT_PATH);
     expect(logout?.init?.method).toBe("POST");
     expect(logout?.init?.credentials).toBe("same-origin");
@@ -576,24 +575,17 @@ describe("session revoke and account delete", () => {
   });
 });
 
-describe("accounts coming soon", () => {
-  it("does not show the account page while VITE_ACCOUNTS_LIVE is unset", async () => {
+describe("signed-out account visit", () => {
+  it("does not show a coming-soon placeholder", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 401 })));
     (window as unknown as { happyDOM: { setURL: (url: string) => void } }).happyDOM.setURL(
       "http://localhost/account",
     );
-    expect(window.location.pathname).toBe("/account");
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "Coming soon" })).toBeTruthy();
-    expect(screen.getByRole("main", { name: "Coming soon" })).toBeTruthy();
-    expect(screen.getByText("Until then, email help@droptexas.com to see or delete your data.")).toBeTruthy();
-    expect(screen.queryByText(/secure session cookies/)).toBeNull();
-    expect(screen.getByRole("link", { name: "Start my opt-out" }).getAttribute("href")).toBe("/start");
-    expect(screen.queryByRole("heading", { name: "Your account" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Registered brokers" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Delete my account" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Export my data" })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Google|Microsoft|Apple/ })).toBeNull();
+    expect(await screen.findByText("Sending you to sign in…")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: /coming soon/i })).toBeNull();
+    expect(screen.queryByText(/coming soon/i)).toBeNull();
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
     (window as unknown as { happyDOM: { setURL: (url: string) => void } }).happyDOM.setURL(
       "http://localhost/",
     );
