@@ -17,7 +17,7 @@ describe("opt-out form sign-in gate", () => {
     render(<StartPage action="redirect" goTo={goTo} live />);
     expect(screen.getByText("Sending you to sign in…")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Submit" })).toBeNull();
-    expect(goTo).toHaveBeenCalledWith(accountsSignInUrl("/start"));
+    expect(goTo).toHaveBeenCalledWith(accountsSignInUrl("/start?for=child"));
     cleanup();
     goTo.mockClear();
     window.history.pushState({}, "", "/start#step-2");
@@ -35,6 +35,14 @@ describe("opt-out form sign-in gate", () => {
     expect(isSafeReturnPath("/start")).toBe(true);
     expect(isSafeReturnPath("/account")).toBe(true);
     expect(isSafeReturnPath("/start#step-2")).toBe(true);
+    expect(isSafeReturnPath("/start?for=child")).toBe(true);
+    expect(accountsSignInUrl("/start?for=child")).toBe(
+      "https://accounts.droptexas.com/signin?return_to=%2Fstart%3Ffor%3Dchild",
+    );
+    for (const other of ["/start?for=self", "/start?for=child&extra=1", "/account?next=1", "/start?for=child#step-1"]) {
+      expect(isSafeReturnPath(other), other).toBe(false);
+      expect(accountsSignInUrl(other)).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+    }
     expect(accountsSignInUrl("/start#step-2")).toBe(
       "https://accounts.droptexas.com/signin?return_to=%2Fstart%23step-2",
     );

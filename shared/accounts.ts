@@ -17,10 +17,12 @@ const SCHEME = /(?:^|[^a-z0-9+.-])[a-z][a-z0-9+.-]*:/i;
 const START_STEP = /^\/start#step-[1-9][0-9]?$/;
 
 /**
- * Allowed return paths only: /start, /account, or /start#step-N
- * where N is an integer from 1 to 99. Checked after one decode.
+ * Allowed return paths only: /start, /account, /start?for=child,
+ * or /start#step-N where N is an integer from 1 to 99.
+ * /start?for=child is an exact match. No other query string is allowed.
+ * Checked after one decode.
  * Rejects control characters, a leading // or /\, any backslash,
- * a scheme, encoded %2F%2F or %5C, ".." , and anything over 2048 characters.
+ * a scheme, encoded %2F%2F or %5C, "..", and anything over 2048 characters.
  * Anything else falls back to /start.
  */
 function unsafeReturnShape(path: string): boolean {
@@ -34,7 +36,7 @@ function unsafeReturnShape(path: string): boolean {
 }
 
 function allowedReturnPath(path: string): boolean {
-  return path === "/start" || path === "/account" || START_STEP.test(path);
+  return path === "/start" || path === "/account" || path === "/start?for=child" || START_STEP.test(path);
 }
 
 export function isSafeReturnPath(path: string): boolean {

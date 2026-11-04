@@ -50,7 +50,14 @@ describe("auth gate", () => {
     expect(isSafeReturnPath("/start#step-0")).toBe(false);
     expect(isSafeReturnPath("/start#step-100")).toBe(false);
     expect(isSafeReturnPath("/start#step-01")).toBe(false);
-    expect(isSafeReturnPath("/start?for=child")).toBe(false);
+    expect(isSafeReturnPath("/start?for=child")).toBe(true);
+    expect(accountsSignInUrl("/start?for=child")).toBe(
+      "https://accounts.droptexas.com/signin?return_to=%2Fstart%3Ffor%3Dchild",
+    );
+    expect(isSafeReturnPath("/start?for=self")).toBe(false);
+    expect(isSafeReturnPath("/start?for=child&x=1")).toBe(false);
+    expect(isSafeReturnPath("/start?for=Child")).toBe(false);
+    expect(accountsSignInUrl("/start?for=self")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
     expect(isSafeReturnPath("/security")).toBe(false);
     expect(isSafeReturnPath("//evil.example")).toBe(false);
     expect(isSafeReturnPath("//evil.example/start")).toBe(false);
