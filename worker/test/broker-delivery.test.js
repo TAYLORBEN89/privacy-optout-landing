@@ -431,3 +431,73 @@ describe('review 5775555002 fixes', () => {
     expect((await get('separate-admin-token-for-tests')).status).toBe(200);
   });
 });
+
+describe('review notes follow-up', () => {
+  const issueWith = (e, id) => worker.fetch(new Request(`https://api.test/admin/broker-delivery/brokers/${id}/credentials`, {
+    method: 'POST', headers: { Authorization: 'Bearer test-legacy-token' } }), e);
+  it('credential issuance returns 503 broker_cred_misconfigured for missing/bad key config, logged without key material', async () => {
+    await addBroker('cfg-a');
+    const keys = JSON.parse(env.BROKER_CRED_KEYS);
+    const variants = [
+      { BROKER_CRED_KEYS: undefined },
+      { BROKER_CRED_KEYS: 'not json' },
+      { BROKER_CRED_KEYS: JSON.stringify({ t1: 'c2hvcnQ=' }) },          // key too short
+      { BROKER_CRED_KEYS: JSON.stringify({ 'Bad Kid': keys.t1 }) },      // invalid kid
+      { BROKER_CRED_ACTIVE_KID: 'zz' },                                  // active kid not in map
+      { BROKER_CRED_ACTIVE_KID: undefined },
+    ];
+    const lines = [];
+    const orig = console.log;
+    console.log = (...a) => { lines.push(a.join(' ')); };
+    try {
+      for (const v of variants) {
+        const r = await issueWith({ ...env, ...v }, 'cfg-a');
+        expect(r.status, JSON.stringify(Object.keys(v))).toBe(503);
+        expect(await r.json()).toEqual({ error: 'broker_cred_misconfigured' });
+      }
+    } finally { console.log = orig; }
+    const cfg = lines.filter((l) => l.includes('broker_cred_config'));
+    expect(cfg).toHaveLength(variants.length);
+    for (const l of cfg) {
+      expect(JSON.parse(l).kind).toMatch(/^(no_valid_keys|active_kid_missing)$/);
+      expect(l).not.toMatch(/BwcH|CAgI|c2hvcnQ|Bad Kid/);
+    }
+    expect((await issueWith(env, 'cfg-a')).status).toBe(201);            // healthy config still works
+    expect((await issueWith({ ...env, BROKER_CRED_ACTIVE_KID: 'zz' }, 'nobody')).status).toBe(404); // unknown broker stays 404
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM broker_credentials WHERE broker_id = 'cfg-a'").first()).n).toBe(1);
+  });
+
+  it('a finished signup put on a new list is unfinished again and finishes 90 days after the new list', async () => {
+    const T = 2_100_000_000;
+    await env.DB.prepare("INSERT OR IGNORE INTO users (id, email, pw_hash, created_at) VALUES ('rl-user', 'rl@rl.example', 'x', 1)").run();
+    await env.DB.prepare("INSERT INTO optout_requests (id, user_id, status, created_at, updated_at, kind, service_id) VALUES ('rl-1', 'rl-user', 'queued', ?1, ?1, 'tx', 'signup')").bind(T).run();
+    await addBroker('rl-a', 'email'); await addBroker('rl-b', 'email');
+    const rec = [{ request_ref: 'rl-1', email: 'one@rl.example' }];
+    const only = (bid) => async (_e, b) => (b === bid ? rec : []);
+    await env.DB.prepare("UPDATE delivery_brokers SET enabled = 0 WHERE broker_id NOT IN ('rl-a')").run();
+    try {
+      await monthlyLists(env, T, { loadRecords: only('rl-a') });
+      await finishSignups(env, T + 90 * DAY);
+      const fin = async () => (await env.DB.prepare("SELECT finished_at FROM optout_requests WHERE id = 'rl-1'").first()).finished_at;
+      expect(await fin()).toBe(T + 90 * DAY);
+      // re-listed to a new broker 100 days in
+      await env.DB.prepare("UPDATE delivery_brokers SET enabled = 1 WHERE broker_id = 'rl-b'").run();
+      const T2 = T + 100 * DAY;
+      await monthlyLists(env, T2, { loadRecords: only('rl-b') });
+      expect(await fin()).toBeNull();
+      await finishSignups(env, T2 + 90 * DAY - 1);
+      expect(await fin()).toBeNull();
+      await finishSignups(env, T2 + 90 * DAY);
+      expect(await fin()).toBe(T2 + 90 * DAY);
+      // a signup purged before a re-list never comes back
+      await env.DB.prepare("INSERT INTO optout_requests (id, user_id, status, created_at, updated_at, kind, service_id, finished_at) VALUES ('rl-gone', 'rl-user', 'queued', 1, 1, 'tx', 'signup', 1)").run();
+      await purge(env, NOW());
+      expect(await env.DB.prepare("SELECT 1 FROM optout_requests WHERE id = 'rl-gone'").first()).toBeNull();
+      const T3 = T + 200 * DAY;
+      await monthlyLists(env, T3, { loadRecords: async (_e, b) => (b === 'rl-a' ? [{ request_ref: 'rl-gone', email: 'gone@rl.example' }] : []) });
+      expect(await env.DB.prepare("SELECT 1 FROM optout_requests WHERE id = 'rl-gone'").first()).toBeNull();
+    } finally {
+      await env.DB.prepare("UPDATE delivery_brokers SET enabled = 1").run();
+    }
+  });
+});

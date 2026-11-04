@@ -138,5 +138,7 @@ the audit log.
 - Retention: finished records are kept for 24 months. Texas request records are kept for 3 years.
 - A signup is **finished** once every broker list it appears on has closed its response window including a possible
   45-day extension, i.e. the latest such list's issue date + 90 days (built: the daily `signup_finish` job). Its
-  24-month clock starts then. A signup that is on no list yet is not finished.
+  24-month clock starts then. A signup that is on no list yet is not finished. If a finished signup is later put on a
+  new list, its `finished_at` is cleared in the same transaction that completes that list, so it finishes again 90 days
+  after the new list and its 24 months run from there. A signup the purge has already deleted is never recreated.
 - SOC 2-ready.
