@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { testSigner } from "./helpers/proxyKeys";
 import { handleRequest } from "../worker/handle";
 import { D1SignupLimiter, type RateLimitDatabase } from "../worker/rateLimit";
 import type { SignupStore } from "../worker/storage";
@@ -50,10 +51,28 @@ const valid = {
 
 const store: SignupStore = { save: async () => "s-1", saveOptOuts: async () => undefined };
 
+function session() {
+  return {
+    proxySigner: testSigner,
+    callApi: {
+      fetch: async () =>
+        new Response(JSON.stringify({ user: { id: "user-1" } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    },
+  };
+}
+
 function post(ip: string, body: unknown = valid): Request {
   return new Request("https://optout.example/api/signup", {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "https://optout.example", "cf-connecting-ip": ip },
+    headers: {
+      "content-type": "application/json",
+      origin: "https://optout.example",
+      "cf-connecting-ip": ip,
+      cookie: "__Host-sid=abc",
+    },
     body: JSON.stringify(body),
   });
 }
@@ -126,7 +145,7 @@ describe("client IP key", () => {
         headers: { "content-type": "application/json", origin: "https://droptexas.com" },
         body: JSON.stringify(valid),
       }),
-      { signupStore: store, signupLimiter: { reserve: async () => { calls += 1; return 0; } } },
+      { signupStore: store, signupLimiter: { reserve: async () => { calls += 1; return 0; } }, ...session() },
     );
     expect(res.status).toBe(400);
     expect(calls).toBe(0);
@@ -137,10 +156,10 @@ describe("client IP key", () => {
     const res = await handleRequest(
       new Request("http://localhost:8787/api/signup", {
         method: "POST",
-        headers: { "content-type": "application/json", origin: "http://localhost:8787" },
+        headers: { "content-type": "application/json", origin: "http://localhost:8787", cookie: "__Host-sid=abc" },
         body: JSON.stringify(valid),
       }),
-      { signupStore: store, signupLimiter: { reserve: async (ip) => { seen.push(ip); return 0; } } },
+      { signupStore: store, signupLimiter: { reserve: async (ip) => { seen.push(ip); return 0; } }, ...session() },
     );
     expect(res.status).toBe(200);
     expect(seen).toEqual(["dev-local"]);
@@ -150,7 +169,7 @@ describe("client IP key", () => {
 describe("POST /api/signup rate limit", () => {
   it("returns a uniform 429 with Retry-After and no detail", async () => {
     const signupLimiter = { reserve: async () => 321 };
-    const res = await handleRequest(post("203.0.113.9"), { signupStore: store, signupLimiter });
+    const res = await handleRequest(post("203.0.113.9"), { signupStore: store, signupLimiter, ...session() });
     expect(res.status).toBe(429);
     expect(res.headers.get("retry-after")).toBe("321");
     const body = await res.text();
@@ -164,6 +183,7 @@ describe("POST /api/signup rate limit", () => {
     const res = await handleRequest(post("203.0.113.9"), {
       signupStore: { save: async () => { saved += 1; return "s"; }, saveOptOuts: async () => undefined },
       signupLimiter,
+      ...session(),
     });
     expect(res.status).toBe(503);
     expect(await res.text()).not.toContain("secret detail");

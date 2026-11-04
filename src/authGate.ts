@@ -1,4 +1,4 @@
-import { accountsSignInUrl } from "../shared/accounts";
+import { accountsSignInUrl, isSafeReturnPath } from "../shared/accounts";
 import { ME_PATH } from "./api";
 
 export const SIGN_IN_HREF = accountsSignInUrl("/start");
@@ -27,8 +27,8 @@ export function startHref(
   signedIn: boolean,
   live: boolean = accountsLive(),
 ): string {
-  if (!live || !gateEnabled || signedIn) return "/start";
-  return SIGN_IN_HREF;
+  if (!gateEnabled || signedIn) return "/start";
+  return signInHrefFor("/start", live);
 }
 
 export type StartAction = "loading" | "form" | "redirect" | "unavailable";
@@ -38,15 +38,21 @@ export function startPageAction(
   meStatus: number | "loading" | "error",
   live: boolean = accountsLive(),
 ): StartAction {
-  if (!gateEnabled || !live) return "form";
-  if (meStatus === "loading") return "loading";
+  if (!gateEnabled) return "form";
   if (meStatus === 200) return "form";
-  if (meStatus === 401) return "redirect";
+  if (live && meStatus === "loading") return "loading";
+  if (!live || meStatus === 401) return "redirect";
   return "unavailable";
 }
 
-export function signInHrefFor(returnTo: "/start" | "/account"): string {
-  return accountsSignInUrl(returnTo);
+/**
+ * Signed-out form visitors go to the accounts host when it is live, and to the
+ * on-site /signin page (Coming soon, no external redirect) when it is not.
+ */
+export function signInHrefFor(returnTo: string, live = true): string {
+  const safe = isSafeReturnPath(returnTo) ? returnTo : "/start";
+  if (!live) return `/signin?return_to=${encodeURIComponent(safe)}`;
+  return accountsSignInUrl(safe);
 }
 
 export interface MeUser {

@@ -19,15 +19,16 @@ describe("auth gate", () => {
     expect(startHref(true, false, true)).toBe(SIGN_IN_HREF);
   });
 
-  it("hides accounts while VITE_ACCOUNTS_LIVE is unset, and redirects only when it is on", () => {
+  it("hides the accounts host while VITE_ACCOUNTS_LIVE is unset, and still gates the form", () => {
     expect(accountsLive(undefined)).toBe(false);
     expect(accountsLive("")).toBe(false);
     expect(accountsLive("false")).toBe(false);
     expect(accountsLive("0")).toBe(false);
     expect(accountsLive("true")).toBe(true);
     expect(accountsLive("1")).toBe(true);
-    expect(startPageAction(true, 401)).toBe("form");
-    expect(startHref(true, false)).toBe("/start");
+    expect(startPageAction(true, 401)).toBe("redirect");
+    expect(startHref(true, false)).toBe("/signin?return_to=%2Fstart");
+    expect(signInHrefFor("/start", false)).toBe("/signin?return_to=%2Fstart");
     expect(startPageAction(true, 401, true)).toBe("redirect");
     expect(startHref(true, false, true)).toBe(SIGN_IN_HREF);
   });
@@ -46,10 +47,8 @@ describe("auth gate", () => {
     expect(isSafeReturnPath("/start#step-1")).toBe(true);
     expect(isSafeReturnPath("/start#step-12")).toBe(true);
     expect(isSafeReturnPath("/start#step-99")).toBe(true);
-    expect(isSafeReturnPath("/start#step-0")).toBe(false);
-    expect(isSafeReturnPath("/start#step-100")).toBe(false);
-    expect(isSafeReturnPath("/start#step-01")).toBe(false);
-    expect(isSafeReturnPath("/security")).toBe(false);
+    expect(isSafeReturnPath("/start?for=child")).toBe(true);
+    expect(isSafeReturnPath("/security")).toBe(true);
     expect(isSafeReturnPath("//evil.example")).toBe(false);
     expect(isSafeReturnPath("//evil.example/start")).toBe(false);
     expect(isSafeReturnPath("https://evil.example")).toBe(false);
@@ -57,7 +56,13 @@ describe("auth gate", () => {
     expect(accountsSignInUrl("/start#step-2")).toBe(
       "https://accounts.droptexas.com/signin?return_to=%2Fstart%23step-2",
     );
-    expect(accountsSignInUrl("/security")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+    expect(accountsSignInUrl("https://evil.example/start")).toBe(
+      "https://accounts.droptexas.com/signin?return_to=%2Fstart",
+    );
+    expect(accountsSignInUrl("/\\evil.example")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+    expect(accountsSignInUrl("javascript:alert(1)")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+    expect(accountsSignInUrl("/start/../account")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
+    expect(isSafeReturnPath("\\\\evil.example")).toBe(false);
     expect(accountsSignInUrl("//evil.example")).toBe("https://accounts.droptexas.com/signin?return_to=%2Fstart");
     expect(accountsSignInUrl("/account", "https://accounts.example/")).toBe(
       "https://accounts.example/signin?return_to=%2Faccount",

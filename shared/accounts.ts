@@ -12,12 +12,15 @@ function configuredAccountsOrigin(): string | undefined {
 export const ACCOUNTS_ORIGIN = (configuredAccountsOrigin() ?? DEFAULT_ACCOUNTS_ORIGIN).replace(/\/$/, "");
 
 /**
- * Allowed return paths only: /start, /account, or /start#step-N
- * where N is an integer from 1 to 99. Anything else falls back to /start.
+ * Same-origin relative path only. Must start with one "/", with no scheme,
+ * no second slash, and no backslash. Anything else falls back to /start.
  */
 export function isSafeReturnPath(path: string): boolean {
-  if (typeof path !== "string") return false;
-  return path === "/start" || path === "/account" || /^\/start#step-[1-9][0-9]?$/.test(path);
+  if (typeof path !== "string" || path.length === 0 || path.length > 2048) return false;
+  if (!path.startsWith("/") || path.startsWith("//")) return false;
+  if (path.includes("\\") || path.includes("..")) return false;
+  if (path.includes(":") || path.includes("://")) return false;
+  return true;
 }
 
 export function accountsSignInUrl(returnTo: string, origin = ACCOUNTS_ORIGIN): string {

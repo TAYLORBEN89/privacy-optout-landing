@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { SignupForm } from "../SignupForm";
-import { type StartAction, signInHrefFor } from "../authGate";
+import { accountsLive, type StartAction, signInHrefFor } from "../authGate";
 import { AuthErrorNotice } from "../components/AuthErrorNotice";
 
 function assignLocation(url: string): void {
@@ -11,14 +11,18 @@ export function StartPage({
   action,
   csrfToken = null,
   goTo = assignLocation,
+  live = accountsLive(),
 }: {
   action: StartAction;
   csrfToken?: string | null;
   goTo?: (url: string) => void;
+  live?: boolean;
 }) {
   useEffect(() => {
-    if (action === "redirect") goTo(signInHrefFor("/start"));
-  }, [action, goTo]);
+    if (action !== "redirect") return;
+    const here = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    goTo(signInHrefFor(here, live));
+  }, [action, goTo, live]);
 
   let body = (
     <section className="form-section" aria-labelledby="form-heading">
