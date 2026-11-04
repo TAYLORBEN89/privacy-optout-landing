@@ -52,68 +52,6 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
-.header-nav {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
-}
-
-.proposal-link {
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.proposal-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.proposal-link:focus-visible,
-.proposal-menu:focus-visible {
-  outline: 3px solid var(--blue);
-  outline-offset: 2px;
-}
-
-.proposal-link-desktop {
-  display: none;
-}
-
-.proposal-menu {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-.proposal-menu-panel {
-  padding: 12px 24px 16px;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-}
-
-.proposal-menu-panel[hidden] {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .proposal-link-desktop {
-    display: inline-flex;
-  }
-
-  .proposal-menu,
-  .proposal-menu-panel {
-    display: none;
-  }
-}
-
 .proposal-mission {
   margin: 0 0 28px;
   padding: 20px 18px;
@@ -3003,4 +2941,43 @@ textarea {
   .marquee-track [data-clone] {
     display: none;
   }
+}
+
+.hero-secondary {
+  margin: 14px 0 0;
+}
+
+.hero-proposal-link {
+  color: var(--blue);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero-proposal-link:hover {
+  color: var(--ink);
+}
+
+.hero-proposal-link:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Keep the account icon on screen: the brand shrinks (tagline ellipsizes), the icon never does. */
+.topbar-inner {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.topbar-inner .brand-home {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar-inner .account,
+.topbar-inner .account-button {
+  flex: none;
 }
