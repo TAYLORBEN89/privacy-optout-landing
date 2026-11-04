@@ -234,6 +234,12 @@ async function handleSignup(
     }
   }
 
+  // Before the body is read, parsed, validated, stored, or logged. Rate limiting
+  // stays after validation so a signed-in visitor fixing the form does not use
+  // an attempt, and a signed-out request never reaches it.
+  const userId = await requireSignupUser(request, api, getSigner);
+  if (typeof userId !== "string") return userId;
+
   const text = await readLimitedText(request, MAX_BODY_BYTES);
   if (text === null) {
     return formError("payload_too_large", "That request is too large.", 413, request);
@@ -292,9 +298,6 @@ async function handleSignup(
     }
     if (retryAfter > 0) return rateLimited(retryAfter, request);
   }
-
-  const userId = await requireSignupUser(request, api, getSigner);
-  if (typeof userId !== "string") return userId;
 
   if (STORAGE_LIVE) {
     if (!store) {
