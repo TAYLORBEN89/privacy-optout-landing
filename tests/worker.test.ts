@@ -26,6 +26,19 @@ function assets() {
   };
 }
 
+function sessionDeps(): Pick<RequestDeps, "callApi" | "proxySigner"> {
+  return {
+    proxySigner: testSigner,
+    callApi: {
+      fetch: async () =>
+        new Response(JSON.stringify({ user: { id: "user-1" } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    },
+  };
+}
+
 function saving(): { deps: RequestDeps; saved: SignupRecord[]; optouts: OptOutInsert[] } {
   const saved: SignupRecord[] = [];
   const optouts: OptOutInsert[] = [];
@@ -38,7 +51,7 @@ function saving(): { deps: RequestDeps; saved: SignupRecord[]; optouts: OptOutIn
       optouts.push(...rows);
     },
   };
-  return { deps: { ...assets(), signupStore }, saved, optouts };
+  return { deps: { ...assets(), signupStore, ...sessionDeps() }, saved, optouts };
 }
 
 function post(body: unknown, headers: HeadersInit = {}): Request {
@@ -47,6 +60,7 @@ function post(body: unknown, headers: HeadersInit = {}): Request {
     headers: {
       "content-type": "application/json",
       origin: "https://optout.example",
+      cookie: "__Host-sid=abc",
       ...headers,
     },
     body: typeof body === "string" ? body : JSON.stringify(body),
@@ -56,6 +70,34 @@ function post(body: unknown, headers: HeadersInit = {}): Request {
 describe("POST /api/signup", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("rejects a valid submission with no session and stores nothing", async () => {
+    const { deps, saved } = saving();
+    const response = await handleRequest(post({ ...valid, firstName: "Zephyr", email: "zephyr@example.com" }, { cookie: "" }), deps);
+    expect(response.status).toBe(401);
+    const text = await response.text();
+    const payload = JSON.parse(text) as { form: { code: string } };
+    expect(payload.form.code).toBe("sign_in_required");
+    expect(text).not.toContain("Zephyr");
+    expect(text).not.toContain("zephyr@example.com");
+    expect(saved).toHaveLength(0);
+  });
+
+  it("rejects an invalid or expired session and stores nothing", async () => {
+    const { deps, saved } = saving();
+    const response = await handleRequest(post({ ...valid, firstName: "Zephyr", email: "zephyr@example.com" }), {
+      ...deps,
+      callApi: {
+        fetch: async () => new Response("{}", { status: 401, headers: { "content-type": "application/json" } }),
+      },
+    });
+    expect(response.status).toBe(401);
+    const text = await response.text();
+    expect((JSON.parse(text) as { form: { code: string } }).form.code).toBe("sign_in_required");
+    expect(text).not.toContain("Zephyr");
+    expect(text).not.toContain("zephyr@example.com");
+    expect(saved).toHaveLength(0);
   });
 
   it("accepts a non-Texan without echoing the submission", async () => {
@@ -68,6 +110,7 @@ describe("POST /api/signup", () => {
     expect(saved[0]?.jurisdiction).toBe("TDPSA");
     expect(saved[0]?.nonTexasFlag).toBe(true);
     expect(saved[0]?.firstName).toBe("Ada");
+    expect(saved[0]?.userId).toBe("user-1");
   });
 
   it("rejects a missing or impossible date of birth with the shared error", async () => {
@@ -253,6 +296,7 @@ describe("POST /api/signup", () => {
     });
     const deps: RequestDeps = {
       ...assets(),
+      ...sessionDeps(),
       signupStore: {
         save: async () => "signup-1",
         saveOptOuts: async () => {
@@ -315,7 +359,7 @@ describe("POST /api/signup", () => {
     vi.spyOn(console, "log").mockImplementation((message) => {
       lines.push(String(message));
     });
-    const response = await handleRequest(post({ ...valid, firstName: "Zephyr" }), assets());
+    const response = await handleRequest(post({ ...valid, firstName: "Zephyr" }), { ...assets(), ...sessionDeps() });
     expect(response.status).toBe(503);
     const dumped = `${JSON.stringify(await response.json())}\n${lines.join("\n")}`;
     expect(dumped).not.toContain("Zephyr");
@@ -329,6 +373,7 @@ describe("POST /api/signup", () => {
     });
     const deps: RequestDeps = {
       ...assets(),
+      ...sessionDeps(),
       signupStore: {
         save: async () => {
           throw new Error("disk_full");
@@ -666,12 +711,17 @@ describe("POST /api/signup", () => {
       callApi: {
         fetch: async (accountRequest) => {
           const path = new URL(accountRequest.url).pathname;
-          if (path === "/api/me") return new Response("{}", { status: 401 });
+          if (path === "/api/me") {
+            return new Response(JSON.stringify({ user: { id: "user-1" } }), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            });
+          }
           return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
         },
       },
     });
     expect(response.status).toBe(200);
-    expect(saved[0]?.userId).toBeNull();
+    expect(saved[0]?.userId).toBe("user-1");
   });
 });

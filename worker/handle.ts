@@ -183,6 +183,30 @@ function rateLimited(retryAfter: number, request: IncomingHttpRequest): Response
   );
 }
 
+/** Verified accounts user, or a 401 that does not store the submission. */
+async function requireSignupUser(
+  request: IncomingHttpRequest,
+  api: AccountApi | undefined,
+  getSigner: () => Promise<ProxySigner>,
+): Promise<string | Response> {
+  const deny = json(
+    { ok: false, errors: {}, form: { code: "sign_in_required", message: "Sign in to submit this request." } },
+    401,
+  );
+  if (!api) return deny;
+  const signer = await trySigner(getSigner);
+  if (!signer) return deny;
+  const userId = await sessionUserId(
+    request.url,
+    request.headers.get("cookie") ?? "",
+    request.headers.get("cf-connecting-ip") ?? "",
+    api,
+    signer,
+  ).catch(() => null);
+  if (!userId) return deny;
+  return userId;
+}
+
 async function handleSignup(
   request: IncomingHttpRequest,
   store: SignupStore | undefined,
@@ -269,6 +293,9 @@ async function handleSignup(
     if (retryAfter > 0) return rateLimited(retryAfter, request);
   }
 
+  const userId = await requireSignupUser(request, api, getSigner);
+  if (typeof userId !== "string") return userId;
+
   if (STORAGE_LIVE) {
     if (!store) {
       logOutcome({
@@ -283,10 +310,6 @@ async function handleSignup(
       );
     }
     let signupId: string;
-    const linkSigner = api && csrfOk(request) ? await trySigner(getSigner) : null;
-    const userId = api && linkSigner
-      ? await sessionUserId(request.url, request.headers.get("cookie") ?? "", request.headers.get("cf-connecting-ip") ?? "", api, linkSigner).catch(() => null)
-      : null;
     try {
       signupId = await saveSignup(store, {
         ...result.value,
