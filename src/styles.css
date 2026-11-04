@@ -127,6 +127,12 @@ body {
   line-height: 1.45;
 }
 
+.proposal-quote {
+  font-style: italic;
+  font-weight: 700;
+  quotes: none;
+}
+
 .hash-flow {
   list-style: none;
   margin: 20px 0 0;

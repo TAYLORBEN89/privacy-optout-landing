@@ -7,13 +7,28 @@ const TDPSA_URL = "https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm";
 const BROKER_LAW_URL = "https://statutes.capitol.texas.gov/Docs/BC/htm/BC.510.htm";
 const SOS_URL = "https://www.sos.texas.gov/statdoc/data-brokers.shtml";
 const REGISTRY_URL = "https://texas-sos.appianportalsgov.com/data-broker-registry";
+const PULL_QUOTE = "a right you can't enforce isn't a right at all";
+
+function MissionCopy({ text }: { text: string }) {
+  const start = text.toLowerCase().indexOf(PULL_QUOTE);
+  if (start < 0) return text;
+  return (
+    <>
+      {text.slice(0, start)}
+      <q className="proposal-quote">{text.slice(start, start + PULL_QUOTE.length)}</q>
+      {text.slice(start + PULL_QUOTE.length)}
+    </>
+  );
+}
 
 export function TexasProposalPage() {
   return (
     <article className="panel proposal-page">
       <section className="proposal-mission" aria-labelledby="proposal-title">
         <h1 id="proposal-title">The Texas Proposal</h1>
-        <p>{TEXAS_PROPOSAL_MISSION}</p>
+        <p>
+          <MissionCopy text={TEXAS_PROPOSAL_MISSION} />
+        </p>
       </section>
 
       <section className="proposal-hash" aria-labelledby="hash-heading">

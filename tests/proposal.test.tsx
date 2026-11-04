@@ -31,6 +31,9 @@ describe("Texas Proposal page", () => {
     const quote = "a right you can't enforce isn't a right at all";
     expect(text.toLowerCase().split(quote).length - 1).toBe(1);
     expect(text.split("We mean to change that.").length - 1).toBe(1);
+    expect(screen.getByText("a right you can't enforce isn't a right at all").tagName).toBe("Q");
+    expect(TEXAS_PROPOSAL_MISSION).not.toMatch(/impossible/i);
+    expect(text).toContain("Our goal: one free request that reaches every registered data broker, for 100% of Texans.");
   });
 
   it("keeps the private-enterprise disclaimer and the source links", () => {
