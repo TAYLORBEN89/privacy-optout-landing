@@ -1,0 +1,43 @@
+# SYNTHETIC TEST DATA - fictional values only, not real people. Hashes computed independently with openssl (SHA-256, UTF-8, Base64).
+field,raw_input,standardized,sha256_base64
+first_name,"Juan Pablo",juanpablo,91hIbrbzNeqHs3o81O5yNrXUj7wDd2shvZ6THKi9qz8=
+last_name,"Martinez",martinez,2wRPGbwBNxhShjRczx8GfS2c4cjvs4NJskeWloUNtp8=
+last_name,"O'Connor-López",oconnorlopez,wRhK2NSl7s5y9KV3LUYofirbKMVFXQB04RsLM00gbiI=
+first_name,"Björn",bjorn,OQ7mbeDftplbSl1U26xOIGldt0qjCHkZg6kWHUQDvmU=
+first_name,"  ZOË ",zoe,nQF+JoG38xcl4cD74mEuiQecIoBrAs96iUtQDdWiGcE=
+last_name,"Strauß",strauss,K90pL8r/YxCbdHAMrwSKj2vvqU3gBEC+d+PsVWAftpA=
+first_name,"Renée",renee,oGcKD9O1ya6GuRhvrBVD487vShA+XU77nbOHh8OpwdE=
+first_name,"Jean-Luc",jeanluc,f+84Bm25kA+ZL6mSbuqMxkj0TCr1DE1RHEFUIhlsjvU=
+dob,"1990-01-12",19900112,Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=
+dob,"01/12/1990",19900112,Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=
+dob,"19900112",19900112,Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=
+zip,"95811-6213",95811,hhrJ0lmzrCGQGqGD36pCucffqrftb5k70CV4OogYNKM=
+zip,"78701",78701,OEJIsYBVd31pQDtHnXThCpbsxsbdbwIwhoTT2U6qytE=
+phone,"+1 (987) 765-4321",9877654321,Kqb5sWi/zGQOa1P0G8oKcQ4lrzPEwui2TgQ/I6G8h3s=
+phone,"987.765.4321",9877654321,Kqb5sWi/zGQOa1P0G8oKcQ4lrzPEwui2TgQ/I6G8h3s=
+phone,"19877654321",9877654321,Kqb5sWi/zGQOa1P0G8oKcQ4lrzPEwui2TgQ/I6G8h3s=
+email,"  Jane.Doe+TX@Example.COM ",jane.doe+tx@example.com,7unXmzUnRdnshdyh+VVjfB/qr7kWSxUmH/beD4FXAJA=
+ndz,"Jane|Doe|1990-01-12|78701-1234",gfj23eiDZfOSh5bseqU/coILBtuGZPX+dqfrE+JFRqI=eZ75KhGvkY4/t0HfQpNPO1aO0tk6wd908bjUGieTKm8=Qzs+CDJkSiNw2NDie4BNMNUh2SApKDrYqNUF2vQiYHc=OEJIsYBVd31pQDtHnXThCpbsxsbdbwIwhoTT2U6qytE=,ZAVB12m/ySO0zl9zSI8xgd6RFJFBVpHSOkQhMeMfRrY=
+first_name,"Νίκος",nikos,M1xU87YGGwuLseP9/0x3HDaAyqaNEpnDb9fgj33PZH8=
+last_name,"Παπαδόπουλος",papadopoylos,fdXlr859o/uZ2d8DT5+BjHpQVKpdKHBoVDTy0xDwxA0=
+first_name,"Γιώργος",giorgos,VBeSLyrrI37HL31GZhBjWl0RD180PsACDnH0sX9NmTE=
+last_name,"Θεοδωρίδης",theodoridis,alz5Wb1zMA+E//Y772wmN8y3BbLsguNQIRaegCy8/qw=
+last_name,"Ψαράς",psaras,u/SZGhFxgsZZHWPMzyx0pGWHv0OX7DLv9swhyCR/i2g=
+first_name,"Дмитрий",dmitriy,ey5Zt2eQwoKSsmmTusVHzRD6V3Yg11+s6iGJqfpVRvc=
+last_name,"Щербаков",shcherbakov,nuuqPWr/14clJiqZc3R3AsF7RWr766aj1SiWA3Uj8O0=
+first_name,"Юлия",yuliya,FnTPezlTsTvAFzhGFu2U04JYxzcuElVi6QtEniGJtug=
+last_name,"Ёлкина",yolkina,76+cWLeQDX12pDMJWw+j6jNgjkh09RHp/1ovYf8WuMU=
+first_name,"Олександр",oleksandr,ELZuK9VT1PTto0J9SYioMMYIYKigJffbt+Ycx11/Y6g=
+first_name,"Мар'яна",maryana,15KnLt5I9uU863vBGs/IfOcfWP+HYh8GF/eR7UlGYME=
+last_name,"Ґонта",gonta,MI+Rp5MBgOdPlAsmHKX3Wq4KkYpLbPIZexaUry1Qmys=
+first_name,"Ĳsbrand",ijsbrand,QxEvIi6kCEtI/FX94HzcFh6Y18iI/6s/cnIqB7c9HzM=
+zip,"91790-3771",91790,2FPZucR4x7U8KlM+SFAX4LPGhwNz/PIZUCSUdDh0o/s=
+zip,"M1B 1A1",m1b1a,n8L9q8mVeT6Xt9/EeUNiTukGDrkbPJ3DvOEx14uElxk=
+zip," 00712345",71234,aeNUYKh7Xw5sqpxSbSP9eOHsj6iXewbUyavv89DIuhQ=
+zip," 00300-9999",300,mDvWFLta/s5as7YCP3EUfNe2vCMU+dJ690IlQcZVg4k=
+zip,"07701",7701,aAres2DPsV2yGqkblpFBA9jM/UZKsWtBX0+8NY6vyzk=
+phone,"+1(415)555-9317",4155559317,vGM7y5n+hBXRSEAklhHDPCbysyNgYTmXdMcagGUOY8E=
+phone,"+84(90)123 4567",4901234567,ptzVkgbv9DonwvPCHmXmJ2SEOaolSh37z3ZzY/Gmm+U=
+phone,"+354(123)4567",3541234567,Btrzydf5K6ALAKKXJGFHSx7u5bDzHC9WlVYtpq1n2rY=
+phone,"5551273811",5551273811,jr/RAWYVN+ODBf2vRxwBASPwiO4x27OGI1y3IDhcwLo=
+phone,"765-4321",7654321,/miiH8druns6PY5FTsqM0ljeaP0I3d8DXyPdvc5vwEk=
