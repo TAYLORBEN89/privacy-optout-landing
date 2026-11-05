@@ -75,7 +75,6 @@ The Worker forwards only allowlisted `/api` routes to the API Worker (`env.API` 
 | GET | `/api/auth/{google\|microsoft}/start` |
 | GET | `/api/auth/complete` |
 | POST | `/api/auth/logout` |
-| POST | `/api/auth/stepup/password` |
 | POST | `/api/auth/{google\|microsoft}/stepup` |
 | GET, PATCH | `/api/account/profile` |
 | GET | `/api/account/optouts` |
@@ -163,9 +162,9 @@ After deploy, both hostnames should resolve through Cloudflare to this Worker. T
 
 `VITE_AUTH_GATE` defaults to on. Set `VITE_AUTH_GATE=false` at build time to show `/start` and `/account` without a session.
 
-`/signin` on this site is the sign-in page. It offers Google and Microsoft only. Those buttons go to `/api/auth/google/start` and `/api/auth/microsoft/start` on this origin. There is no password field and no Apple button. The header user icon links to `/signin` when signed out and to `/account` when signed in.
+`/signin` on this site is the sign-in page. It offers Google and Microsoft only. Those buttons go to `/api/auth/google/start` and `/api/auth/microsoft/start` on this origin. There is no password field and no Apple button. The header user icon links to `/signin?return_to=%2Faccount` when signed out and to `/account` when signed in.
 
-Sign-in stays on this origin. `return_to` may only be `/start`, `/account`, the exact path `/start?for=child`, or `/start#step-N` with N from 1 to 99. No other query string is allowed. It is rejected when it is longer than 2048 characters, contains a control character (tab, CR, LF, NUL, or DEL) before or after one decode, starts with `//` or `/\`, contains a backslash or `..`, contains a scheme (`https:`, `javascript:`, `data:`), or contains the encodings `%2F%2F` or `%5C`. Anything else falls back to `/start`.
+Sign-in stays on this origin. `return_to` may only be `/start`, `/account`, the exact path `/start?for=child`, or `/start#step-N` with N from 1 to 99. No other query string is allowed. It is rejected when it is longer than 2048 characters, contains a control character (tab, CR, LF, NUL, or DEL) before or after one decode, starts with `//` or `/\`, contains a backslash or `..`, contains a scheme (`https:`, `javascript:`, `data:`), or contains the encodings `%2F%2F` or `%5C`. Anything else, or a missing `return_to`, falls back to `/account`.
 
 After sign-in, the browser returns to `https://droptexas.com/api/auth/complete?code=...`. That request is under `/api/*` (`run_worker_first`), so the Worker forwards it through the API binding and does not serve the SPA shell.
 
@@ -178,6 +177,10 @@ npm test
 ```
 
 `npm run typecheck` runs the TypeScript check that `npm run build` also runs.
+
+`npm run auth:smoke` is a local check of cookie forwarding. It runs the proxy against a stubbed upstream that echoes the cookie names it receives: `GET /api/auth/complete` must forward `__Host-sid` and `__Host-login`, and `/api/me` only `__Host-sid`. It sends nothing over the network.
+
+`npm run auth:live <url>` is a read-only live check. It sends `GET <url>/api/me` with no cookie and no credentials and passes only on `401`.
 
 `npm run seo:audit` renders each route and scores it with Yoast-style checks (title and description length, focus keyphrase placement and density, links, word count, sentence and paragraph length, subheading spacing, passive voice, transition words, and Flesch reading ease). It is this repo's script, not the Yoast plugin. The report is printed and written to `scripts/seo-audit.json`, which is gitignored.
 
@@ -262,6 +265,6 @@ The current signup payload keys, also posted to `POST /api/signup`, are `firstNa
 
 `POST /api/account/delete` has an empty body and returns `{ "ok": true }`. The browser then goes to `/`. Cancel sends no request.
 
-`POST /api/auth/google/stepup` and `POST /api/auth/microsoft/stepup` send `{ "return_to": "/account" }` and return `{ "action": "https://...", "method": "POST", "fields": { "st": "..." } }`. The browser posts that form. Apple is not a provider. `POST /api/auth/stepup/password` sends `{ "password": string, "code": string }` and returns `{ "ok": true }`.
+`POST /api/auth/google/stepup` and `POST /api/auth/microsoft/stepup` send `{ "return_to": "/account" }` and return `{ "action": "https://...", "method": "POST", "fields": { "st": "..." } }`. The browser posts that form. Apple is not a provider. There is no password step-up; the proxy rejects `POST /api/auth/stepup/password`.
 
 `POST /api/account/identities/google/link` and `POST /api/account/identities/microsoft/link` use the same handoff shape. `DELETE /api/account/identities/{google|microsoft}` returns `{ "ok": true }`.

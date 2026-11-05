@@ -6,21 +6,18 @@ export function isStepUpRequired(status: number, body: unknown): boolean {
 
 export interface StepUpChoices {
   providers: string[];
-  offerPassword: boolean;
 }
 
 const STEP_UP_PROVIDERS = new Set(["google", "microsoft"]);
 
-/** Linked Google or Microsoft accounts, plus password when the account has one. */
+/** Linked Google or Microsoft accounts. */
 export function stepUpChoices(
   providers: { provider: string }[] | null | undefined,
-  hasPassword: boolean,
 ): StepUpChoices {
   const linked = (providers ?? [])
     .map((item) => item.provider.trim().toLowerCase())
     .filter((provider) => STEP_UP_PROVIDERS.has(provider));
   return {
     providers: linked,
-    offerPassword: hasPassword,
   };
 }

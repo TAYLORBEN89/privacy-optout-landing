@@ -16,7 +16,7 @@ describe("header menu", () => {
     expect(home.getAttribute("href")).toBe("/");
     expect(home.className).toBe("brand-home");
     const link = screen.getByRole("link", { name: "Sign in" });
-    expect(link.getAttribute("href")).toBe("/signin");
+    expect(link.getAttribute("href")).toBe("/signin?return_to=%2Faccount");
     expect(link.className).toBe("account-button");
     expect(link.getAttribute("aria-hidden")).toBeNull();
   });

@@ -41,6 +41,33 @@ export function sessionCookieOnly(cookieHeader: string): string {
   return "";
 }
 
+const COOKIE_VALUE = /^[A-Za-z0-9._~+/=-]{1,512}$/;
+
+/** Upstream paths that also need the short-lived browser-binding cookie. Only the OAuth callback. */
+export const LOGIN_COOKIE_PATHS: readonly string[] = ["/api/auth/complete"];
+
+/**
+ * Cookie header for the API Worker: __Host-sid always (when valid), plus
+ * __Host-login on GET /api/auth/complete only. Every other cookie is dropped,
+ * and a malformed value is never forwarded. Values are never logged.
+ */
+export function forwardedCookies(cookieHeader: string, method: string, pathname: string): string {
+  const wantLogin = method === "GET" && LOGIN_COOKIE_PATHS.includes(pathname);
+  const out: string[] = [];
+  const sid = sessionCookieOnly(cookieHeader);
+  if (sid) out.push(sid);
+  if (wantLogin) {
+    for (const part of cookieHeader.split(";")) {
+      const trimmed = part.trim();
+      if (!trimmed.startsWith("__Host-login=")) continue;
+      const value = trimmed.slice("__Host-login=".length);
+      if (COOKIE_VALUE.test(value)) out.push(`__Host-login=${value}`);
+      break;
+    }
+  }
+  return out.join("; ");
+}
+
 export interface AccountApi {
   fetch(request: Request): Promise<Response>;
 }

@@ -34,18 +34,18 @@ describe("sign-in page", () => {
     expect(providerStartHref("google", "/start?for=child")).toBe(
       "/api/auth/google/start?return_to=%2Fstart%3Ffor%3Dchild",
     );
-    expect(providerStartHref("microsoft", "//evil.example")).toBe("/api/auth/microsoft/start?return_to=%2Fstart");
+    expect(providerStartHref("microsoft", "//evil.example")).toBe("/api/auth/microsoft/start?return_to=%2Faccount");
     window.history.pushState({}, "", "/signin?return_to=//evil.example");
     render(<SignInPage />);
     expect(screen.getByRole("link", { name: "Continue with Google" }).getAttribute("href")).toBe(
-      "/api/auth/google/start?return_to=%2Fstart",
+      "/api/auth/google/start?return_to=%2Faccount",
     );
   });
 
-  it("defaults a missing return path to /start", () => {
+  it("defaults a missing return path to /account", () => {
     render(<SignInPage returnTo={null} />);
     expect(screen.getByRole("link", { name: "Continue with Microsoft" }).getAttribute("href")).toBe(
-      "/api/auth/microsoft/start?return_to=%2Fstart",
+      "/api/auth/microsoft/start?return_to=%2Faccount",
     );
   });
 });
@@ -54,7 +54,7 @@ describe("header account icon", () => {
   it("links to sign-in when signed out and is not hidden", () => {
     render(<Header signedIn={false} csrf={null} onSignedOut={() => undefined} />);
     const link = screen.getByRole("link", { name: "Sign in" });
-    expect(link.getAttribute("href")).toBe("/signin");
+    expect(link.getAttribute("href")).toBe("/signin?return_to=%2Faccount");
     expect(link.getAttribute("aria-hidden")).toBeNull();
     expect(link.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
