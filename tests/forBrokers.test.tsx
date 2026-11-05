@@ -59,6 +59,12 @@ describe("/for-brokers", () => {
     expect(text()).toContain("DROP Texas is built to SOC 2 standards.");
   });
 
+  it("uses the approved search description", () => {
+    expect(pageByPath("/for-brokers")?.description).toBe(
+      "For data brokers in Texas: how the DROP Texas hashed format works, Texans' TDPSA rights, and a starter kit on GitHub. Taking part is voluntary.",
+    );
+  });
+
   it("links the published starter kit in a new tab", () => {
     render(<ForBrokersPage />);
     expect(STARTER_KIT_URL).toBe("https://github.com/TAYLORBEN89/drop-texas-broker-starter-kit");
@@ -68,7 +74,8 @@ describe("/for-brokers", () => {
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
     expect(link.hasAttribute("aria-disabled")).toBe(false);
     expect(text()).toContain("The starter kit covers the standardize and hash steps above.");
-    expect(text()).not.toMatch(/being built|placeholder|not published yet/);
+    expect(text()).not.toMatch(/being built|placeholder|not published yet|will be\./);
+    expect(text()).toContain("why a broker might take part on a voluntary basis, and where to find the starter kit.");
   });
 
   it("leaves the header unchanged: logo and account icon only, no link to the page", () => {

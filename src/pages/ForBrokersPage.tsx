@@ -17,8 +17,8 @@ export function ForBrokersPage() {
         <h1 id="for-brokers-title">For Data Brokers</h1>
         <p>
           This page is for data brokers registered in Texas. It explains the hashed format DROP Texas
-          plans to offer, why a broker might take part on a voluntary basis, and where the starter kit
-          will be.
+          plans to offer, why a broker might take part on a voluntary basis, and where to find the
+          starter kit.
         </p>
       </section>
 
