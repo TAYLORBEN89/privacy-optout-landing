@@ -186,7 +186,7 @@ npm test
 
 `npm run mobile:width <url> [chrome path] [--json]` opens each sitemap route plus `/signin` and `/account` in headless Chrome at 320x568, 375x667 and 414x896. Below 640px, body text must use at least 85% of the width it can use, and no page may scroll sideways. Inside a card (`.panel`) that is the card's inner content box, because cards keep their regular padding on phones; outside a card it is the viewport width. Components that are meant to be narrow (header, footer, nav, buttons, forms, labels, tables, dialogs, cards and badges) are skipped, as are the intentional tapers: the homepage hero stagger (`.hero-stagger`) and the "Your information" narrowing text (`.personal-body`). It cannot see overflow hidden by `overflow-x: clip`.
 
-`npm run hero:fit <url> [chrome path]` opens the homepage in headless Chrome at 320x568, 360x780, 375x667, 390x844, 768x1024, 1024x768 and 1440x900, and checks that every line of the staggered hero description fits inside its paragraph and that the lines taper.
+`npm run hero:fit <url> [chrome path]` opens the homepage in headless Chrome at 320x568, 360x780, 375x667, 390x844, 768x1024, 1024x768 and 1440x900. At each size it waits for page load (not network idle), the hero to render and fonts to be ready, then checks that every line of the staggered hero description fits inside its paragraph and that the lines taper.
 
 `npm run proposal:smoke <url>` fetches a deployed `/texas-proposal` page (for example `https://droptexas.com/texas-proposal`) and its scripts, and checks that the page has "The Texas Proposal" heading and the hero "Read the Texas Proposal" link, and that the header has no Texas Proposal link or Menu button.
 
