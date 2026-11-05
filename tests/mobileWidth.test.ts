@@ -24,7 +24,7 @@ describe("mobile text width CSS", () => {
     for (const sel of [".panel {", ".hash-flow li {", ".hash-badge {", ".privacy-list li {", ".proposal-mission {"]) {
       expect(block, sel).toContain(sel);
     }
-    expect(css.slice(css.indexOf(marker) + block.length + marker.length).trim()).toBe("");
+    expect(css.trimEnd().endsWith(block)).toBe(true);
   });
 
   it("does not touch the intentional tapers", () => {
