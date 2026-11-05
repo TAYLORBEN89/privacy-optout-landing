@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { forwardedCookies } from "../worker/accountLink";
 import { proxyAllowed } from "../worker/apiProxy";
@@ -126,5 +127,18 @@ describe("follow-ups", () => {
       expect(providerStartHref("google", bad as string | null), String(bad)).toBe("/api/auth/google/start?return_to=%2Faccount");
     }
     expect(providerStartHref("microsoft", "/start?for=child")).toBe("/api/auth/microsoft/start?return_to=%2Fstart%3Ffor%3Dchild");
+  });
+});
+
+describe("password step-up removed", () => {
+  function files(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      return statSync(path).isDirectory() ? files(path) : [path];
+    });
+  }
+  it("nothing in src or worker references /api/auth/stepup/password", () => {
+    const hits = [...files("src"), ...files("worker")].filter((f) => readFileSync(f, "utf8").includes("/api/auth/stepup/password"));
+    expect(hits).toEqual([]);
   });
 });

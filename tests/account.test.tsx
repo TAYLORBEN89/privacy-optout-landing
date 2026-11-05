@@ -136,19 +136,10 @@ describe("step-up", () => {
     expect(isStepUpRequired(403, "step_up_required")).toBe(false);
   });
 
-  it("offers linked Google or Microsoft accounts, plus password when one is set", () => {
-    expect(stepUpChoices([{ provider: "google" }, { provider: "microsoft" }], false)).toEqual({
-      providers: ["google", "microsoft"],
-      offerPassword: false,
-    });
-    expect(stepUpChoices([{ provider: "google" }, { provider: "other" }], true)).toEqual({
-      providers: ["google"],
-      offerPassword: true,
-    });
-    expect(stepUpChoices([], false)).toEqual({
-      providers: [],
-      offerPassword: false,
-    });
+  it("offers linked Google or Microsoft accounts only", () => {
+    expect(stepUpChoices([{ provider: "google" }, { provider: "microsoft" }])).toEqual({ providers: ["google", "microsoft"] });
+    expect(stepUpChoices([{ provider: "google" }, { provider: "other" }])).toEqual({ providers: ["google"] });
+    expect(stepUpChoices([])).toEqual({ providers: [] });
   });
 
   it("asks to confirm it's you and follows the provider step-up url", async () => {
@@ -197,26 +188,14 @@ describe("step-up", () => {
     form?.remove();
   });
 
-  it("posts the password and authenticator code, then clears the fields", async () => {
-    const user = userEvent.setup();
-    const calls: { url: string; init?: RequestInit }[] = [];
-    const logs: unknown[][] = [];
-    vi.spyOn(console, "log").mockImplementation((...args) => {
-      logs.push(args);
-    });
-    vi.spyOn(console, "info").mockImplementation((...args) => {
-      logs.push(args);
-    });
-    vi.spyOn(console, "debug").mockImplementation((...args) => {
-      logs.push(args);
-    });
-    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      calls.push({ url: String(input), init });
+  it("never renders a password step-up, even when the account has a password", async () => {
+    const calls: string[] = [];
+    const fetchImpl = (async (input: RequestInfo | URL) => {
       const url = String(input);
+      calls.push(url);
       if (url.endsWith("/api/account/profile")) return json(200, { display_name: "Ada Lovelace", identifiers_locked: true });
       if (url.endsWith("/api/account/sessions")) return json(200, { sessions: [] });
       if (url.endsWith("/api/account/optouts")) return json(403, { error: "step_up_required" });
-      if (url.endsWith("/api/auth/stepup/password")) return json(200, { ok: true, stepped_up_until: 1_700_000_600 });
       return json(404, { error: "not_found" });
     }) as typeof fetch;
 
@@ -229,22 +208,11 @@ describe("step-up", () => {
     );
     expect(await screen.findByRole("dialog", { name: "Confirm it's you" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sign in with Microsoft" })).toBeTruthy();
-    expect(screen.getByText("Password + authenticator code")).toBeTruthy();
-    await user.type(screen.getByLabelText("Password"), "secret-pass");
-    await user.type(screen.getByLabelText("Authenticator code"), "123456");
-    await user.click(screen.getByRole("button", { name: "Confirm" }));
-
-    const step = calls.find((call) => call.url.endsWith("/api/auth/stepup/password"));
-    expect(step?.init?.method).toBe("POST");
-    expect(step?.init?.credentials).toBe("same-origin");
-    expect(step?.init?.headers).toMatchObject({ "X-CSRF-Token": "csrf-1" });
-    expect(String(step?.init?.body)).toBe(JSON.stringify({ password: "secret-pass", code: "123456" }));
-    expect(logs.flat().join(" ")).not.toContain("secret-pass");
-    expect(logs.flat().join(" ")).not.toContain("123456");
-    expect(window.localStorage.length).toBe(0);
-    expect(window.sessionStorage.length).toBe(0);
+    expect(screen.queryByText("Password + authenticator code")).toBeNull();
     expect(screen.queryByLabelText("Password")).toBeNull();
-    expect(screen.queryByRole("dialog", { name: "Confirm it's you" })).toBeNull();
+    expect(screen.queryByLabelText("Authenticator code")).toBeNull();
+    expect(document.querySelector("input[type=password]")).toBeNull();
+    expect(calls.some((url) => url.includes("/api/auth/stepup/password"))).toBe(false);
   });
 
   it("posts the data export with the csrf token", async () => {
@@ -399,7 +367,6 @@ describe("account dashboard", () => {
           },
         ]}
         stepUpProviders={["google"]}
-        offerPassword={false}
         linkedProviders={["google"]}
         editing={false}
         draft=""
@@ -422,7 +389,6 @@ describe("account dashboard", () => {
         onConfirmDelete={() => undefined}
         onCancelDelete={() => undefined}
         onStepUp={() => undefined}
-        onPasswordStepUp={() => undefined}
         onLink={() => undefined}
         onUnlink={() => undefined}
       />,

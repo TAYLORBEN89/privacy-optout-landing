@@ -12,7 +12,6 @@ import {
   submitStart,
   patchDisplayName,
   revokeSession,
-  startPasswordStepUp,
   startProviderStepUp,
   unlinkIdentity,
   type AccountProfile,
@@ -60,49 +59,6 @@ function optOutTitle(record: OptOutRecord): string {
   return record.broker_id || record.kind || "Opt-out";
 }
 
-function PasswordStepUpForm({ onSubmit }: { onSubmit: (password: string, code: string) => void }) {
-  const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-
-  return (
-    <form
-      className="stepup-form"
-      onSubmit={(event) => {
-        event.preventDefault();
-        const nextPassword = password;
-        const nextCode = code;
-        setPassword("");
-        setCode("");
-        onSubmit(nextPassword, nextCode);
-      }}
-    >
-      <p className="stepup-method">Password + authenticator code</p>
-      <label htmlFor="stepup-password">
-        Password
-        <input
-          id="stepup-password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </label>
-      <label htmlFor="stepup-totp">
-        Authenticator code
-        <input
-          id="stepup-totp"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-        />
-      </label>
-      <button type="submit">Confirm</button>
-    </form>
-  );
-}
-
 function downloadExport(data: unknown): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -120,7 +76,6 @@ export function AccountView({
   optouts,
   sessions,
   stepUpProviders,
-  offerPassword,
   linkedProviders,
   editing,
   draft,
@@ -143,7 +98,6 @@ export function AccountView({
   onConfirmDelete,
   onCancelDelete,
   onStepUp,
-  onPasswordStepUp,
   onLink,
   onUnlink,
 }: {
@@ -151,7 +105,6 @@ export function AccountView({
   optouts: OptOutRecord[];
   sessions: AccountSession[];
   stepUpProviders: string[];
-  offerPassword: boolean;
   linkedProviders: string[];
   editing: boolean;
   draft: string;
@@ -174,7 +127,6 @@ export function AccountView({
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
   onStepUp: (provider: string) => void;
-  onPasswordStepUp: (password: string, code: string) => void;
   onLink: (provider: string) => void;
   onUnlink: (provider: string) => void;
 }) {
@@ -342,7 +294,6 @@ export function AccountView({
                 <ProviderSignInButton key={provider} provider={provider} onClick={() => onStepUp(provider)} />
               ))}
             </div>
-            {offerPassword ? <PasswordStepUpForm onSubmit={onPasswordStepUp} /> : null}
             {stepUpError ? <p role="alert">{stepUpError}</p> : null}
           </div>
         </div>
@@ -388,7 +339,7 @@ export function AccountPage({
   );
 
   const csrfToken = me?.csrf_token ?? null;
-  const choices = stepUpChoices(me?.providers, Boolean(me?.user.has_password));
+  const choices = stepUpChoices(me?.providers);
 
   useEffect(() => {
     if (action === "redirect") goTo(signInHrefFor("/account"));
@@ -507,20 +458,6 @@ export function AccountPage({
     }
   }
 
-  async function onPasswordStepUp(password: string, code: string) {
-    setStepUpError(null);
-    if (!csrfToken) {
-      setStepUpError("Sign in again to continue.");
-      return;
-    }
-    const result = await startPasswordStepUp(password, code, csrfToken, fetchImpl);
-    if (!result.ok) {
-      setStepUpError(result.status === 429 ? "Too many attempts." : "That did not match.");
-      return;
-    }
-    setStepUp(false);
-  }
-
   async function onLink(provider: string) {
     setActionError(null);
     if (!csrfToken) {
@@ -556,7 +493,6 @@ export function AccountPage({
       optouts={optouts}
       sessions={sessions}
       stepUpProviders={choices.providers}
-      offerPassword={choices.offerPassword}
       linkedProviders={linkedProviders}
       editing={editing}
       draft={draft}
@@ -582,7 +518,6 @@ export function AccountPage({
       onConfirmDelete={() => void onConfirmDelete()}
       onCancelDelete={() => setConfirmDelete(false)}
       onStepUp={(provider) => void onStepUp(provider)}
-      onPasswordStepUp={(password, code) => void onPasswordStepUp(password, code)}
       onLink={(provider) => void onLink(provider)}
       onUnlink={(provider) => void onUnlink(provider)}
     />;
