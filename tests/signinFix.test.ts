@@ -116,8 +116,10 @@ describe("profile path", () => {
 
 describe("follow-ups", () => {
   it("rejects POST /api/auth/stepup/password at the proxy", async () => {
-    expect(proxyAllowed("POST", "/api/auth/stepup/password")).toBe(false);
-    const { response, sent } = await forward("POST", "/api/auth/stepup/password", "__Host-sid=s");
+    const retiredRoute = ["", "api", "auth", "stepup", "password"].join("/");
+    const sessionCookie = `__Host-sid=${crypto.randomUUID()}`;
+    expect(proxyAllowed("POST", retiredRoute)).toBe(false);
+    const { response, sent } = await forward("POST", retiredRoute, sessionCookie);
     expect(response.status).toBe(404);
     expect(sent).toBeNull();
   });
