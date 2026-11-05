@@ -18,6 +18,7 @@ const ROUTES = new Set([
   "/unique-identifiers",
   "/tdpsa",
   "/brokers",
+  "/for-brokers",
   "/about",
   "/share",
   "/help",

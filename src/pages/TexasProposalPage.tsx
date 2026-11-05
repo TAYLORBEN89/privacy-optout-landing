@@ -122,6 +122,9 @@ export function TexasProposalPage() {
           Texas does not run a platform like California's DROP, and Texas does not require brokers to
           use one.
         </p>
+        <p>
+          Data brokers can read more on the <AppLink href="/for-brokers">For Data Brokers page</AppLink>.
+        </p>
       </section>
 
       <section aria-labelledby="support-heading">

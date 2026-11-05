@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { Header } from "../src/Header";
+import { FOOTER_DESKTOP_ROWS, FOOTER_GROUPS } from "../src/footerLinks";
 import { ForBrokersPage, STARTER_KIT_URL } from "../src/pages/ForBrokersPage";
 import { TexasProposalPage } from "../src/pages/TexasProposalPage";
 import { routePage } from "../src/routePage";
@@ -70,5 +71,15 @@ describe("/for-brokers", () => {
     const hrefs = [...document.querySelectorAll("header a")].map((a) => a.getAttribute("href"));
     expect(hrefs).toEqual(["/", "/signin?return_to=%2Faccount"]);
     expect(readFileSync("src/Header.tsx", "utf8")).not.toContain("for-brokers");
+  });
+
+  it("is linked from /texas-proposal and the footer", () => {
+    render(<TexasProposalPage />);
+    const link = screen.getByRole("link", { name: "For Data Brokers page" });
+    expect(link.getAttribute("href")).toBe("/for-brokers");
+    expect(link.closest("p")?.textContent).toBe("Data brokers can read more on the For Data Brokers page.");
+    expect(link.closest("section")?.querySelector("h2")?.textContent).toBe("What DROP Texas plans to offer");
+    const footer = [...FOOTER_GROUPS.flatMap((g) => g.links), ...FOOTER_DESKTOP_ROWS.flat()].filter((l) => l.href === "/for-brokers");
+    expect(footer.map((l) => l.label)).toEqual(["For Data Brokers", "For Data Brokers"]);
   });
 });

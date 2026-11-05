@@ -25,6 +25,7 @@ export const FOOTER_GROUPS: readonly { id: string; title: string; links: readonl
     links: [
       { label: "TDPSA", href: "/tdpsa" },
       { label: "Brokers", href: "/brokers" },
+      { label: "For Data Brokers", href: "/for-brokers" },
       { label: "Texas statute", href: TEXAS_STATUTE_URL },
     ],
   },
@@ -61,6 +62,7 @@ export const FOOTER_DESKTOP_ROWS: readonly (readonly FooterLink[])[] = [
     { label: "How It Works", href: "/how-it-works" },
     { label: "Data Brokers", href: "/data-brokers" },
     { label: "Brokers list", href: "/brokers" },
+    { label: "For Data Brokers", href: "/for-brokers" },
     { label: "TDPSA", href: "/tdpsa" },
     { label: "Help", href: "/help" },
   ],
