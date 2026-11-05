@@ -16,7 +16,8 @@
     "worker:dev": "wrangler dev",
     "cf-typegen": "wrangler types",
     "auth:smoke": "node scripts/auth-smoke.mjs",
-    "auth:live": "node scripts/auth-live.mjs"
+    "auth:live": "node scripts/auth-live.mjs",
+    "mobile:width": "node scripts/mobile-width.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

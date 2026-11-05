@@ -29,6 +29,7 @@ import { SecurityPage } from "./pages/SecurityPage";
 import { SignInPage } from "./pages/SignInPage";
 import { StartPage } from "./pages/StartPage";
 import { TexasProposalPage } from "./pages/TexasProposalPage";
+import { ForBrokersPage } from "./pages/ForBrokersPage";
 
 export function routePage(
   path: string,
@@ -60,6 +61,7 @@ export function routePage(
   if (path === "/share") return <SharePage />;
   if (path === "/about") return <AboutPage />;
   if (path === "/texas-proposal") return <TexasProposalPage />;
+  if (path === "/for-brokers") return <ForBrokersPage />;
   if (path === "/signin") return <SignInPage />;
   if (path === "/start") return <StartPage action={ctx.action} csrfToken={ctx.csrfToken} />;
   if (path === "/account") return <AccountPage action={ctx.action} me={ctx.me} />;

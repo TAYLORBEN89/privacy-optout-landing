@@ -245,6 +245,15 @@ export const SEO_PAGES: readonly SeoPage[] = [
     indexable: true,
   },
   {
+    path: "/for-brokers",
+    title: "For data brokers: the DROP Texas hashed request format",
+    description:
+      "For data brokers in Texas: how the DROP Texas hashed format works, Texans' TDPSA rights, and a starter kit on GitHub. Taking part is voluntary.",
+    focus: "for data brokers",
+    related: ["hashed match", "TDPSA rights", "voluntary"],
+    indexable: true,
+  },
+  {
     path: "/account",
     title: "Your DROP Texas account holds your opt-out requests",
     description:
