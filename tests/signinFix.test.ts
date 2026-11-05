@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { forwardedCookies } from "../worker/accountLink";
 import { proxyAllowed } from "../worker/apiProxy";
@@ -131,11 +131,9 @@ describe("follow-ups", () => {
 });
 
 describe("password step-up removed", () => {
+  // Git-tracked files only, so node_modules (e.g. worker/node_modules) is never walked.
   function files(dir: string): string[] {
-    return readdirSync(dir).flatMap((name) => {
-      const path = join(dir, name);
-      return statSync(path).isDirectory() ? files(path) : [path];
-    });
+    return execFileSync("git", ["ls-files", "-z", "--", dir], { encoding: "utf8" }).split("\0").filter(Boolean);
   }
   it("nothing in src or worker references /api/auth/stepup/password", () => {
     const hits = [...files("src"), ...files("worker")].filter((f) => readFileSync(f, "utf8").includes("/api/auth/stepup/password"));
