@@ -1,6 +1,7 @@
 /** Mobile text-width check. Usage: npm run mobile:width <base url> [chrome path]
  * At 320, 375 and 414 wide, every body text block (p, li, h1-h3, lede) must be at least 85% of the
- * viewport width, and no page may scroll sideways. Deliberately narrow components and the two
+ * width it can use: the inner content box of its card (.panel) when it sits in one, otherwise the
+ * viewport. The card keeps its regular padding on phones. No page may scroll sideways. Deliberately narrow components and the two
  * intentional tapers Ben asked for are allowlisted below. */
 import puppeteer from "puppeteer-core";
 
@@ -39,7 +40,14 @@ for (const [w, h] of WIDTHS) {
         const taper = el.closest(tapers.join(","));
         const r = el.getBoundingClientRect();
         if (!r.width || !(el.textContent || "").trim()) continue;
-        const share = r.width / vw;
+        const card = el.closest(".panel");
+        let avail = vw;
+        if (card) {
+          const cs = getComputedStyle(card);
+          avail = card.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+            - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+        }
+        const share = r.width / avail;
         if (share < min) {
           const chain = []; let n = el;
           while (n && n !== document.body && chain.length < 5) { chain.push(n.tagName.toLowerCase() + (n.className && typeof n.className === "string" ? "." + n.className.trim().split(/\s+/).join(".") : "")); n = n.parentElement; }

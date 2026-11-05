@@ -3266,14 +3266,8 @@ textarea {
 /* Mobile text width (below 640px): body text uses the full content width.
    Desktop is untouched; every rule here is inside this query. */
 @media (max-width: 639px) {
-  /* The card's border and inner padding stacked on the page gutter and left text at ~79% of a
-     320px screen. On phones the card keeps its background, border and radius, but reaches into
-     the page gutter and uses tighter padding so text still spans at least 85% of the screen. */
-  .panel {
-    margin-inline: -12px;
-    padding: 20px 10px 16px;
-  }
-
+  /* The card keeps its regular padding and margin on phones. Inside it, the list indent is
+     trimmed so list text uses the card's full content width. */
   .panel ul,
   .panel ol {
     padding-left: 1rem;
@@ -3303,8 +3297,8 @@ textarea {
     gap: 8px;
   }
 
-  /* Texas Proposal mission callout: its 18px padding inside the gutter left ~77%.
-     On phones the callout reaches to the card's inner edge so its text lines up with body text. */
+  /* Texas Proposal mission callout: its 18px padding inside the card squeezed its text.
+     On phones the callout reaches toward the card's edge with tighter padding. */
   .proposal-mission {
     margin-inline: -10px;
     padding: 18px 10px 18px 6px;

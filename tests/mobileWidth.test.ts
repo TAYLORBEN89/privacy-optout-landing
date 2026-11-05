@@ -18,10 +18,10 @@ function mobileBlock(): string {
 }
 
 describe("mobile text width CSS", () => {
-  it("flattens the panel and un-indents the hash steps and privacy list only below 640px", () => {
+  it("trims list indents and un-indents the hash steps and privacy list only below 640px", () => {
     const block = mobileBlock();
     expect(block.startsWith("@media (max-width: 639px) {")).toBe(true);
-    for (const sel of [".panel {", ".hash-flow li {", ".hash-badge {", ".privacy-list li {", ".proposal-mission {"]) {
+    for (const sel of [".panel ul,", ".hash-flow li {", ".hash-badge {", ".privacy-list li {", ".proposal-mission {"]) {
       expect(block, sel).toContain(sel);
     }
     expect(css.trimEnd().endsWith(block)).toBe(true);
@@ -29,8 +29,7 @@ describe("mobile text width CSS", () => {
 
   it("keeps the card look on mobile and drops only the hash-step connector line", () => {
     const block = mobileBlock();
-    const panel = block.slice(block.indexOf(".panel {"), block.indexOf("}", block.indexOf(".panel {")));
-    expect(panel).not.toMatch(/background|border|box-shadow/);
+    expect(block).not.toContain(".panel {");
     const step = block.slice(block.indexOf(".hash-flow li {"), block.indexOf("}", block.indexOf(".hash-flow li {")));
     expect(step).toContain("border-left: 0");
   });
@@ -45,5 +44,6 @@ describe("mobile text width CSS", () => {
     expect(src).toContain('INTENTIONAL_TAPERS = [".hero-stagger", ".personal-body"]');
     expect(src).toContain("MIN_SHARE = 0.85");
     expect(src).toContain("sideways scroll");
+    expect(src).toContain('el.closest(".panel")');
   });
 });
