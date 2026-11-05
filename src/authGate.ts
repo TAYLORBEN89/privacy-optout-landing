@@ -44,7 +44,7 @@ const PROVIDER_START = {
 
 /** Same-origin start URL for Google or Microsoft. No other provider. */
 export function providerStartHref(provider: "google" | "microsoft", returnTo: string | null): string {
-  const safe = returnTo && isSafeReturnPath(returnTo) ? returnTo : "/start";
+  const safe = returnTo && isSafeReturnPath(returnTo) ? returnTo : "/account";
   return `${PROVIDER_START[provider]}?return_to=${encodeURIComponent(safe)}`;
 }
 

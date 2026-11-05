@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
     "worker:dev": "wrangler dev",
     "cf-typegen": "wrangler types",
-    "auth:smoke": "node scripts/auth-smoke.mjs"
+    "auth:smoke": "node scripts/auth-smoke.mjs",
+    "auth:live": "node scripts/auth-live.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

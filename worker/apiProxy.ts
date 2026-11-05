@@ -19,7 +19,6 @@ const ROUTES: ReadonlyArray<{ methods: readonly string[]; path: RegExp }> = [
   { methods: ["GET"], path: new RegExp(`^/api/auth/${P}/start$`) },
   { methods: ["GET"], path: /^\/api\/auth\/complete$/ },
   { methods: ["POST"], path: /^\/api\/auth\/logout$/ },
-  { methods: ["POST"], path: /^\/api\/auth\/stepup\/password$/ },
   { methods: ["POST"], path: new RegExp(`^/api/auth/${P}/stepup$`) },
   { methods: ["GET", "PATCH"], path: /^\/api\/account\/profile$/ },
   { methods: ["GET"], path: /^\/api\/account\/optouts$/ },

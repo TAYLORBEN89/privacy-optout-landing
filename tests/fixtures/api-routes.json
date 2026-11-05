@@ -6,7 +6,6 @@
     ["GET", "^/api/auth/complete$"],
     ["GET", "^/api/me$"],
     ["POST", "^/api/auth/logout$"],
-    ["POST", "^/api/auth/stepup/password$"],
     ["POST", "^/api/auth/(google|microsoft)/stepup$"],
     ["POST", "^/api/account/identities/(google|microsoft)/link$"],
     ["DELETE", "^/api/account/identities/(google|microsoft)$"],

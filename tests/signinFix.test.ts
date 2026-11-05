@@ -95,7 +95,7 @@ describe("return_to", () => {
     }
     expect(signInHrefFor("/account")).toBe("/signin?return_to=%2Faccount");
     expect(providerStartHref("google", "/account")).toBe("/api/auth/google/start?return_to=%2Faccount");
-    expect(providerStartHref("google", "//evil.example")).toBe("/api/auth/google/start?return_to=%2Fstart");
+    expect(providerStartHref("google", "//evil.example")).toBe("/api/auth/google/start?return_to=%2Faccount");
   });
 
   it("header sign-in icon returns to /account and the header has no Menu or nav", () => {
@@ -110,5 +110,21 @@ describe("profile path", () => {
     expect(ACCOUNT_PROFILE_PATH).toBe("/api/account/profile");
     const src = readFileSync("src/api/account.ts", "utf8");
     expect(src).not.toMatch(/["'`]\/api\/profile/);
+  });
+});
+
+describe("follow-ups", () => {
+  it("rejects POST /api/auth/stepup/password at the proxy", async () => {
+    expect(proxyAllowed("POST", "/api/auth/stepup/password")).toBe(false);
+    const { response, sent } = await forward("POST", "/api/auth/stepup/password", "__Host-sid=s");
+    expect(response.status).toBe(404);
+    expect(sent).toBeNull();
+  });
+
+  it("/signin with no or unsafe return_to sends the provider to /account", () => {
+    for (const bad of [null, "", "//evil.example", "https://evil.example/", "/\\evil.example", "/elsewhere"]) {
+      expect(providerStartHref("google", bad as string | null), String(bad)).toBe("/api/auth/google/start?return_to=%2Faccount");
+    }
+    expect(providerStartHref("microsoft", "/start?for=child")).toBe("/api/auth/microsoft/start?return_to=%2Fstart%3Ffor%3Dchild");
   });
 });

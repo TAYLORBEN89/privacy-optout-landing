@@ -29,7 +29,6 @@ describe("allowlist", () => {
       ["GET", "/api/auth/microsoft/start"],
       ["GET", "/api/auth/complete?code=abc"],
       ["POST", "/api/auth/logout"],
-      ["POST", "/api/auth/stepup/password"],
       ["POST", "/api/auth/google/stepup"],
       ["GET", "/api/account/profile"],
       ["PATCH", "/api/account/profile"],
