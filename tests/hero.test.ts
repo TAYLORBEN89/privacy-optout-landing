@@ -5,20 +5,21 @@ describe("hero copy", () => {
   it("uses Privacy is a right as the headline and a subline under it", () => {
     const source = readFileSync("src/pages/HomePage.tsx", "utf8");
     const hero = source.slice(source.indexOf('id="overview"'), source.indexOf('className="explore"'));
-    expect(hero).toContain("Texas data broker opt-out");
+    expect(hero).toContain("<h1 id=\"page-title\">Privacy is a right.</h1>");
+    const focus = hero.slice(hero.indexOf('<p className="hero-focus hero-stagger">'), hero.indexOf("</p>", hero.indexOf("hero-stagger")));
+    const segments = [...focus.matchAll(/\{"([^"]*)"\}/g)].map((m) => m[1]).join("");
+    expect(segments).toBe("DROP Texas is a free data broker delete and request opt-out platform that helps Texans gain control of their data. Your data. Your rules.");
+    expect(hero.match(/<p className="hero-focus/g)).toHaveLength(1);
     expect(hero).toContain("Let's get you started.");
     expect(hero.match(/<h1/g)).toHaveLength(1);
     expect(hero).not.toContain("for the people");
     expect(hero).not.toContain("Demanding privacy");
     expect(hero).not.toContain("by the people");
-    expect(hero).toContain('<span className="hero-rule">DROP Texas is a free service that helps you </span>');
-    expect(hero).toContain('<span className="hero-rule">gain control of your data. </span>');
-    expect(hero).toContain('<span className="hero-rule">Your data. Your rules.</span>');
+    expect(hero).not.toContain("DROP Texas is a free service that helps you");
     expect(hero).not.toContain("<br");
     expect(hero).not.toContain("Your data, your rules.");
     expect(hero).not.toContain("to request data brokers not sell their personal information");
-    expect(hero.match(/className="lede hero-line"/g)).toHaveLength(1);
-    expect(hero.match(/<p className="lede hero-line"/g)).toHaveLength(1);
+    expect(hero).not.toContain('className="lede hero-line"');
     expect(hero).not.toContain("You can ask data brokers to delete");
     expect(hero).not.toContain("If you live in Texas, check the box");
     expect(hero).not.toContain('className="lede note"');

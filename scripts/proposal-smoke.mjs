@@ -1,13 +1,17 @@
-/** Fetch /texas-proposal after deploy and confirm the page and header link shipped. */
+/** Fetch /texas-proposal after deploy and confirm the page, the hero link, and a link-free header shipped. */
 
 export function proposalSmokeProblems(text) {
   const problems = [];
   if (!text.includes("The Texas Proposal")) problems.push("missing The Texas Proposal heading");
-  const hasLink =
+  const hasHref =
     text.includes('href="/texas-proposal"') ||
     text.includes("href='/texas-proposal'") ||
-    text.includes("href:`/texas-proposal`");
-  if (!hasLink) problems.push("missing header link to /texas-proposal");
+    text.includes("href:`/texas-proposal`") ||
+    text.includes('href:"/texas-proposal"');
+  const hasHeroLink = hasHref && text.includes("hero-proposal-link") && text.includes("Read the Texas Proposal");
+  if (!hasHeroLink) problems.push("missing hero 'Read the Texas Proposal' link to /texas-proposal");
+  if (/proposal-link-desktop|proposal-menu|header-nav/.test(text)) problems.push("header still has a Texas Proposal link or Menu");
+  if (/children:\s*["'`]Menu["'`]|>Menu</.test(text)) problems.push("header still has a Menu button");
   return problems;
 }
 

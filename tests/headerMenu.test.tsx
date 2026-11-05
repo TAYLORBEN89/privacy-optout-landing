@@ -21,6 +21,14 @@ describe("header menu", () => {
     expect(link.getAttribute("aria-hidden")).toBeNull();
   });
 
+  it("uses the hills nav background and keeps the account button in the header", () => {
+    render(<Header signedIn={false} csrf={null} onSignedOut={() => undefined} />);
+    const header = document.querySelector("header");
+    expect(header?.classList.contains("topbar")).toBe(true);
+    expect(header?.classList.contains("topbar--hills")).toBe(true);
+    expect(header?.querySelector("a.account-button")).toBeTruthy();
+  });
+
   it("links the account icon to /account when signed in", () => {
     render(<Header signedIn csrf="tok" onSignedOut={() => undefined} />);
     const account = screen.getByRole("link", { name: "Account" });

@@ -6,20 +6,51 @@ import { RightsSection } from "../components/Rights";
 import { ValuesSection } from "../components/Values";
 import { Stats } from "../components/Stats";
 import { AppLink } from "../router";
+import hero1280Jpg from "../assets/hero/hero-photo-1280.jpg";
+import hero1280Webp from "../assets/hero/hero-photo-1280.webp";
+import hero1744Jpg from "../assets/hero/hero-photo-1744.jpg";
+import hero1744Webp from "../assets/hero/hero-photo-1744.webp";
+import heroLeftJpg from "../assets/hero/hero-photo-left-640.jpg";
+import heroLeftWebp from "../assets/hero/hero-photo-left-640.webp";
 import { storageNotice } from "../../worker/storage";
 
 export function HomePage({ getStartedHref }: { getStartedHref: string }) {
   return (
     <>
-      <section id="overview" className="hero" aria-labelledby="page-title">
+      <section id="overview" className="hero hero--hills" aria-labelledby="page-title">
+        <picture className="hero-bg" aria-hidden="true">
+          <source media="(max-width: 640px)" type="image/webp" srcSet={`${heroLeftWebp} 640w`} sizes="100vw" />
+          <source media="(max-width: 640px)" type="image/jpeg" srcSet={`${heroLeftJpg} 640w`} sizes="100vw" />
+          <source type="image/webp" srcSet={`${hero1280Webp} 1280w, ${hero1744Webp} 1744w`} sizes="100vw" />
+          <img
+            src={hero1744Jpg}
+            srcSet={`${hero1280Jpg} 1280w, ${hero1744Jpg} 1744w`}
+            sizes="100vw"
+            width={1744}
+            height={1136}
+            alt=""
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+          />
+        </picture>
         <div className="hero-inner">
-            <h1 id="page-title">Texas data broker opt-out</h1>
+            <h1 id="page-title">Privacy is a right.</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
-            <p className="hero-focus">DROP Texas is a free Texas data broker opt-out for Texans.</p>
-            <p className="lede hero-line">
-              <span className="hero-rule">DROP Texas is a free service that helps you </span>
-              <span className="hero-rule">gain control of your data. </span>
-              <span className="hero-rule">Your data. Your rules.</span>
+            <p className="hero-focus hero-stagger">
+              {"DROP Texas is a free data broker delete"}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" and request opt-out platform"}
+              <span className="stagger-br stagger-br--d" aria-hidden="true" />
+              {" that"}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" helps Texans gain control of"}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" their data."}
+              <span className="stagger-br stagger-br--d" aria-hidden="true" />
+              {" Your data."}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" Your rules."}
             </p>
             <AppLink className="cta" href={getStartedHref}>
               Start my opt-out

@@ -9,12 +9,12 @@ import { NAV_ITEMS } from "../src/navItems";
 
 const BLURBS = [
   "Ask brokers to stop selling your information. No fee to send it.",
-  "Fill out one form. We send the opt-out requests to the brokers.",
+  "Fill out one form. You send the opt-out requests to the brokers. Our goal is one form for every data broker: One place. One form. One click.",
   "We ask only for what a broker needs, and we never sell it.",
   "One request goes to companies that trade your name and phone.",
   "Your name, birth date, and address help match your record.",
   "Texas law gives you the right to opt out of the sale of your data.",
-  "Answers on what we send, what we keep, and what we skip.",
+  "Answers on what you send, what we keep, and what we skip.",
   "Pass this page to a Texan who wants their data sold less often.",
 ];
 

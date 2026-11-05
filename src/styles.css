@@ -65,6 +65,20 @@ body {
   line-height: 1.45;
 }
 
+.proposal-banner {
+  display: block;
+  margin: 0 0 28px;
+}
+
+.proposal-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  border-radius: 8px;
+  background: #0f1c33;
+}
+
 .proposal-quote {
   font-style: italic;
   font-weight: 700;
@@ -2965,6 +2979,48 @@ textarea {
   border-radius: 2px;
 }
 
+/* Site-wide nav bar: text-free hills crop from the X banner, with a dark overlay for contrast. */
+.topbar--hills {
+  background-color: #0b1628;
+  background-image:
+    linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+    url("./assets/banner/nav-hills-750.jpg");
+  background-image:
+    linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+    image-set(url("./assets/banner/nav-hills-750.webp") type("image/webp"), url("./assets/banner/nav-hills-750.jpg") type("image/jpeg"));
+  background-size: cover;
+  background-position: center bottom;
+  border-bottom-color: #0b1628;
+}
+
+@media (min-width: 768px) {
+  .topbar--hills {
+    background-image:
+      linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+      url("./assets/banner/nav-hills-1500.jpg");
+    background-image:
+      linear-gradient(rgba(6, 14, 30, 0.45), rgba(6, 14, 30, 0.45)),
+      image-set(url("./assets/banner/nav-hills-1500.webp") type("image/webp"), url("./assets/banner/nav-hills-1500.jpg") type("image/jpeg"));
+  }
+}
+
+.topbar--hills .brand,
+.topbar--hills .sign-out,
+.topbar--hills .sign-in-link {
+  color: #fff;
+}
+
+.topbar--hills .tagline {
+  color: #d6deea;
+}
+
+.topbar--hills .brand-home:focus-visible,
+.topbar--hills .account-button:focus-visible,
+.topbar--hills .sign-out:focus-visible {
+  outline-color: #fff;
+}
+
+
 /* Keep the account icon on screen: the brand shrinks (tagline ellipsizes), the icon never does. */
 .topbar-inner {
   box-sizing: border-box;
@@ -2980,4 +3036,229 @@ textarea {
 .topbar-inner .account,
 .topbar-inner .account-button {
   flex: none;
+}
+
+/* Homepage hero over the text-free hills image. */
+.hero.hero--hills {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 72px 0 72px;
+  border-radius: 12px;
+  background: #0b1628;
+}
+
+.hero-bg,
+.hero-bg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-bg {
+  z-index: -1;
+}
+
+.hero-bg img {
+  display: block;
+  object-fit: cover;
+  object-position: center 55%;
+}
+
+.hero-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 14, 30, 0.4) 0%, rgba(6, 14, 30, 0.15) 50%, rgba(6, 14, 30, 0.45) 100%);
+}
+
+.hero--hills h1,
+.hero--hills .hero-sub {
+  color: #fff;
+}
+
+.hero--hills .hero-focus,
+.hero--hills .lede,
+.hero--hills p {
+  color: #e6ebf2;
+}
+
+.hero--hills .lede.hero-line {
+  color: #c9d3e0;
+}
+
+.hero--hills .hero-proposal-link {
+  color: #fff;
+}
+
+.hero--hills .hero-proposal-link:hover {
+  color: #c9d3e0;
+}
+
+.hero--hills .hero-proposal-link:focus-visible,
+.hero--hills .cta:focus-visible {
+  outline-color: #fff;
+}
+
+@media (max-width: 640px) {
+  .hero.hero--hills {
+    padding: 48px 0 56px;
+    border-radius: 10px;
+  }
+
+  .hero--hills .hero-inner {
+    padding-inline: 4px;
+  }
+
+  .hero-bg img {
+    object-position: left center;
+  }
+}
+
+/* Square benefit cards: trim the space above and below the icon instead of shrinking text. */
+.feature-card {
+  aspect-ratio: 1 / 1;
+  justify-content: center;
+  padding: 34px 18px 18px;
+}
+
+.feature-card .benefit-art {
+  width: 80px;
+  height: 80px;
+  flex: none;
+}
+
+.feature-card h3 {
+  margin: 6px 0 6px;
+}
+
+.feature-card .feature-btn {
+  margin-top: 12px;
+}
+
+@media (max-width: 639px) {
+  .feature-card {
+    padding: 30px 14px 14px;
+  }
+
+  .feature-card .benefit-art {
+    width: 64px;
+    height: 64px;
+  }
+
+  .feature-card h3 {
+    margin: 4px 0 4px;
+  }
+
+  .feature-card p {
+    max-width: none;
+  }
+
+  .feature-card .feature-btn {
+    margin-top: 10px;
+  }
+}
+
+/* Mobile: hero fills most of the first screen, with the Explore label peeking in at the bottom. */
+@media (max-width: 639px) {
+  .hero.hero--hills {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: calc(100vh - 170px);
+    min-height: calc(100svh - 170px);
+  }
+
+  .hero.hero--hills + .explore,
+  .hero--hills ~ .explore {
+    margin-top: 40px;
+  }
+}
+
+/* Tablet and desktop: scale card content with the card so it fills more of each square. */
+@media (min-width: 640px) {
+  .feature-card {
+    container-type: inline-size;
+    padding: 36px 24px 22px;
+  }
+
+  .feature-card .benefit-art {
+    width: clamp(80px, 30cqi, 150px);
+    height: clamp(80px, 30cqi, 150px);
+  }
+
+  .feature-card h3 {
+    margin: 2.5cqi 0 2cqi;
+    font-size: clamp(28px, 8.6cqi, 42px);
+  }
+
+  .feature-card p {
+    max-width: 22em;
+    font-size: clamp(17px, 5cqi, 23px);
+  }
+
+  .feature-card .feature-btn {
+    margin-top: clamp(12px, 3.5cqi, 22px);
+    padding: clamp(10px, 2.4cqi, 14px) clamp(16px, 3.6cqi, 22px);
+    font-size: clamp(13px, 3.3cqi, 16px);
+  }
+}
+
+/* Short phones (e.g. 320x568): tighten hero spacing only so the Explore label stays on the first screen. Text sizes unchanged. */
+@media (max-width: 639px) and (max-height: 600px) {
+  .hero.hero--hills {
+    padding: 24px 0 24px;
+  }
+
+  .hero--hills .cta {
+    margin-top: 20px;
+  }
+
+  .hero.hero--hills + .explore,
+  .hero--hills ~ .explore {
+    margin-top: 20px;
+  }
+}
+
+/* Full-bleed hero banner: the hills photo spans the viewport edge to edge; text stays centered and constrained. */
+.hero.hero--hills {
+  margin-inline: calc(50% - 50vw);
+  border-radius: 0;
+}
+
+.hero.hero--hills .hero-inner {
+  box-sizing: border-box;
+  width: min(1100px, 100%);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+/* Under 360px: narrower side padding so the longest staggered line fits the text box at 16px. */
+@media (max-width: 359px) {
+  .hero.hero--hills .hero-inner {
+    padding-inline: 12px;
+  }
+}
+
+/* Hero description as an inverted pyramid: controlled breaks only, longest line on top. One <p>, same text. */
+.hero-stagger {
+  white-space: nowrap;
+}
+
+.stagger-br {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .stagger-br--d {
+    display: block;
+  }
+}
+
+@media (max-width: 639px) {
+  .stagger-br--m {
+    display: block;
+  }
 }

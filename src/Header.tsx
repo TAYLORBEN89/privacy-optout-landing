@@ -10,7 +10,6 @@ export function Header({
   signedIn: boolean;
   csrf: string | null;
   onSignedOut: () => void;
-  path?: string;
 }) {
   async function signOut() {
     if (!csrf) return;
@@ -23,7 +22,7 @@ export function Header({
   }
 
   return (
-    <header className="topbar">
+    <header className="topbar topbar--hills">
       <div className="topbar-inner">
         <AppLink className="brand-home" href="/">
           <Wordmark header />
