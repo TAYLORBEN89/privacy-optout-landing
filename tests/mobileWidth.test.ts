@@ -27,6 +27,14 @@ describe("mobile text width CSS", () => {
     expect(css.trimEnd().endsWith(block)).toBe(true);
   });
 
+  it("keeps the card look on mobile and drops only the hash-step connector line", () => {
+    const block = mobileBlock();
+    const panel = block.slice(block.indexOf(".panel {"), block.indexOf("}", block.indexOf(".panel {")));
+    expect(panel).not.toMatch(/background|border|box-shadow/);
+    const step = block.slice(block.indexOf(".hash-flow li {"), block.indexOf("}", block.indexOf(".hash-flow li {")));
+    expect(step).toContain("border-left: 0");
+  });
+
   it("does not touch the intentional tapers", () => {
     const block = mobileBlock();
     expect(block).not.toMatch(/hero-stagger|hero-focus|personal-body|personal-line|stagger-br/);
