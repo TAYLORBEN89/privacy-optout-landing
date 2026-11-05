@@ -3223,10 +3223,6 @@ textarea {
 }
 
 /* Full-bleed hero banner: the hills photo spans the viewport edge to edge; text stays centered and constrained. */
-body {
-  overflow-x: clip;
-}
-
 .hero.hero--hills {
   margin-inline: calc(50% - 50vw);
   border-radius: 0;
@@ -3239,13 +3235,10 @@ body {
   padding-inline: 24px;
 }
 
-@media (max-width: 640px) {
-  .hero.hero--hills {
-    border-radius: 0;
-  }
-
+/* Under 360px: narrower side padding so the longest staggered line fits the text box at 16px. */
+@media (max-width: 359px) {
   .hero.hero--hills .hero-inner {
-    padding-inline: 24px;
+    padding-inline: 12px;
   }
 }
 

@@ -9,6 +9,7 @@
     "seo:audit": "node scripts/seo-audit.mjs",
     "signin:smoke": "node scripts/signin-smoke.mjs",
     "proposal:smoke": "node scripts/proposal-smoke.mjs",
+    "hero:fit": "node scripts/hero-fit-check.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
