@@ -37,7 +37,21 @@ export function HomePage({ getStartedHref }: { getStartedHref: string }) {
         <div className="hero-inner">
             <h1 id="page-title">Privacy is a right.</h1>
             <h2 className="hero-sub">Let's get you started.</h2>
-            <p className="hero-focus">DROP Texas is a free data broker delete and request opt-out platform that helps Texans gain control of their data. Your data. Your rules.</p>
+            <p className="hero-focus hero-stagger">
+              {"DROP Texas is a free data broker delete"}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" and request opt-out platform"}
+              <span className="stagger-br stagger-br--d" aria-hidden="true" />
+              {" that"}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" helps Texans gain control of"}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" their data."}
+              <span className="stagger-br stagger-br--d" aria-hidden="true" />
+              {" Your data."}
+              <span className="stagger-br stagger-br--m" aria-hidden="true" />
+              {" Your rules."}
+            </p>
             <AppLink className="cta" href={getStartedHref}>
               Start my opt-out
             </AppLink>

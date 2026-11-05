@@ -6,7 +6,10 @@ describe("hero copy", () => {
     const source = readFileSync("src/pages/HomePage.tsx", "utf8");
     const hero = source.slice(source.indexOf('id="overview"'), source.indexOf('className="explore"'));
     expect(hero).toContain("<h1 id=\"page-title\">Privacy is a right.</h1>");
-    expect(hero).toContain("DROP Texas is a free data broker delete and request opt-out platform that helps Texans gain control of their data. Your data. Your rules.");
+    const focus = hero.slice(hero.indexOf('<p className="hero-focus hero-stagger">'), hero.indexOf("</p>", hero.indexOf("hero-stagger")));
+    const segments = [...focus.matchAll(/\{"([^"]*)"\}/g)].map((m) => m[1]).join("");
+    expect(segments).toBe("DROP Texas is a free data broker delete and request opt-out platform that helps Texans gain control of their data. Your data. Your rules.");
+    expect(hero.match(/<p className="hero-focus/g)).toHaveLength(1);
     expect(hero).toContain("Let's get you started.");
     expect(hero.match(/<h1/g)).toHaveLength(1);
     expect(hero).not.toContain("for the people");

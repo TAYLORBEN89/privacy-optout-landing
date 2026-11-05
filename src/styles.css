@@ -3248,3 +3248,24 @@ body {
     padding-inline: 24px;
   }
 }
+
+/* Hero description as an inverted pyramid: controlled breaks only, longest line on top. One <p>, same text. */
+.hero-stagger {
+  white-space: nowrap;
+}
+
+.stagger-br {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .stagger-br--d {
+    display: block;
+  }
+}
+
+@media (max-width: 639px) {
+  .stagger-br--m {
+    display: block;
+  }
+}
