@@ -28,13 +28,21 @@ const SPECIAL_LATIN = {
 export const TRANSLIT = { ...GREEK, ...CYRILLIC, ...SPECIAL_LATIN };
 const translit = (s) => Array.from(s, (c) => (c in TRANSLIT ? TRANSLIT[c] : c)).join('');
 
+// CPPA DROP spec: "Leave Chinese, Japanese, Korean, Arabic, and Hebrew characters unchanged." These scripts are never
+// decomposed or accent-folded (so Hangul syllables stay whole syllables, kana keep their voicing marks and Hebrew
+// presentation forms are not split). Lowercasing has no effect on them; the final letter/digit filter still removes
+// spaces, punctuation and standalone combining marks (e.g. Arabic harakat, Hebrew niqqud), like any other script.
+const UNCHANGED = /[\p{Script=Han}\p{Script=Bopomofo}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Arabic}\p{Script=Hebrew}]/u;
+const foldAccents = (s) =>
+  Array.from(s, (c) => (UNCHANGED.test(c) ? c : c.normalize('NFD').replace(/\p{M}/gu, ''))).join('');
+
 // Names (first and last are separate fields): lowercase, apply the DROP mapping (precomposed Greek accents included),
-// fold remaining accents (NFD, drop combining marks), map again for any base letter exposed by NFD, then drop every
-// non-letter/non-digit (spaces, hyphens, apostrophes, punctuation, symbols). CJK, Arabic and Hebrew stay unchanged.
+// fold remaining accents (NFD, drop combining marks) except in the unchanged scripts above, map again for any base
+// letter exposed by NFD, then drop every non-letter/non-digit (spaces, hyphens, apostrophes, punctuation, symbols).
 export function stdName(v) {
   if (v == null) return null;
   let s = translit(String(v).toLowerCase());
-  s = translit(s.normalize('NFD').replace(/\p{M}/gu, '')).replace(/[^\p{L}\p{N}]/gu, '');
+  s = translit(foldAccents(s)).replace(/[^\p{L}\p{N}]/gu, '');
   return s || null;
 }
 

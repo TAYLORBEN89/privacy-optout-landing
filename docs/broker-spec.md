@@ -40,6 +40,24 @@ We use the official DROP Transliteration Mapping, character for character. Sourc
 
 Examples (synthetic): `Νίκος` → `nikos`, `Παπαδόπουλος` → `papadopoylos`, `Щербаков` → `shcherbakov`, `Мар'яна` → `maryana`.
 
+### 2b. Chinese, Japanese, Korean, Arabic and Hebrew
+
+Per the CPPA DROP spec ("Leave Chinese, Japanese, Korean, Arabic, and Hebrew characters unchanged."), characters in
+these scripts (Han, Bopomofo, Hiragana, Katakana, Hangul, Arabic, Hebrew) are not decomposed, accent-folded or
+transliterated. Hangul syllables stay as precomposed syllables (not split into jamo), kana keep their voicing marks
+(`が` stays `が`), and compatibility ideographs and presentation forms are not normalized. Lowercasing does not affect
+them. Spaces, punctuation and standalone combining marks (for example Arabic harakat or Hebrew niqqud) are still
+removed by the non-letter/non-digit rule. The CPPA page gives no example in these scripts; the examples below are
+synthetic (SHA-256, UTF-8, Base64):
+
+| Input | Standardized | SHA-256 Base64 |
+| --- | --- | --- |
+| `김민준` | `김민준` | `C0bQOwszVeZxee+m9k9OZGGvd9xXcUK44HSbZxiKOp8=` |
+| `がぎぐ` | `がぎぐ` | `yLiJDBiIpKEMtAn9aoSKmhWh7fnu2vgkdzte79R+H50=` |
+| `李 小龍` | `李小龍` | `wfoaX9MbKlwbR47X8crG6xSgRNyrodgSFfxyxU6svvY=` |
+| `מֹשֶׁה` | `משה` | `ZUdhoKhBwmlHaa+Vt5JoXqOmBwv1lo4DO5GmgWlc9vA=` |
+| `محمد` | `محمد` | `DLTJshBi3k0sDt1I78n6hrl/3IpqTn+nCSVE+E4SH2E=` |
+
 ## 3. Hashing
 
 - Algorithm: SHA-256
