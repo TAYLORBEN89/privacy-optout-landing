@@ -1,8 +1,8 @@
 import { DISCLAIMER } from "../copy";
 import { HashFlow } from "../components/HashFlow";
 
-/** Placeholder until the starter kit repo is published. Do not point this at a repo that does not exist. */
-export const STARTER_KIT_URL = "#starter-kit-coming-soon";
+/** The published broker starter kit. */
+export const STARTER_KIT_URL = "https://github.com/TAYLORBEN89/drop-texas-broker-starter-kit";
 
 const TECH_URL = "https://privacy.ca.gov/drop-for-data-brokers/technical-specifications/working-with-data/";
 const REG_URL = "https://cppa.ca.gov/regulations/pdf/data_broker_drop_reg.pdf";
@@ -92,12 +92,11 @@ export function ForBrokersPage() {
       <section aria-labelledby="for-brokers-kit">
         <h2 id="for-brokers-kit">Starter kit</h2>
         <p>
-          A starter kit for brokers is being built. It will cover the standardize and hash steps above.
-          The link below is a placeholder until the kit is published.
+          The starter kit covers the standardize and hash steps above.
         </p>
         <p>
-          <a className="starter-kit-link" href={STARTER_KIT_URL} aria-disabled="true">
-            Starter kit (not published yet)
+          <a className="starter-kit-link" href={STARTER_KIT_URL} target="_blank" rel="noopener noreferrer">
+            Starter kit on GitHub
           </a>
         </p>
         <p>Questions: help@droptexas.com.</p>

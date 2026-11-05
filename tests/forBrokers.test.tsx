@@ -59,12 +59,16 @@ describe("/for-brokers", () => {
     expect(text()).toContain("DROP Texas is built to SOC 2 standards.");
   });
 
-  it("links the starter kit to a marked placeholder, not a repo", () => {
+  it("links the published starter kit in a new tab", () => {
     render(<ForBrokersPage />);
-    expect(STARTER_KIT_URL).toBe("#starter-kit-coming-soon");
-    const link = screen.getByRole("link", { name: "Starter kit (not published yet)" });
+    expect(STARTER_KIT_URL).toBe("https://github.com/TAYLORBEN89/drop-texas-broker-starter-kit");
+    const link = screen.getByRole("link", { name: "Starter kit on GitHub" });
     expect(link.getAttribute("href")).toBe(STARTER_KIT_URL);
-    expect(document.querySelector('a[href*="github.com"]')).toBeNull();
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.hasAttribute("aria-disabled")).toBe(false);
+    expect(text()).toContain("The starter kit covers the standardize and hash steps above.");
+    expect(text()).not.toMatch(/being built|placeholder|not published yet/);
   });
 
   it("leaves the header unchanged: logo and account icon only, no link to the page", () => {
