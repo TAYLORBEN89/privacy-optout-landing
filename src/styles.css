@@ -3262,3 +3262,53 @@ textarea {
     display: block;
   }
 }
+
+/* Mobile text width (below 640px): body text uses the full content width.
+   Desktop is untouched; every rule here is inside this query. */
+@media (max-width: 639px) {
+  /* The card's border and inner padding stacked on the page gutter and left text at ~79% of a
+     320px screen. On phones the panel sits flat on the page so text spans the gutter-to-gutter width. */
+  .panel {
+    padding: 20px 0 16px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .panel ul,
+  .panel ol {
+    padding-left: 1rem;
+  }
+
+  /* Hash steps: the 36px badge column plus the list indent squeezed step text to ~56%.
+     The badge moves above its heading instead. */
+  .panel .hash-flow {
+    padding-left: 0;
+  }
+
+  .hash-flow li {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .hash-badge {
+    position: static;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  /* Privacy list: the icon column and 14px gap took ~28% of a 320px screen. Icon goes above. */
+  .privacy-list li {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Texas Proposal mission callout: its 18px padding inside the gutter left ~77%.
+     On phones the callout bleeds into the page gutter so its text lines up with body text. */
+  .proposal-mission {
+    margin-inline: -16px;
+    padding: 18px 16px 18px 12px;
+  }
+}
