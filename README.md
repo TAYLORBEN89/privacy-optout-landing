@@ -218,7 +218,7 @@ npm run check            # wrangler deploy --dry-run
   3. Each old credential is re-wrapped to the new kid the next time it authenticates (audited as `credential.rewrapped`).
   4. Check `GET /admin/broker-delivery/credential-keys` until `on_old_kids` is 0, or revoke and re-issue the stragglers.
   5. Remove the old kid from the map. Any credential still on it stops working.
-- Signups: the daily `signup_finish` job sets `finished_at` once every list a signup is on is 90 days old (45-day window + extension); signups then follow the 24-month clock. Texas broker requests stay at 3 years.
+- Signups: the daily `signup_finish` job sets `finished_at` once every list a signup is on is 90 days old (45-day window + extension); signups then follow the 24-month clock. A finished signup that is re-listed is unfinished again until 90 days after the new list. Issuing a credential with `BROKER_CRED_KEYS` unset/invalid or `BROKER_CRED_ACTIVE_KID` not in the map returns `503 {"error":"broker_cred_misconfigured"}` (logged without key material). Texas broker requests stay at 3 years.
 - A failed list save is loud: a counts-only `list.save_failed` audit row, a `scheduled_job` error log for `broker_lists`, and the requests are listed again next run. Broker data ages from the finish point (status received, or list issue + 90 days), and download/credential audit history is dropped 24 months after each event.
 
 ## Adding a new opt-out service

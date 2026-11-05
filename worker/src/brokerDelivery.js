@@ -40,9 +40,15 @@ export function loadCredKeys(env) {
   keyCache.set(env, out);
   return out;
 }
+// Thrown when BROKER_CRED_KEYS is unset/invalid or BROKER_CRED_ACTIVE_KID isn't in it. Carries no key material.
+export class BrokerCredConfigError extends Error {
+  constructor(reason) { super('BROKER_CRED_ACTIVE_KID is not a key in BROKER_CRED_KEYS'); this.name = 'BrokerCredConfigError'; this.reason = reason; }
+}
 export function activeKeyKid(env) {
+  const keys = loadCredKeys(env);
   const k = String(env.BROKER_CRED_ACTIVE_KID || '');
-  if (!loadCredKeys(env).has(k)) throw new Error('BROKER_CRED_ACTIVE_KID is not a key in BROKER_CRED_KEYS');
+  if (!keys.size) throw new BrokerCredConfigError('no_valid_keys');
+  if (!keys.has(k)) throw new BrokerCredConfigError('active_kid_missing');
   return k;
 }
 const DUMMY_KEY = new Uint8Array(32);
@@ -143,6 +149,7 @@ const ERR = {
   403: () => jsonRes({ error: 'forbidden' }, 403),
   404: () => jsonRes({ error: 'not found' }, 404),
   413: () => jsonRes({ error: 'too large' }, 413),
+  503: () => jsonRes({ error: 'broker_cred_misconfigured' }, 503),
   429: (s) => jsonRes({ error: 'rate limited' }, 429, { 'Retry-After': String(s) }),
 };
 export const isBrokerPath = (p) => p.startsWith('/broker/v1/') || p === '/broker/v1' || p.startsWith('/admin/broker-delivery/');
@@ -229,7 +236,13 @@ export async function handleBroker(req, env, at = now()) {
     }
     if (m === 'GET' && p === '/admin/broker-delivery/credential-keys') return jsonRes(await credentialKeyReport(env, at));
     if (m === 'POST' && (g = p.match(/^\/admin\/broker-delivery\/brokers\/([a-z0-9_-]{2,40})\/credentials$/))) {
-      try { return jsonRes(await issueCredential(env, g[1], { at }), 201); } catch { return ERR[404](); }
+      try { return jsonRes(await issueCredential(env, g[1], { at }), 201); } catch (e) {
+        if (e instanceof BrokerCredConfigError) {
+          log('broker_cred_config', { error: 'broker_cred_misconfigured', kind: e.reason, route: 'credentials.issue' });
+          return ERR[503]();
+        }
+        return ERR[404]();
+      }
     }
     if (m === 'POST' && (g = p.match(/^\/admin\/broker-delivery\/brokers\/([a-z0-9_-]{2,40})\/credentials\/(bk_[0-9a-f]{16})\/revoke$/))) {
       return (await revokeCredential(env, g[1], g[2], { at })) ? jsonRes({ revoked: g[2] }) : ERR[404]();
@@ -332,7 +345,17 @@ export async function monthlyLists(env, at = now(), { loadRecords = loadSignupRe
         const v = await env.DB.prepare('SELECT COALESCE(MAX(version), 0) + 1 AS v FROM broker_lists WHERE broker_id = ?1 AND list_type = ?2').bind(b.broker_id, type).first();
         const built = await buildList({ brokerId: b.broker_id, listType: type, version: v.v, createdAt: at, records });
         if (!built.items.length) { counts.empty++; continue; }
-        const tail = [env.DB.prepare('INSERT INTO broker_list_runs (broker_id, list_type, period, list_id) VALUES (?1, ?2, ?3, ?4)').bind(b.broker_id, type, period, built.manifest.list_id)];
+        const tail = [
+          env.DB.prepare('INSERT INTO broker_list_runs (broker_id, list_type, period, list_id) VALUES (?1, ?2, ?3, ?4)').bind(b.broker_id, type, period, built.manifest.list_id),
+          // Re-listing restarts the finish clock: a finished signup that lands on a new list is unfinished again and
+          // finishes 90 days after this list (finishSignups). Same transaction as list completion; a row the purge
+          // already deleted simply isn't matched, so nothing comes back.
+          env.DB.prepare(
+            `UPDATE optout_requests SET finished_at = NULL, updated_at = ?2
+             WHERE kind = 'tx' AND service_id = 'signup' AND finished_at IS NOT NULL
+               AND id IN (SELECT request_ref FROM broker_list_refs WHERE list_id = ?1)`,
+          ).bind(built.manifest.list_id, at),
+        ];
         await saveList(env, built, { tail, at });
         counts.built++;
       } catch { counts.failed++; }
