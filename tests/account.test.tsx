@@ -585,7 +585,7 @@ describe("signed-out account visit", () => {
     expect(await screen.findByText("Sending you to sign in…")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: /coming soon/i })).toBeNull();
     expect(screen.queryByText(/coming soon/i)).toBeNull();
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin?return_to=%2Faccount");
     (window as unknown as { happyDOM: { setURL: (url: string) => void } }).happyDOM.setURL(
       "http://localhost/",
     );

@@ -77,7 +77,7 @@ describe("Header and hero links", () => {
     expect(screen.queryByRole("link", { name: "Texas Proposal" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Menu" })).toBeNull();
     expect(document.querySelector(".proposal-menu-panel")).toBeNull();
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin?return_to=%2Faccount");
     expect(document.querySelector("a.account-button")).toBeTruthy();
   });
 

@@ -1,3 +1,4 @@
+import { signInHrefFor } from "./authGate";
 import { LOGOUT_PATH } from "./api";
 import { UserGlyph, Wordmark } from "./Brand";
 import { AppLink } from "./router";
@@ -28,7 +29,7 @@ export function Header({
           <Wordmark header />
         </AppLink>
         <div className="account">
-          <a className="account-button" href={signedIn ? "/account" : "/signin"} aria-label={signedIn ? "Account" : "Sign in"}>
+          <a className="account-button" href={signedIn ? "/account" : signInHrefFor("/account")} aria-label={signedIn ? "Account" : "Sign in"}>
             <UserGlyph />
           </a>
           {signedIn ? (

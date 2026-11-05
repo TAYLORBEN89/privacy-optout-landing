@@ -1,4 +1,4 @@
-import { sessionCookieOnly } from "./accountLink";
+import { forwardedCookies } from "./accountLink";
 import { internalAuthHeader, type ProxySigner } from "./internalAuth";
 
 /** Origin sent upstream. Must be in the API Worker's ALLOWED_ORIGIN. */
@@ -102,8 +102,8 @@ export async function signedUpstream(
   const headers = new Headers();
   if (opts.contentType) headers.set("content-type", opts.contentType);
   if (opts.accept) headers.set("accept", opts.accept);
-  const sid = sessionCookieOnly(opts.cookieHeader);
-  if (sid) headers.set("cookie", sid);
+  const cookie = forwardedCookies(opts.cookieHeader, opts.method, url.pathname);
+  if (cookie) headers.set("cookie", cookie);
   headers.set("origin", UPSTREAM_ORIGIN);
   if (opts.ip) headers.set("cf-connecting-ip", opts.ip);
   headers.set(
