@@ -76,8 +76,8 @@ export function ForBrokersPage() {
         </p>
         <p>
           Taking part is voluntary. Texas does not run a platform like California's DROP, and Texas
-          does not require brokers to use one. DROP Texas does not send requests for people. People
-          send their own requests. A status a broker reports is not proof that a record was deleted.
+          does not require brokers to use one. A status a broker reports is not proof that a record
+          was deleted.
         </p>
       </section>
 

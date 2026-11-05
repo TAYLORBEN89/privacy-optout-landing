@@ -48,7 +48,8 @@ describe("/for-brokers", () => {
     expect(body).not.toMatch(/\b\d{3,}\s+(registered\s+)?(data\s+)?brokers\b/);
     expect(body).toContain("hundreds of registered data brokers");
     expect(body).toContain("each with its own 45-day response window");
-    expect(body).toContain("does not send requests for people");
+    expect(body).not.toContain("does not send requests for people");
+    expect(body).toContain("a status a broker reports is not proof that a record was deleted.");
   });
 
   it("uses only the approved SOC 2 wording", () => {
