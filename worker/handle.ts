@@ -4,6 +4,7 @@ import type { ProxySigner } from "./internalAuth";
 import { linkSignupToAccount, sessionUserId, type AccountApi } from "./accountLink";
 import { dispatchOptOuts } from "./optouts";
 import { clientIp, type SignupLimiter } from "./rateLimit";
+import { applyApexSecurityHeaders, withApexSecurityHeaders } from "./securityHeaders";
 import { STORAGE_LIVE, saveSignup, type SignupStore } from "./storage";
 
 /**
@@ -410,14 +411,16 @@ export async function handleRequest(
     return new Response("Not found", { status: 404 });
   }
   const asset = await deps.fetchAsset();
-  if (!privateShell(url.pathname)) return asset;
+  if (!privateShell(url.pathname)) return withApexSecurityHeaders(asset);
   const headers = new Headers(asset.headers);
+  applyApexSecurityHeaders(headers);
   headers.set("x-robots-tag", "noindex");
   const type = asset.headers.get("content-type") ?? "";
   // 304 (and any non-200) must keep a null body. Reading it and rebuilding the
   // response throws, which the Worker turns into a 500.
   if (asset.status !== 200 || !type.includes("text/html")) {
-    return new Response(asset.body, { status: asset.status, headers });
+    const body = asset.status === 304 ? null : asset.body;
+    return new Response(body, { status: asset.status, headers });
   }
   headers.delete("content-length");
   headers.delete("etag");

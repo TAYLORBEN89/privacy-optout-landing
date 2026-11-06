@@ -1,9 +1,19 @@
+import { readFileSync } from "node:fs";
 import { testSigner } from "./helpers/proxyKeys";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { validateSignup } from "../shared/signup";
 import { BROKER_SENDS } from "../worker/brokerSends";
 import { handleRequest, type RequestDeps } from "../worker/handle";
+import { CONTENT_SECURITY_POLICY, STRICT_TRANSPORT_SECURITY } from "../worker/securityHeaders";
 import type { OptOutInsert, SignupRecord, SignupStore } from "../worker/storage";
+
+const APEX_SECURITY_HEADERS = {
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "x-frame-options": "DENY",
+  "x-content-type-options": "nosniff",
+  "content-security-policy":
+    "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self' https://accounts.droptexas.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; worker-src 'none'; manifest-src 'none'; media-src 'none'",
+} as const;
 
 const valid = {
   firstName: "Ada",
@@ -511,6 +521,70 @@ describe("POST /api/signup", () => {
     const response = await handleRequest(new Request("https://optout.example/"), assets());
     expect(response.status).toBe(200);
     expect(await response.text()).toContain("Privacy is a right.");
+  });
+
+  it("sets apex security headers on HTML and static asset responses", async () => {
+    expect(STRICT_TRANSPORT_SECURITY).toBe(APEX_SECURITY_HEADERS["strict-transport-security"]);
+    expect(CONTENT_SECURITY_POLICY).toBe(APEX_SECURITY_HEADERS["content-security-policy"]);
+    expect(CONTENT_SECURITY_POLICY).not.toContain("unsafe-inline");
+    expect(CONTENT_SECURITY_POLICY).not.toContain("unsafe-eval");
+    expect(CONTENT_SECURITY_POLICY).not.toContain("preload");
+
+    const headersFile = readFileSync("public/_headers", "utf8");
+    expect(headersFile).toContain(
+      `Strict-Transport-Security: ${APEX_SECURITY_HEADERS["strict-transport-security"]}`,
+    );
+    expect(headersFile).toContain(`X-Frame-Options: ${APEX_SECURITY_HEADERS["x-frame-options"]}`);
+    expect(headersFile).toContain(
+      `X-Content-Type-Options: ${APEX_SECURITY_HEADERS["x-content-type-options"]}`,
+    );
+    expect(headersFile).toContain(
+      `Content-Security-Policy: ${APEX_SECURITY_HEADERS["content-security-policy"]}`,
+    );
+
+    const html = await handleRequest(new Request("https://droptexas.com/"), assets());
+    const script = await handleRequest(new Request("https://droptexas.com/assets/index.js"), {
+      fetchAsset: async () =>
+        new Response("export {}", {
+          headers: { "content-type": "text/javascript; charset=utf-8", etag: '"asset"' },
+        }),
+    });
+    const account = await handleRequest(new Request("https://droptexas.com/account"), assets());
+    const notModified = await handleRequest(new Request("https://droptexas.com/privacy"), {
+      fetchAsset: async () =>
+        new Response(null, {
+          status: 304,
+          headers: { etag: '"abc"', "content-type": "text/html" },
+        }),
+    });
+
+    for (const response of [html, script, account, notModified]) {
+      expect(response.headers.get("strict-transport-security")).toBe(
+        APEX_SECURITY_HEADERS["strict-transport-security"],
+      );
+      expect(response.headers.get("x-frame-options")).toBe(APEX_SECURITY_HEADERS["x-frame-options"]);
+      expect(response.headers.get("x-content-type-options")).toBe(
+        APEX_SECURITY_HEADERS["x-content-type-options"],
+      );
+      expect(response.headers.get("content-security-policy")).toBe(
+        APEX_SECURITY_HEADERS["content-security-policy"],
+      );
+    }
+
+    expect(html.headers.get("content-type")).toContain("text/html");
+    expect(await html.text()).toContain("Privacy is a right.");
+    expect(script.headers.get("etag")).toBe('"asset"');
+    expect(account.headers.get("x-robots-tag")).toBe("noindex");
+    expect(notModified.status).toBe(304);
+    expect(notModified.headers.get("etag")).toBe('"abc"');
+    expect(await notModified.text()).toBe("");
+
+    const api = await handleRequest(new Request("https://droptexas.com/api/me"), assets());
+    expect(api.status).toBe(404);
+    expect(api.headers.get("content-security-policy")).toBeNull();
+    expect(api.headers.get("strict-transport-security")).toBeNull();
+    expect(api.headers.get("x-frame-options")).toBeNull();
+    expect(api.headers.get("x-content-type-options")).toBeNull();
   });
 
   it("serves the SPA shell for client routes", async () => {
