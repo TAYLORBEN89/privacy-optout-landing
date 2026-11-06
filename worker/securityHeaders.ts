@@ -16,6 +16,45 @@ export const X_FRAME_OPTIONS = "DENY";
 export const X_CONTENT_TYPE_OPTIONS = "nosniff";
 
 /**
+ * SHA-256, standard base64, of each inline JSON-LD script body.
+ * shared/seo.ts jsonScript() writes `<script type="application/ld+json">`
+ * into every page. scripts/prerender-seo.mjs persists that head, including
+ * the /help FAQ graph. These digests are of the JSON text inside the tag,
+ * in SEO_PAGES order, and match a fresh production build of those 26 files.
+ * script-src lists them so the asset layer and the Worker allow the same blocks.
+ */
+const JSON_LD_SCRIPT_HASHES = [
+  "o6SYMX4dTQ8KLoACTB/DPa2BhYqImFS/D7TFm3AHYhI=",
+  "fLaJH4SjbzTbHvBc/M1+cr2ZBzsTdyfTnGZYkpNW+9w=",
+  "U3I3f22AbsmuPi+fR4K8v5C3ISWLm6yZumzYfF9ytvw=",
+  "WRkGTCIAkKnCJ6PnO59EIQPWow4laFESGeDB5GWzZtM=",
+  "ZocDnEfi/YldAvXT2DygNWzF23NxAEHOTtrSOG/2+Eg=",
+  "qLD8/69nvKpLnoDTIwquhknyQfwhFkUYLyd0Auk/vTE=",
+  "MvSgV6ZXj56xsaqLwSVfLDpNjE+2G7+Cuf/9dRnuMVU=",
+  "w9QjwBAhyE4fL1O8Og9bl5fYBeP4ptKLzStd0Kiobd4=",
+  "UDxmZ5hCuJQdL+hH8/u0UybwR3vtiThgf8ideWthEyY=",
+  "XHenqLRLtW1TYPqhA/FRQ1nEnuy7+80WJmevANB6JmI=",
+  "35tll/OquCtYwD+eK/2XRAR31+Fp+XBsNtdH7W36tGM=",
+  "f9Gfzk+8w2uAaha7IaLkziVEjdx6E5SyMErTUp5EIZM=",
+  "mnpGvEcItSVDFBykWpIgbEDh9RbjfdTo+d0IJ8oIJ3I=",
+  "sII211KzdnkiHF95yd9mC7KiaRN00AyvUrb8FyPFaXU=",
+  "qrmPZUVTb2ZNcrsZnEWZTw4wCR99f6Ovea6+aGsHUA0=",
+  "iOQUoVLexx9uS7i9mzv5Y9sm/pWxYVaTF5wD3ZFfoiQ=",
+  "SFQUR9j4A9LwlxQbQfbIrQtgjkjX1V2NxsDSzOFk8WU=",
+  "uKdLzVWgQOTPHevhRS7aL+A7TmWu43uru5dNxnckdZY=",
+  "D5lUDJpx/Gs1f9teu6ZIZS4rTqdztQGDRvBCl0lyS30=",
+  "Ygykb5os2F2Qq7R3NNQpNqZj4m5H7luA2VaBgzUfDxQ=",
+  "X+UNqkkXEwb38vOuGMLvAsI8uLc6iOl/BhRrVunwZRg=",
+  "7/7v5KORdGTN5axH3RaBH3pNbO1ep06GjceYtCsRxL0=",
+  "bHPcmzHibHekOWkN6NdghqvSIq2gK6hKKR6xoGcc1AQ=",
+  "fDW/Y5VRC8k/QMoZVaoOR9P+g9d1Z84H+NYPocVSy2g=",
+  "r3MAx70yopDl3vrrK7icLKsQoNutyqp/ILgZbepPo4E=",
+  "QquxqEIZouGB524+RboFzgpEEVSzsPyK96RxYAoaQec=",
+] as const;
+
+const JSON_LD_SCRIPT_SOURCES = JSON_LD_SCRIPT_HASHES.map((hash) => `'sha256-${hash}'`).join(" ");
+
+/**
  * Vite/React apex, not the accounts sign-in card.
  *
  * The built page loads one same-origin module (`/assets/*.js`) and one
@@ -24,11 +63,11 @@ export const X_CONTENT_TYPE_OPTIONS = "nosniff";
  * the system stack only. Runtime fetches are same-origin `/api/*`.
  * Production analytics is a no-op and does not call a third party.
  *
- * script-src is 'self' only. The accounts host uses script-src 'none' because
- * its sign-in card has no JavaScript; that would block this app. There is no
- * unsafe-eval and no unsafe-inline. The only inline script in the HTML is
- * schema.org JSON-LD (`application/ld+json`). It is not app code, so it is
- * not granted unsafe-inline. The React app does not need it to run.
+ * script-src is 'self' plus one hash per inline JSON-LD block above. The
+ * accounts host uses script-src 'none' because its sign-in card has no
+ * JavaScript; that would block this app's module. There is no unsafe-eval
+ * and no unsafe-inline. The hashes allow the existing structured data
+ * without opening other inline scripts.
  *
  * style-src is 'self' only. The document has no style attributes and no
  * style elements. Account step-up and identity linking submit a real form to
@@ -38,7 +77,7 @@ export const X_CONTENT_TYPE_OPTIONS = "nosniff";
  */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self'",
+  `script-src 'self' ${JSON_LD_SCRIPT_SOURCES}`,
   "script-src-attr 'none'",
   "style-src 'self'",
   "style-src-attr 'none'",

@@ -11,8 +11,7 @@ const APEX_SECURITY_HEADERS = {
   "strict-transport-security": "max-age=31536000; includeSubDomains",
   "x-frame-options": "DENY",
   "x-content-type-options": "nosniff",
-  "content-security-policy":
-    "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self' https://accounts.droptexas.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; worker-src 'none'; manifest-src 'none'; media-src 'none'",
+  "content-security-policy": CONTENT_SECURITY_POLICY,
 } as const;
 
 const valid = {
