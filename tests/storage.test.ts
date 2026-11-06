@@ -50,25 +50,31 @@ describe("D1SignupStore", () => {
     const id = await new D1SignupStore(db, TEST_KEY).save(record);
     expect(id).toBe(binds[0]);
     expect(sql).toContain("INSERT INTO signups");
+    expect(sql).not.toContain("first_name");
+    expect(sql).not.toContain("last_name");
+    expect(sql).toContain("middle_name");
     expect(sql).not.toContain(String(id));
     expect(sql).not.toContain("Ada");
     expect(sql).not.toContain("ada@example.com");
-    expect(sql.match(/\?/g)?.length).toBe(22);
-    expect(binds[5]).toBe("");
-    expect(String(binds[20])).toMatch(/^v1\./);
-    expect(String(binds[21])).toMatch(/^[0-9a-f]{64}$/);
+    expect(sql.match(/\?/g)?.length).toBe(20);
+    expect(binds).toHaveLength(20);
+    expect(binds[3]).toBe("");
+    expect(String(binds[18])).toMatch(/^v1\./);
+    expect(String(binds[19])).toMatch(/^[0-9a-f]{64}$/);
     const { decryptField, importPiiKeys, emailIndex } = await import("../worker/piiCrypto");
     const keys = await importPiiKeys(TEST_KEY);
-    const pii = JSON.parse(await decryptField(keys.enc, String(binds[20]), `signups:${String(binds[0])}:pii`));
+    const pii = JSON.parse(await decryptField(keys.enc, String(binds[18]), `signups:${String(binds[0])}:pii`));
     expect(pii.firstName).toBe("Ada");
+    expect(pii.lastName).toBe("Lovelace");
     expect(pii.phone).toBe("+15125550100");
-    expect(binds[21]).toBe(await emailIndex(keys, " ADA@example.com "));
-    for (const i of [2, 4, 5, 6, 8, 10, 11]) expect(binds[i]).toBe("");
-    expect(binds[3]).toBeNull();
-    expect(binds[12]).toBeNull();
+    expect(binds[19]).toBe(await emailIndex(keys, " ADA@example.com "));
+    for (const i of [3, 4, 6, 8, 9]) expect(binds[i]).toBe("");
+    expect(binds[2]).toBeNull();
+    expect(binds[5]).toBeNull();
+    expect(binds[10]).toBeNull();
     expect(JSON.stringify(binds)).not.toMatch(/Ada|ada@example\.com|5125550100|1990/);
-    expect(binds[18]).toBeNull();
-    expect(binds[19]).toBeNull();
+    expect(binds[16]).toBeNull();
+    expect(binds[17]).toBeNull();
   });
 
   it("refuses to save without the SIGNUP_PII_KEY secret", async () => {
@@ -104,10 +110,10 @@ describe("D1SignupStore", () => {
         sameAddress: true,
       },
     });
-    expect(binds[18]).toBeNull();
+    expect(binds[16]).toBeNull();
     const { decryptField, importPiiKeys } = await import("../worker/piiCrypto");
     const keys = await importPiiKeys(TEST_KEY);
-    expect(JSON.parse(await decryptField(keys.enc, String(binds[20]), `signups:${String(binds[0])}:pii`)).child).toEqual({
+    expect(JSON.parse(await decryptField(keys.enc, String(binds[18]), `signups:${String(binds[0])}:pii`)).child).toEqual({
       firstName: "Grace",
       middleName: null,
       lastName: "Hopper",
