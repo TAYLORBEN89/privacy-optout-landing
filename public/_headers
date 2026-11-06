@@ -8,3 +8,13 @@
   X-Robots-Tag: noindex
 /api/*
   X-Robots-Tag: noindex
+
+# Same values as worker/securityHeaders.ts. The asset layer serves HTML, CSS,
+# JS, and images without entering the script except where run_worker_first
+# matches. The script sets these again on the responses it returns.
+# script-src hashes are the JSON-LD bodies jsonScript() writes on each page.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-o6SYMX4dTQ8KLoACTB/DPa2BhYqImFS/D7TFm3AHYhI=' 'sha256-fLaJH4SjbzTbHvBc/M1+cr2ZBzsTdyfTnGZYkpNW+9w=' 'sha256-U3I3f22AbsmuPi+fR4K8v5C3ISWLm6yZumzYfF9ytvw=' 'sha256-WRkGTCIAkKnCJ6PnO59EIQPWow4laFESGeDB5GWzZtM=' 'sha256-ZocDnEfi/YldAvXT2DygNWzF23NxAEHOTtrSOG/2+Eg=' 'sha256-qLD8/69nvKpLnoDTIwquhknyQfwhFkUYLyd0Auk/vTE=' 'sha256-MvSgV6ZXj56xsaqLwSVfLDpNjE+2G7+Cuf/9dRnuMVU=' 'sha256-w9QjwBAhyE4fL1O8Og9bl5fYBeP4ptKLzStd0Kiobd4=' 'sha256-UDxmZ5hCuJQdL+hH8/u0UybwR3vtiThgf8ideWthEyY=' 'sha256-XHenqLRLtW1TYPqhA/FRQ1nEnuy7+80WJmevANB6JmI=' 'sha256-35tll/OquCtYwD+eK/2XRAR31+Fp+XBsNtdH7W36tGM=' 'sha256-f9Gfzk+8w2uAaha7IaLkziVEjdx6E5SyMErTUp5EIZM=' 'sha256-mnpGvEcItSVDFBykWpIgbEDh9RbjfdTo+d0IJ8oIJ3I=' 'sha256-sII211KzdnkiHF95yd9mC7KiaRN00AyvUrb8FyPFaXU=' 'sha256-qrmPZUVTb2ZNcrsZnEWZTw4wCR99f6Ovea6+aGsHUA0=' 'sha256-iOQUoVLexx9uS7i9mzv5Y9sm/pWxYVaTF5wD3ZFfoiQ=' 'sha256-SFQUR9j4A9LwlxQbQfbIrQtgjkjX1V2NxsDSzOFk8WU=' 'sha256-uKdLzVWgQOTPHevhRS7aL+A7TmWu43uru5dNxnckdZY=' 'sha256-D5lUDJpx/Gs1f9teu6ZIZS4rTqdztQGDRvBCl0lyS30=' 'sha256-Ygykb5os2F2Qq7R3NNQpNqZj4m5H7luA2VaBgzUfDxQ=' 'sha256-X+UNqkkXEwb38vOuGMLvAsI8uLc6iOl/BhRrVunwZRg=' 'sha256-7/7v5KORdGTN5axH3RaBH3pNbO1ep06GjceYtCsRxL0=' 'sha256-bHPcmzHibHekOWkN6NdghqvSIq2gK6hKKR6xoGcc1AQ=' 'sha256-fDW/Y5VRC8k/QMoZVaoOR9P+g9d1Z84H+NYPocVSy2g=' 'sha256-r3MAx70yopDl3vrrK7icLKsQoNutyqp/ILgZbepPo4E=' 'sha256-QquxqEIZouGB524+RboFzgpEEVSzsPyK96RxYAoaQec='; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self' https://accounts.droptexas.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; worker-src 'none'; manifest-src 'none'; media-src 'none'
