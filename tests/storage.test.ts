@@ -1,8 +1,15 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { OPT_OUT_BLOCK_CODES } from "../worker/brokerSends";
 import { buildOptOutRows } from "../worker/optouts";
-import { D1SignupStore, insertOptOuts, type OptOutInsert, type SignupRecord } from "../worker/storage";
+import {
+  D1SignupStore,
+  insertOptOuts,
+  type OptOutInsert,
+  type SignupDatabase,
+  type SignupRecord,
+} from "../worker/storage";
 
 const record: SignupRecord = {
   firstName: "Ada",
@@ -196,5 +203,137 @@ describe("opt-out schema", () => {
     expect(sql).toContain("'confirmed'");
     expect(sql).not.toContain("first_name");
     expect(sql).not.toContain("email");
+  });
+});
+
+const DROP_PLAINTEXT_NAMES = "0006_drop_plaintext_names.sql";
+
+/** Columns left on signups after 0001–0006. first_name and last_name are gone. */
+const SIGNUP_COLUMNS_AFTER_DROP = [
+  "id",
+  "received_at",
+  "middle_name",
+  "dob",
+  "address_line1",
+  "address_line2",
+  "city",
+  "state",
+  "zip",
+  "email",
+  "phone",
+  "texas_resident",
+  "jurisdiction",
+  "non_texas_flag",
+  "submitter",
+  "guardian_attestation",
+  "child_json",
+  "user_id",
+  "pii_enc",
+  "email_hmac",
+];
+
+function checkedInMigrations(): string[] {
+  return readdirSync("migrations")
+    .filter((name) => name.endsWith(".sql"))
+    .sort();
+}
+
+function applyCheckedInMigrations(db: DatabaseSync, files: readonly string[]): void {
+  for (const name of files) db.exec(readFileSync(`migrations/${name}`, "utf8"));
+}
+
+function sqliteSignupDb(db: DatabaseSync): SignupDatabase {
+  return {
+    prepare(query: string) {
+      const statement = db.prepare(query);
+      return {
+        bind(...values: unknown[]) {
+          const bound = values.map((value): SQLInputValue => {
+            if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
+              return value;
+            }
+            throw new Error("signup_bind_rejected");
+          });
+          return {
+            async run() {
+              statement.run(...bound);
+              return { success: true };
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+function columnNames(db: DatabaseSync): string[] {
+  return db
+    .prepare("PRAGMA table_info(signups)")
+    .all()
+    .map((column) => String(column.name));
+}
+
+describe("signup schema from checked-in migrations", () => {
+  it("drops only first_name and last_name", () => {
+    const sql = readFileSync(`migrations/${DROP_PLAINTEXT_NAMES}`, "utf8").trim();
+    expect(sql).toBe(
+      "ALTER TABLE signups DROP COLUMN first_name;\nALTER TABLE signups DROP COLUMN last_name;",
+    );
+    expect(checkedInMigrations()).toContain(DROP_PLAINTEXT_NAMES);
+  });
+
+  it("inserts a signup after applying every checked-in migration, including the name drop", async () => {
+    const files = checkedInMigrations();
+    expect(files).toContain(DROP_PLAINTEXT_NAMES);
+    const db = new DatabaseSync(":memory:");
+    try {
+      applyCheckedInMigrations(db, files);
+      expect(columnNames(db)).toEqual(SIGNUP_COLUMNS_AFTER_DROP);
+      const id = await new D1SignupStore(sqliteSignupDb(db), TEST_KEY).save(record);
+      const row = db
+        .prepare(
+          "SELECT id, middle_name, dob, state, user_id, pii_enc, email_hmac FROM signups",
+        )
+        .get() as {
+        id: string;
+        middle_name: string | null;
+        dob: string;
+        state: string;
+        user_id: string | null;
+        pii_enc: string;
+        email_hmac: string;
+      };
+      expect(row.id).toBe(id);
+      expect(row.middle_name).toBeNull();
+      expect(row.dob).toBe("");
+      expect(row.state).toBe("TX");
+      expect(row.user_id).toBeNull();
+      expect(row.email_hmac).toMatch(/^[0-9a-f]{64}$/);
+      expect(db.prepare("SELECT COUNT(*) AS n FROM signups").get()).toEqual({ n: 1 });
+      const { decryptField, importPiiKeys } = await import("../worker/piiCrypto");
+      const keys = await importPiiKeys(TEST_KEY);
+      const pii = JSON.parse(await decryptField(keys.enc, row.pii_enc, `signups:${id}:pii`));
+      expect(pii.firstName).toBe("Ada");
+      expect(pii.lastName).toBe("Lovelace");
+    } finally {
+      db.close();
+    }
+  });
+
+  it("rejects the same insert when the name columns are still NOT NULL", async () => {
+    const files = checkedInMigrations().filter((name) => name !== DROP_PLAINTEXT_NAMES);
+    expect(files).not.toContain(DROP_PLAINTEXT_NAMES);
+    const db = new DatabaseSync(":memory:");
+    try {
+      applyCheckedInMigrations(db, files);
+      expect(columnNames(db)).toContain("first_name");
+      expect(columnNames(db)).toContain("last_name");
+      await expect(new D1SignupStore(sqliteSignupDb(db), TEST_KEY).save(record)).rejects.toThrow(
+        /NOT NULL constraint failed: signups\.first_name/,
+      );
+      expect(db.prepare("SELECT COUNT(*) AS n FROM signups").get()).toEqual({ n: 0 });
+    } finally {
+      db.close();
+    }
   });
 });
