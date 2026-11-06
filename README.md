@@ -27,7 +27,7 @@ npm run build
 npx wrangler dev
 ```
 
-`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. It needs one Worker secret (see **Signup PII encryption**) and two migrations, 0004 and 0005 (see **Before deploy**).
+`npm run worker:dev` is the same Wrangler command. Local D1 uses `.wrangler/state`. Apply approved schema with `npx wrangler d1 migrations apply drop-texas-signups --local`. It needs one Worker secret (see **Signup PII encryption**) and migrations 0004 and 0005 (see **Before deploy**). `0006_drop_plaintext_names.sql` drops `first_name` and `last_name` and is not approved to apply. `migrations apply` runs every pending file, so do not apply 0006 until that approval.
 
 ## Signup PII encryption
 
@@ -55,13 +55,13 @@ Signup PII is encrypted in the Worker with AES-256-GCM before it is written to D
 ### Before deploy (needs the operator's approval)
 
 1. Set `SIGNUP_PII_KEY` as described above.
-2. Apply migration `0004_encrypt_sensitive_signup_fields.sql`, which adds `pii_enc`, `email_hmac` and an index. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`.
+2. Apply migration `0004_encrypt_sensitive_signup_fields.sql`, which adds `pii_enc`, `email_hmac` and an index. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`, only when every pending migration that command would apply is approved. `0006_drop_plaintext_names.sql` is not approved to apply.
 3. Rows written before 0004 still hold plaintext. Check with `SELECT COUNT(*) FROM signups WHERE pii_enc IS NULL;`. Then do one of these:
    - **Purge:** delete those rows and their `optout_requests` if they are test data. This is the preferred option before launch.
-   - **Backfill:** run a one-off script that writes `pii_enc` and `email_hmac` with the same key, then blanks the plaintext columns.
+   - **Backfill:** run a one-off script that writes `pii_enc` and `email_hmac` with the same key, then blanks the remaining legacy plaintext columns. Do not write `first_name` or `last_name`. Migration 0006 drops those two columns.
 4. Confirm the count above returns 0 before going live.
-5. A later migration can drop the legacy plaintext columns.
-6. **Required:** apply migration `0005_rate_limits.sql`, which creates `rate_limits`. Run `npx wrangler d1 migrations apply drop-texas-signups --local` first, then `--remote`. Without it, every signup returns 503.
+5. `migrations/0006_drop_plaintext_names.sql` drops only `first_name` and `last_name`. Do not apply it until that drop is explicitly approved. Other legacy plaintext columns (`middle_name`, `dob`, address, email, and the rest) stay.
+6. **Required:** apply migration `0005_rate_limits.sql`, which creates `rate_limits`. Without it, every signup returns 503. The same limit as step 2 applies: do not run `wrangler d1 migrations apply` against a remote database while `0006_drop_plaintext_names.sql` is unapproved, because that command applies every pending file.
 
 ## Landing /api proxy contract
 

@@ -116,11 +116,11 @@ export async function insertOptOuts(
 }
 
 const INSERT_SIGNUP = `INSERT INTO signups (
-  id, received_at, first_name, middle_name, last_name, dob,
+  id, received_at, middle_name, dob,
   address_line1, address_line2, city, state, zip, email, phone,
   texas_resident, jurisdiction, non_texas_flag, submitter,
   guardian_attestation, child_json, user_id, pii_enc, email_hmac
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 /** Fields that only ever reach D1 inside pii_enc. */
 function sensitiveFields(record: SignupRecord) {
@@ -158,10 +158,9 @@ export class D1SignupStore implements SignupStore {
       .bind(
         id,
         record.receivedAt,
-        // Legacy plaintext columns: '' for NOT NULL, NULL otherwise. The values are in pii_enc.
-        "",
+        // Legacy plaintext columns still on this INSERT: '' for NOT NULL, NULL otherwise.
+        // first_name and last_name are omitted; names stay only inside pii_enc.
         null,
-        "",
         "",
         "",
         null,

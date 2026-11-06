@@ -3,7 +3,10 @@
 --   email, phone and child details (key derived from the SIGNUP_PII_KEY Worker secret).
 -- email_hmac: keyed HMAC-SHA-256 blind index of the lowercased email, for
 --   equality lookups (deletion requests, dedupe) without storing the email.
--- New rows write '' (NOT NULL columns) or NULL into the legacy plaintext columns.
+-- New rows write '' or NULL into the remaining legacy plaintext columns
+-- (middle name, date of birth, address, city, ZIP, email, phone).
+-- first_name and last_name are not written. Migration 0006 drops those two columns.
+-- Names are stored only in pii_enc.
 -- state, jurisdiction and flags stay plaintext (no direct identifier).
 -- 0001-0003 are left unchanged because they may already be applied.
 -- Before deploy (the operator's approval): backfill-encrypt or purge older plaintext rows.
