@@ -52,13 +52,12 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background
 main{background:#fff;border:1px solid #e3e5e8;border-radius:12px;padding:32px;width:100%;max-width:360px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 h1{font-size:20px;margin:0 0 4px}p{margin:0 0 24px;color:#555;font-size:14px}
 a.btn{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 12px;border:1px solid #747775;border-radius:8px;background:#fff;color:#1f1f1f;text-decoration:none;font-weight:600;margin-bottom:12px}
-a.btn:hover{background:#f2f3f5}a.btn .logo{flex:none;width:20px;height:20px}.alt{font-size:13px;text-align:center;margin-top:16px}.alt a{color:#1a56db}
+a.btn:hover{background:#f2f3f5}a.btn .logo{flex:none;width:20px;height:20px}
 </style></head>
 <body><main>
 <h1>DROP Texas</h1><p>Sign in to your account</p>
 <a class="btn" href="${app}/api/auth/google/start?return_to=${rt}">${GOOGLE_G}<span>Sign in with Google</span></a>
 <a class="btn" href="${app}/api/auth/microsoft/start?return_to=${rt}">${MS_SQUARES}<span>Sign in with Microsoft</span></a>
-<div class="alt"><a href="${app}/account">Use email, password and authenticator code instead</a></div>
 </main></body></html>`;
 }
 

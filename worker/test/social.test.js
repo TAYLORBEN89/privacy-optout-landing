@@ -952,7 +952,7 @@ describe('accounts host + handoff', () => {
     expect((await SELF.fetch(`${BASE}/api/me`, { headers: { ...hdrs(), Origin: ACC } })).status).toBe(403);
   });
 
-  it('sign-in page: two providers, password fallback, strict security headers, no scripts', async () => {
+  it('sign-in page: two providers, no password link, strict security headers, no scripts', async () => {
     const r = await SELF.fetch(`${ACC}/signin?return_to=%2Faccount`, { headers: hdrs() });
     expect(r.status).toBe(200);
     const html = await r.text();
@@ -960,7 +960,10 @@ describe('accounts host + handoff', () => {
     expect(html).toContain('<span>Sign in with Google</span>');
     expect(html).toContain('<span>Sign in with Microsoft</span>');
     expect(html).not.toMatch(/oauth\/apple|with apple/i);
-    expect(html).toContain(`${BASE}/account`);
+    expect(html).not.toContain('Use email, password and authenticator code instead');
+    expect(html).not.toContain(`${BASE}/account`);
+    expect(html).not.toContain('class="alt"');
+    expect(html).not.toContain('.alt{');
     expect(html).not.toMatch(/<script/i);
     const csp = r.headers.get('Content-Security-Policy');
     expect(csp).toContain("frame-ancestors 'none'");
