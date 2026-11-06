@@ -14,7 +14,11 @@ const page = await browser.newPage();
 let failed = false;
 for (const [width, height] of sizes) {
   await page.setViewport({ width, height });
-  await page.goto(base, { waitUntil: "networkidle0" });
+  // Wait for page load, not network idle: the live site keeps connections open, so networkidle0
+  // timed out in deploys 23 and 24. Then wait for the hero to render and for fonts to settle.
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".hero-stagger", { timeout: 15000 });
+  await page.evaluate(() => document.fonts.ready);
   const r = await page.evaluate(() => {
     const el = document.querySelector(".hero-stagger");
     const cs = getComputedStyle(el);
