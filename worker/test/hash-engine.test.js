@@ -46,6 +46,36 @@ describe('standardization', () => {
     expect(await hashValue(stdName('Νίκος'))).toBe('M1xU87YGGwuLseP9/0x3HDaAyqaNEpnDb9fgj33PZH8=');
     expect(await hashValue(stdName('Дмитрий'))).toBe('ey5Zt2eQwoKSsmmTusVHzRD6V3Yg11+s6iGJqfpVRvc=');
   });
+  it('Chinese, Japanese, Korean, Arabic and Hebrew are left unchanged (CPPA DROP spec v1.2.0, name standardization)', async () => {
+    // Spec text: "Leave Chinese, Japanese, Korean, Arabic, and Hebrew characters unchanged."
+    // https://privacy.ca.gov/drop-for-data-brokers/technical-specifications/working-with-data/ (re-read 2026-11-04).
+    // The page publishes no example in these scripts, so the hashes below are synthetic and were computed
+    // independently: printf %s '<value>' | openssl dgst -sha256 -binary | base64
+    expect(stdName('김민준')).toBe('\uAE40\uBBFC\uC900'); // Hangul syllables stay precomposed (no NFD jamo split)
+    expect(stdName('한 국')).toBe('\uD55C\uAD6D'); // space still removed
+    expect(stdName('ㄱㅏ')).toBe('\u3131\u314F'); // compatibility jamo unchanged
+    expect(stdName('\u1100\u1161')).toBe('\u1100\u1161'); // conjoining jamo unchanged (not composed)
+    expect(stdName('がぎぐ')).toBe('\u304C\u304E\u3050'); // kana keep their voicing marks
+    expect(stdName('パン')).toBe('\u30D1\u30F3');
+    expect(stdName('李 小龍')).toBe('李小龍');
+    expect(stdName('\uF900')).toBe('\uF900'); // CJK compatibility ideograph is not normalized
+    expect(stdName('\uFB1D')).toBe('\uFB1D'); // Hebrew presentation form is not decomposed
+    expect(stdName('محمد')).toBe('محمد');
+    expect(stdName('משה')).toBe('משה');
+    // Standalone combining marks are not letters, so the non-letter/non-digit rule still removes them
+    expect(stdName('מֹשֶׁה')).toBe('משה'); // niqqud
+    expect(stdName('مُحَمَّد')).toBe('محمد'); // harakat
+    expect(stdName('Kim 김-민준')).toBe('kim김민준'); // mixed scripts: Latin lowercased, rest unchanged
+    expect(stdName('José 李')).toBe('jose李'); // accent folding still applies to Latin
+    expect(await hashValue(stdName('김민준'))).toBe('C0bQOwszVeZxee+m9k9OZGGvd9xXcUK44HSbZxiKOp8=');
+    expect(await hashValue(stdName('한국'))).toBe('HrfabVbYg8od0aiLcK1jWgsmqbdn1QDTFRLmTc2yt7s=');
+    expect(await hashValue(stdName('がぎぐ'))).toBe('yLiJDBiIpKEMtAn9aoSKmhWh7fnu2vgkdzte79R+H50=');
+    expect(await hashValue(stdName('パン'))).toBe('QzxoNxo9VYhrvaOm/yTLFkT2zALSs/KZgl/oC+wcmsI=');
+    expect(await hashValue(stdName('李 小龍'))).toBe('wfoaX9MbKlwbR47X8crG6xSgRNyrodgSFfxyxU6svvY=');
+    expect(await hashValue(stdName('\uF900'))).toBe('I9xitdKKtHBA1FK7U/a07w9J36uZd9XzVBAFGKQ48Z8=');
+    expect(await hashValue(stdName('מֹשֶׁה'))).toBe('ZUdhoKhBwmlHaa+Vt5JoXqOmBwv1lo4DO5GmgWlc9vA=');
+    expect(await hashValue(stdName('محمد'))).toBe('DLTJshBi3k0sDt1I78n6hrl/3IpqTn+nCSVE+E4SH2E=');
+  });
   it('DOB formats -> YYYYMMDD, invalid dates rejected', () => {
     for (const v of ['1990-01-12', '1990/1/12', '19900112', '01/12/1990', '1-12-1990']) expect(stdDob(v)).toBe('19900112');
     expect(stdDob('1990-02-30')).toBeNull();
