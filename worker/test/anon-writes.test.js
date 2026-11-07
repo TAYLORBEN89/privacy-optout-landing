@@ -4,13 +4,15 @@ import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { authenticator } from 'otplib';
 import { hashPassword, encryptStr } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 
 const ORIGIN = 'http://localhost:5173';
 let IP; let n = 0;
 async function makeUser(email) {
   const id = crypto.randomUUID(); const secret = authenticator.generateSecret(20); const password = 'correct horse battery';
-  await env.DB.prepare('INSERT INTO users (id, email, pw_hash, totp_secret_enc, totp_enabled, created_at) VALUES (?1, ?2, ?3, ?4, 1, 1)')
-    .bind(id, email, await hashPassword(password), await encryptStr(env, secret)).run();
+  await insertUserRow(env, {
+    id, email, pwHash: await hashPassword(password), totpSecretEnc: await encryptStr(env, secret), totpEnabled: 1,
+  });
   return { id, email, password, secret };
 }
 const req = (method, path, body, headers = {}) => SELF.fetch('https://api.test' + path, {

@@ -40,7 +40,7 @@ const enc = new TextEncoder();
 const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const KID = /^[a-z0-9]{1,16}$/;
-const OTHER_SECRETS = ['PII_ENC_KEY', 'PII_ENC_KEY_PREV', 'TOTP_ENC_KEY', 'OAUTH_COOKIE_KEY', 'SIGNUP_PII_KEY'];
+const OTHER_SECRETS = ['PII_ENC_KEY', 'PII_ENC_KEY_PREV', 'TOTP_ENC_KEY', 'OAUTH_COOKIE_KEY', 'SIGNUP_PII_KEY', 'EMAIL_HMAC_KEY'];
 
 // Published test-vector key (bytes 0x00..0x1f, README/tests). Never accepted as a real key.
 const TEST_VECTOR_KEY = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';

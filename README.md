@@ -57,13 +57,16 @@ npx wrangler d1 create privacy-dashboard            # paste database_id into [[d
 | `0011_tx_requests_per_user.sql` | partial unique index `(user_id, service_id) WHERE kind = 'tx' AND service_id LIKE 'tx-%'`: one Texas request row per user per broker (signup rows, `service_id = 'signup'`, are excluded) |
 | `0012_broker_hash_engine.sql` | write-once broker hash tables: lists, items, statuses, hash audit (see [docs/broker-hash-packaging.md](docs/broker-hash-packaging.md)) |
 | `0013_broker_delivery.sql` | broker delivery: per-broker credentials (HMAC only), delivery brokers, monthly runs, request refs for shared hashes, and the gated 24-month broker purge |
+| `0014_users_email_hmac.sql` | `users.email_hmac` blind index, `email_enc` + `email_key_version`, `email_placeholder`. Does not rebuild `users` |
 
-There are no 0005/0006 files (numbers were skipped), and 0009 is reserved for the planned email work. Wrangler applies whatever is unapplied, in file order:
+There are no 0005/0006/0009 files (those numbers were skipped). Wrangler applies whatever is unapplied, in file order:
 ```bash
 npm run db:migrate:local                                  # = wrangler d1 migrations apply DB --local
 npx wrangler d1 migrations apply DB --remote              # production; only with the owner's approval
 npx wrangler d1 migrations list DB --remote               # see what is pending
 ```
+
+`0014_users_email_hmac.sql` adds columns only. D1 cannot HMAC or encrypt (the keys are Worker secrets), so rows that already have a plaintext `users.email` stay that way until the Worker seals them: on password sign-in, when an inactivity warning is prepared, and in the daily `user_email_backfill` job (100 rows per run). Until `email_enc` is set, sign-in still finds that row by the old address and then seals it. After sealing, `email_hmac` is the lookup key, `email_enc` holds the normalized address (trim, lowercase) under `PII_ENC_KEY`, and the legacy `email` column stores the same blind index so it is no longer the address. New accounts, including the `<id>@users.invalid` social placeholder, are written that way from the start. A missing or reused `EMAIL_HMAC_KEY` fails closed (no plaintext write; sign-in returns the same invalid-credentials response as an unknown account). Set `EMAIL_HMAC_KEY` and apply `0014` before deploying the Worker that reads those columns. Remote apply still needs the owner's approval.
 
 ### 3. Secrets (`npx wrangler secret put <NAME>`; local values go in `worker/.dev.vars`, gitignored)
 | Secret | Purpose | How to generate |
@@ -72,11 +75,12 @@ npx wrangler d1 migrations list DB --remote               # see what is pending
 | `MICROSOFT_CLIENT_SECRET` | Microsoft Entra client secret (the secret **Value**, not its ID) | Entra > Certificates & secrets |
 | `OAUTH_COOKIE_KEY` | seals the `__Host-oauth` state cookie and the single-use start token | `openssl rand -base64 32` |
 | `TOTP_ENC_KEY` | encrypts TOTP secrets at rest | `openssl rand -base64 32` |
-| `PII_ENC_KEY` | encrypts signup/PII payloads (name, DOB, address, email, phone, and a child signup's name, DOB and address) | `openssl rand -base64 32` (separate from TOTP_ENC_KEY) |
+| `PII_ENC_KEY` | encrypts signup/PII payloads (name, DOB, address, email, phone, and a child signup's name, DOB and address) and the account address in `users.email_enc` (AAD `user-email:<user id>`) | `openssl rand -base64 32` (separate from TOTP_ENC_KEY) |
+| `EMAIL_HMAC_KEY` | HMAC-SHA256 blind index for account-email lookup (`users.email_hmac`). Dedicated key: do not reuse `PII_ENC_KEY`, `PII_ENC_KEY_PREV`, `TOTP_ENC_KEY`, `OAUTH_COOKIE_KEY`, `SIGNUP_PII_KEY`, `API_TOKEN`, or `ADMIN_BOOTSTRAP_TOKEN` | `openssl rand -base64 32` |
 | `BROKER_CRED_KEYS` | JSON `{kid: base64 key}` (kid `[a-z0-9]{1,16}`, key >= 32 bytes) for broker credential HMACs and signed links; pair with var `BROKER_CRED_ACTIVE_KID` | `openssl rand -base64 32` per key |
 | `API_TOKEN` | shared bearer key for the legacy KV `/records`, `/txrequests`, `/settings` API | `openssl rand -base64 32` |
 | `ADMIN_BOOTSTRAP_TOKEN` | optional, **off by default**: enables `POST /admin/bootstrap` while it is set | `openssl rand -base64 48` (>=32 chars); delete after use |
-| `INTERNAL_PROXY_KEYS` | JSON map `{"<kid>": "<base64 key>"}` of HMAC keys shared with the landing Worker for `X-Internal-Auth` (see Landing proxy contract). Each key >= 32 random bytes and distinct from `PII_ENC_KEY`/`SIGNUP_PII_KEY` and every other secret; shorter or reused keys are dropped at load | `openssl rand -base64 32` per key; kid `[a-z0-9]{1,16}` |
+| `INTERNAL_PROXY_KEYS` | JSON map `{"<kid>": "<base64 key>"}` of HMAC keys shared with the landing Worker for `X-Internal-Auth` (see Landing proxy contract). Each key >= 32 random bytes and distinct from `PII_ENC_KEY`/`SIGNUP_PII_KEY`/`EMAIL_HMAC_KEY` and every other secret; shorter or reused keys are dropped at load | `openssl rand -base64 32` per key; kid `[a-z0-9]{1,16}` |
 | `PII_ENC_KEY_PREV` | optional, only during PII key rotation (old key, readable with `PII_PREV_KEY_VERSION`) | the previous `PII_ENC_KEY` |
 
 ### 4. Vars (`[vars]` in `wrangler.toml`)
@@ -265,7 +269,7 @@ Provider console setup for Google and Microsoft sign-in: see [docs/oauth-setup.m
 - **Mailer stub**: the `[[send_email]] MAILER` binding and `MAIL_FROM` are commented out in `wrangler.toml`. Without them nobody is warned, so nobody is deleted.
 - **Backlog**: each run warns at most 100 accounts (`LIMIT 100`). A larger backlog drains over the following daily runs, and each account still gets the full notice period after its own warning, so a backlog delays deletions and never shortens notice. A failed send is skipped (no address logged) and retried next run.
 - **Deadline in the email**: deletion happens at the later of last activity + `INACTIVE_DELETE_DAYS` and warning + `INACTIVE_MIN_NOTICE_DAYS`. The email states that real per-account deadline (days left and a UTC date): about 29-30 days for an on-time warning, 14 days for a late one. Signing in at any point before deletion resets `last_active_at` and clears the warning, so the next run cannot delete the account.
-- Social-only accounts store a placeholder `users.email` (`<id>@users.invalid`); the job skips those addresses. Warning them needs the real (encrypted) identity email, which is part of the email work.
+- Social-only accounts still have a synthetic `<id>@users.invalid` placeholder. It is sealed like any other account address (`email_placeholder = 1`). The job skips those rows. Warning them needs the real identity email from `user_identities`, which is a separate change.
 - The public privacy policy should state this 24-month inactivity deletion; that page lives in the landing site repo.
 
 ## Logging (Workers Logs)

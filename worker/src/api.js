@@ -5,6 +5,7 @@ import {
   checkTotp, claimStep, cfg, isSteppedUp, STEP_UP_SECONDS, rotate, sessionResponse, isBackupShape, useBackupCode,
 } from './app.js';
 import { sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptPii, decryptPii, decryptStr } from './crypto.js';
+import { userEmailFields } from './userEmail.js';
 import { reserve, refund, clientIp, retryHeaders, trustSignedIp } from './ratelimit.js';
 import {
   PROVIDERS, redirectUriFor, client, authorizationUrl, newFlowSecrets, exchange, verifyIdToken, IdTokenError,
@@ -221,8 +222,12 @@ export async function callback(ctx, provider) {
     await audit(ctx, userId, 'login.social', provider);
   } else {
     userId = crypto.randomUUID();
-    await ctx.env.DB.prepare('INSERT INTO users (id, email, pw_hash, created_at) VALUES (?1, ?2, ?3, ?4)')
-      .bind(userId, `${userId}@users.invalid`, NO_PASSWORD, t).run();
+    // Synthetic placeholder, not a deliverable address. Sealed the same way as a real account address.
+    const fields = await userEmailFields(ctx.env, userId, `${userId}@users.invalid`);
+    await ctx.env.DB.prepare(
+      `INSERT INTO users (id, email, email_hmac, email_enc, email_key_version, email_placeholder, pw_hash, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+    ).bind(userId, fields.stored, fields.hmac, fields.blob, fields.version, fields.placeholder, NO_PASSWORD, t).run();
     await insertIdentity(ctx.env, userId, provider, ident, t);
     await audit(ctx, userId, 'user.create_social', provider);
     await audit(ctx, userId, 'login.social', provider);

@@ -2,6 +2,7 @@
 import legacy from './legacy.js';
 import { log, logError, routeOf } from './log.js';
 import { handleApp, isAppPath, allowedOrigins, corsHeaders, purge, expireAudit, inactiveAccounts } from './app.js';
+import { backfillUserEmails } from './userEmail.js';
 import { handleApi } from './api.js';
 import { handleAccounts } from './accounts.js';
 import { guardLocation } from './location.js';
@@ -58,6 +59,7 @@ export default {
 export const SCHEDULED_JOBS = [
   ['purge', purge],
   ['audit_expiry', expireAudit], // the only audit_log delete path
+  ['user_email_backfill', backfillUserEmails], // seals leftover plaintext users.email (100 rows per run)
   ['inactive_accounts', inactiveAccounts],
   ['signup_finish', (env) => finishSignups(env)], // sets finished_at once every list window (+45-day extension) closed
   ['broker_purge', (env) => brokerPurge(env)], // gated 24-month purge of broker tables

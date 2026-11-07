@@ -83,6 +83,7 @@ pattern = "accounts.droptexas.com"
 custom_domain = true
 
 # Secrets (never in this file): API_TOKEN (legacy shared key), TOTP_ENC_KEY and PII_ENC_KEY (separate base64 32-byte keys),
+# EMAIL_HMAC_KEY (base64 32-byte HMAC key for the users.email blind index; not the AES key and not SIGNUP_PII_KEY),
 # ADMIN_BOOTSTRAP_TOKEN (>=32 chars; delete after the first user exists).
 # Social sign-in secrets: GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET,
 # OAUTH_COOKIE_KEY (base64 32 bytes). INTERNAL_PROXY_KEYS: JSON {kid: base64 key>=32 bytes} shared with the landing Worker (X-Internal-Auth, see README). See docs/oauth-setup.md. Optional during PII key rotation: PII_ENC_KEY_PREV + PII_PREV_KEY_VERSION.

@@ -6,6 +6,7 @@ const SLOW = 30_000;
 import { describe, it, expect, beforeEach } from 'vitest';
 import { authenticator } from 'otplib';
 import { hashPassword, encryptStr } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 import { reserve, refund, LIMITS } from '../src/ratelimit.js';
 
 const ORIGIN = 'http://localhost:5173';
@@ -28,8 +29,9 @@ async function makeUser(password = 'correct horse battery') {
   const id = crypto.randomUUID();
   const email = `fu-${id}@example.test`;
   const secret = authenticator.generateSecret(20);
-  await env.DB.prepare('INSERT INTO users (id, email, pw_hash, totp_secret_enc, totp_enabled, created_at) VALUES (?1, ?2, ?3, ?4, 1, 1)')
-    .bind(id, email, await hashPassword(password), await encryptStr(env, secret)).run();
+  await insertUserRow(env, {
+    id, email, pwHash: await hashPassword(password), totpSecretEnc: await encryptStr(env, secret), totpEnabled: 1,
+  });
   return { id, email, password, secret };
 }
 const resetStep = (u) => env.DB.prepare('UPDATE users SET totp_last_step = NULL WHERE id = ?1').bind(u.id).run(); // test-only: reuse current TOTP step
