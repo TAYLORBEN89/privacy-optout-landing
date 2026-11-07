@@ -4,8 +4,8 @@ import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { authenticator } from 'otplib';
 import worker from '../src/index.js';
-import { emailHmac, encryptStr, hashPassword, EmailKeyError } from '../src/crypto.js';
-import { decryptUserEmail, backfillUserEmails, userEmailFields } from '../src/userEmail.js';
+import { b64, emailHmac, encryptStr, hashPassword, EmailKeyError } from '../src/crypto.js';
+import { decryptUserEmail, backfillUserEmails, findUserByEmail, sealStoredEmail, userEmailFields } from '../src/userEmail.js';
 import { inactiveAccounts } from '../src/app.js';
 import { loadInternalKeys } from '../src/internalAuth.js';
 import { insertUserRow } from './userFixture.js';
@@ -189,6 +189,56 @@ describe('users.email blind index', () => {
     expect(await decryptUserEmail(env, { id: plainId, ...sealedPlain })).toBe(`${plainId}@users.invalid`);
     await inactiveAccounts({ ...env, MAILER: { send }, MAIL_FROM: 'a@example.test', INACTIVE_WARN_DAYS: '365', INACTIVE_DELETE_DAYS: '395' }, T);
     expect(send.mock.calls.map((c) => c[0].to)).toEqual(['year@example.test']);
+  });
+
+  it('rejects a missing HMAC key and every reused-secret encoding before lookup or seal', async () => {
+    const id = 'reuse-row';
+    await env.DB.prepare('INSERT INTO users (id, email, pw_hash, created_at) VALUES (?1, ?2, ?3, 1)')
+      .bind(id, 'reuse@example.test', 'x').run();
+    const stillPlain = async () => {
+      const row = await env.DB.prepare('SELECT email, email_enc FROM users WHERE id = ?1').bind(id).first();
+      expect(row.email).toBe('reuse@example.test');
+      expect(row.email_enc).toBeNull();
+    };
+    const encodings = (canonical) => {
+      const stripped = canonical.replace(/=+$/, '');
+      return [canonical, stripped, ` ${canonical} `, `\n${canonical}\n`, `\t${stripped}\r\n`, ` \n${stripped} `];
+    };
+    const assertClosed = async (override, message) => {
+      const bad = { ...env, ...override };
+      await expect(emailHmac(bad, 'reuse@example.test')).rejects.toThrow(message);
+      await expect(userEmailFields(bad, id, 'reuse@example.test')).rejects.toBeInstanceOf(EmailKeyError);
+      await expect(sealStoredEmail(bad, id, 'reuse@example.test')).rejects.toBeInstanceOf(EmailKeyError);
+      expect(await findUserByEmail(bad, 'reuse@example.test')).toBeNull();
+      await stillPlain();
+    };
+
+    await assertClosed({ EMAIL_HMAC_KEY: '' }, /not configured/);
+    await assertClosed({ EMAIL_HMAC_KEY: undefined }, /not configured/);
+
+    const byteSecrets = {
+      PII_ENC_KEY: env.PII_ENC_KEY,
+      PII_ENC_KEY_PREV: b64(new Uint8Array(32).fill(4)),
+      TOTP_ENC_KEY: env.TOTP_ENC_KEY,
+      OAUTH_COOKIE_KEY: env.OAUTH_COOKIE_KEY,
+      SIGNUP_PII_KEY: b64(new Uint8Array(32).fill(5)),
+    };
+    for (const [name, canonical] of Object.entries(byteSecrets)) {
+      for (const encoded of encodings(canonical)) {
+        await assertClosed({ [name]: canonical, EMAIL_HMAC_KEY: encoded }, /dedicated key/);
+        if (encoded !== canonical) await assertClosed({ [name]: encoded, EMAIL_HMAC_KEY: canonical }, /dedicated key/);
+      }
+    }
+
+    await assertClosed({ EMAIL_HMAC_KEY: env.API_TOKEN }, /dedicated key/);
+    await assertClosed({ EMAIL_HMAC_KEY: env.ADMIN_BOOTSTRAP_TOKEN }, /dedicated key/);
+    const opaque = b64(new Uint8Array(32).fill(9));
+    await assertClosed({ API_TOKEN: opaque, EMAIL_HMAC_KEY: opaque }, /dedicated key/);
+    await assertClosed({ ADMIN_BOOTSTRAP_TOKEN: opaque, EMAIL_HMAC_KEY: opaque }, /dedicated key/);
+
+    await expect(backfillUserEmails({ ...env, EMAIL_HMAC_KEY: env.PII_ENC_KEY.replace(/=+$/, '') })).rejects.toThrow(/dedicated key/);
+    await stillPlain();
+    expect(await emailHmac(env, 'reuse@example.test')).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('refuses an internal proxy key that copies EMAIL_HMAC_KEY', () => {

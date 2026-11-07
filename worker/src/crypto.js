@@ -104,7 +104,11 @@ export function normalizeEmail(raw) {
 }
 export const isPlaceholderEmail = (normalized) => String(normalized || '').endsWith(PLACEHOLDER_EMAIL_SUFFIX);
 
-const HMAC_REUSE = ['PII_ENC_KEY', 'PII_ENC_KEY_PREV', 'TOTP_ENC_KEY', 'OAUTH_COOKIE_KEY', 'SIGNUP_PII_KEY', 'API_TOKEN', 'ADMIN_BOOTSTRAP_TOKEN'];
+// Base64 secrets: reuse is the decoded 32 bytes. atob accepts stripped padding and ASCII whitespace,
+// so a text compare of the encoded strings misses a copy of the same key.
+const HMAC_BYTE_SECRETS = ['PII_ENC_KEY', 'PII_ENC_KEY_PREV', 'TOTP_ENC_KEY', 'OAUTH_COOKIE_KEY', 'SIGNUP_PII_KEY'];
+// Opaque tokens are not base64 keys. Exact string match is the reuse check for these two.
+const HMAC_OPAQUE_SECRETS = ['API_TOKEN', 'ADMIN_BOOTSTRAP_TOKEN'];
 
 function rawHmacKey(keyB64, name) {
   if (!keyB64) throw new EmailKeyError(`${name} not configured`);
@@ -114,15 +118,27 @@ function rawHmacKey(keyB64, name) {
   return raw;
 }
 
+function decodedSecret(value) {
+  if (typeof value !== 'string' || value.length === 0) return null;
+  try { return unb64(value); } catch { return null; }
+}
+
 // Blind index of the normalized address. Hex, so it cannot collide with an address (those contain "@").
 export async function emailHmac(env, email) {
   const normalized = normalizeEmail(email);
   if (!normalized) throw new EmailKeyError('invalid email');
-  const keyB64 = env.EMAIL_HMAC_KEY || '';
-  for (const name of HMAC_REUSE) {
-    if (env[name] && timingSafeEqual(keyB64, env[name])) throw new EmailKeyError('EMAIL_HMAC_KEY must be a dedicated key');
+  const keyB64 = typeof env.EMAIL_HMAC_KEY === 'string' ? env.EMAIL_HMAC_KEY : '';
+  for (const name of HMAC_OPAQUE_SECRETS) {
+    const other = env[name];
+    if (typeof other === 'string' && other.length > 0 && timingSafeEqual(keyB64, other)) {
+      throw new EmailKeyError('EMAIL_HMAC_KEY must be a dedicated key');
+    }
   }
   const raw = rawHmacKey(keyB64, 'EMAIL_HMAC_KEY');
+  for (const name of HMAC_BYTE_SECRETS) {
+    const otherRaw = decodedSecret(env[name]);
+    if (otherRaw && timingSafeEqual(raw, otherRaw)) throw new EmailKeyError('EMAIL_HMAC_KEY must be a dedicated key');
+  }
   const key = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const mac = await crypto.subtle.sign('HMAC', key, enc.encode(`users.email\n${normalized}`));
   return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
