@@ -41,16 +41,24 @@ describe('logging helper', () => {
     expect(Object.keys(entry).sort()).toEqual(['event', 'method', 'ms', 'route', 'status', 'surface']);
   });
 
-  it('logs legacy routes and the 403/OPTIONS early returns too, without secrets', async () => {
+  it('logs removed KV paths as not served, and the 403/OPTIONS early returns, without secrets', async () => {
     const lines = capture();
-    await SELF.fetch(`https://api.test/records?key=${SECRETS[2]}`, { headers: { Authorization: `Bearer ${SECRETS[2]}` } });
+    const gone = await SELF.fetch(`https://api.test/records?key=${SECRETS[2]}`, { headers: { Authorization: `Bearer ${SECRETS[2]}` } });
+    expect(gone.status).toBe(404);
+    expect(await gone.text()).toBe('Not found');
+    for (const path of ['/txrequests/broker1', '/settings/profile']) {
+      const res = await SELF.fetch(`https://api.test${path}`, { method: 'PUT', headers: { Authorization: `Bearer ${SECRETS[2]}`, 'Content-Type': 'application/json' }, body: '{"name":"nope"}' });
+      expect(res.status).toBe(404);
+      expect(await res.text()).toBe('Not found');
+    }
     await SELF.fetch('https://api.test/me', { headers: { Origin: 'https://evil.example', Cookie: `__Host-sid=${SECRETS[2]}` } });
     await SELF.fetch('https://api.test/me', { method: 'OPTIONS', headers: { Origin: 'http://localhost:5173' } });
     const out = lines.join('\n');
     for (const s of SECRETS) expect(out).not.toContain(s);
     const reqs = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((x) => x?.event === 'request');
-    expect(reqs.map((r) => [r.surface, r.status])).toEqual([[ 'legacy', reqs[0].status ], ['app', 403], ['app', 204]]);
-    expect(reqs[0].route).toBe('/records');
+    expect(reqs.map((r) => [r.surface, r.status])).toEqual([['app', 404], ['app', 404], ['app', 404], ['app', 403], ['app', 204]]);
+    expect(reqs.map((r) => r.route)).toEqual(['/records', '/txrequests/broker1', '/settings/profile', '/me', '/me']);
+    expect(reqs.some((r) => r.surface === 'legacy')).toBe(false);
   });
 });
 

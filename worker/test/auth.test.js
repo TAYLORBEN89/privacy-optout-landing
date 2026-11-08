@@ -201,7 +201,7 @@ describe('rate limiting', () => {
   });
 });
 
-describe('opt-outs, purge, legacy', () => {
+describe('opt-outs and purge', () => {
   it('logs confirmation numbers and purge removes PII past retention', async () => {
     const u = await makeUser();
     const { cookie, csrf } = await fullLogin(u);
@@ -216,10 +216,79 @@ describe('opt-outs, purge, legacy', () => {
     expect((await env.DB.prepare('SELECT confirmation_no FROM confirmations').first()).confirmation_no).toBe('ABC-123');
   });
 
-  it('legacy KV routes still work with the shared key', async () => {
-    expect((await SELF.fetch(BASE + '/records')).status).toBe(401);
-    const r = await SELF.fetch(BASE + '/records', { headers: { Authorization: 'Bearer test-legacy-token' } });
-    expect(r.status).toBe(200);
+});
+
+describe('removed shared-token KV API', () => {
+  async function collectionDump() {
+    const rows = [];
+    for (const prefix of ['record:', 'txreq:', 'settings:']) {
+      let cursor;
+      do {
+        const page = await env.RECORDS.list({ prefix, cursor });
+        for (const k of page.keys) rows.push([k.name, await env.RECORDS.get(k.name)]);
+        cursor = page.list_complete ? undefined : page.cursor;
+      } while (cursor);
+    }
+    rows.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    return rows;
+  }
+
+  it('does not serve /records, /txrequests, or /settings, with or without Bearer API_TOKEN', { timeout: 60_000 }, async () => {
+    const sentinels = [
+      ['record:acxiom', JSON.stringify({ id: 'acxiom', marker: 'record-body' })],
+      ['txreq:broker1', JSON.stringify({ id: 'broker1', marker: 'tx-body' })],
+      ['settings:profile', JSON.stringify({ name: 'identifier-body' })],
+    ];
+    for (const [key, value] of sentinels) await env.RECORDS.put(key, value);
+    const before = await collectionDump();
+    const token = env.API_TOKEN;
+    expect(typeof token).toBe('string');
+    expect(token.length).toBeGreaterThan(0);
+
+    // With the configured API_TOKEN: collection create/list, id read/write/delete (including
+    // /settings/profile), and OPTIONS (the old handler answered that before checking the token).
+    const withToken = [
+      ['GET', '/records'], ['POST', '/records'], ['OPTIONS', '/records'], ['GET', '/records/'],
+      ['GET', '/records/acxiom'], ['PUT', '/records/acxiom'], ['DELETE', '/records/acxiom'], ['POST', '/records/acxiom'],
+      ['GET', '/txrequests'], ['POST', '/txrequests'], ['OPTIONS', '/txrequests'],
+      ['GET', '/txrequests/broker1'], ['PUT', '/txrequests/broker1'], ['DELETE', '/txrequests/broker1'], ['POST', '/txrequests/broker1'],
+      ['GET', '/settings'], ['POST', '/settings'], ['OPTIONS', '/settings'],
+      ['GET', '/settings/profile'], ['PUT', '/settings/profile'], ['DELETE', '/settings/profile'], ['POST', '/settings/profile'],
+      ['GET', '/settings/profile/'],
+      ['GET', '/settings/other-id'], ['PUT', '/settings/other-id'], ['DELETE', '/settings/other-id'],
+    ];
+    const calls = withToken.map(([method, path]) => [method, path, { Authorization: `Bearer ${token}` }]);
+    for (const path of ['/records', '/txrequests', '/settings', '/settings/profile', '/records/acxiom']) {
+      calls.push(['GET', path, {}]);
+    }
+    calls.push(['GET', '/records', { Authorization: 'Bearer not-the-shared-token' }]);
+    calls.push(['GET', '/settings/profile', { Authorization: `Bearer ${token}`, Origin: 'https://evil.example' }]);
+
+    for (const [method, path, headers] of calls) {
+      const res = await SELF.fetch(BASE + path, {
+        method,
+        headers: { Origin: ORIGIN, 'Content-Type': 'application/json', ...headers },
+        body: method === 'POST' || method === 'PUT' ? JSON.stringify({ id: 'acxiom', name: 'written-by-test' }) : undefined,
+      });
+      const text = await res.text();
+      const label = `${method} ${path}`;
+      expect(res.status, label).toBe(404);
+      expect(text, label).toBe('Not found');
+      expect(text, label).not.toMatch(/record-body|tx-body|identifier-body|unauthorized/);
+      expect(res.headers.get('Access-Control-Allow-Origin'), label).toBeNull();
+      expect(res.headers.get('Access-Control-Allow-Headers'), label).toBeNull();
+    }
+
+    const accounts = await SELF.fetch('https://accounts.test/records/acxiom', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(accounts.status).toBe(404);
+    const accountsBody = await accounts.text();
+    expect(accountsBody).not.toContain('record-body');
+    expect(accountsBody).not.toContain('unauthorized');
+
+    expect(await collectionDump()).toEqual(before);
+    for (const [key, value] of sentinels) expect(await env.RECORDS.get(key)).toBe(value);
   });
 });
 
