@@ -7,7 +7,8 @@ import { SessionAuthError, sessionReason, SIGNED_OUT } from './sessionErrors.js'
 const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '');
 const KEY_STORAGE = 'privacy-dashboard:access-key';
 
-// Legacy shared access key: per-tab sessionStorage only (gone when the tab closes), until the legacy routes retire.
+// Legacy shared access key: per-tab sessionStorage only (gone when the tab closes).
+// The Worker does not accept it for /records, /txrequests, or /settings.
 export const getKey = () => sessionStorage.getItem(KEY_STORAGE) || '';
 export const setKey = (k) => sessionStorage.setItem(KEY_STORAGE, k.trim());
 export const forgetKey = () => sessionStorage.removeItem(KEY_STORAGE);
@@ -95,12 +96,12 @@ export async function saveTxRequest(req) {
 }
 
 // ---- Profile (identifiers for request emails). Never cached in the browser.
-// Signed-in session (D1, encrypted at rest): GET/PUT /profile. Users who only have the legacy shared key (not yet
-// migrated) fall back to the legacy KV route /settings/profile, so they keep access until the KV->D1 migration.
+// Signed-in session (D1, encrypted at rest): GET/PUT /api/profile.
 // loadProfile resolves { profile, source: 'session' | 'legacy' }. It throws ProfileAuthError when neither a session
-// nor a legacy key is available, AuthError when the legacy key is rejected, and rethrows anything else (network, 5xx) so the UI can tell the two apart.
-// ProfileAuthError.reason is one of sessionErrors' reasons. The legacy KV fallback is used ONLY when there is no
-// session at all (401 from /api/me) and a legacy key exists: an MFA-pending or not-stepped-up session never falls back.
+// nor a stored key is available, AuthError when a stored key is rejected, and rethrows anything else (network, 5xx) so the UI can tell the two apart.
+// ProfileAuthError.reason is one of sessionErrors' reasons. A no-session 401 from /api/me with a stored key still
+// requests /settings/profile. The Worker responds 404 for that path and does not read or write KV. An MFA-pending
+// or not-stepped-up session does not make that request.
 export class ProfileAuthError extends SessionAuthError {}
 const toProfileErr = (e) => { const r = sessionReason(e); return r ? new ProfileAuthError(r) : e; };
 export async function loadProfile() {
@@ -109,7 +110,7 @@ export async function loadProfile() {
   } catch (e) {
     if (sessionReason(e) !== SIGNED_OUT) throw toProfileErr(e);
     if (!getKey() || !API_URL) throw new ProfileAuthError(SIGNED_OUT);
-    // A rejected legacy key throws AuthError (key cleared), which the page routes to onAuthFail as before.
+    // The Worker returns 404 here (it does not accept the stored key). A 401 would clear the key and throw AuthError.
     return { profile: await api('/settings/profile'), source: 'legacy' };
   }
   try { return { profile: await call('/api/profile'), source: 'session' }; } catch (e) { throw toProfileErr(e); }
