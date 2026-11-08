@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { authenticator } from 'otplib';
 import worker from '../src/index.js';
 import { hashPassword, encryptStr } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 
 const ORIGIN = 'http://localhost:5173';
 const BASE = 'https://api.test';
@@ -12,8 +13,10 @@ let IP;
 async function makeUser({ email = 'owner@example.test', password = 'correct horse battery', totp = true } = {}) {
   const id = crypto.randomUUID();
   const secret = authenticator.generateSecret(20);
-  await env.DB.prepare('INSERT INTO users (id, email, pw_hash, totp_secret_enc, totp_enabled, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
-    .bind(id, email, await hashPassword(password), totp ? await encryptStr(env, secret) : null, totp ? 1 : 0, 1).run();
+  await insertUserRow(env, {
+    id, email, pwHash: await hashPassword(password),
+    totpSecretEnc: totp ? await encryptStr(env, secret) : null, totpEnabled: totp,
+  });
   return { id, email, password, secret };
 }
 

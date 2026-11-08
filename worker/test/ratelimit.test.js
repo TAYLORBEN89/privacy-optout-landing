@@ -2,6 +2,7 @@ import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect } from 'vitest';
 import { authenticator } from 'otplib';
 import { hashPassword, encryptStr } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 import { isLimited, hit, LIMITS } from '../src/ratelimit.js';
 import { purge } from '../src/app.js';
 
@@ -13,8 +14,10 @@ const ip = () => `10.88.${Math.floor(++n / 250)}.${n % 250}`;
 async function makeUser(password = 'correct horse battery') {
   const email = `rl-${crypto.randomUUID()}@example.test`;
   const secret = authenticator.generateSecret(20);
-  await env.DB.prepare('INSERT INTO users (id, email, pw_hash, totp_secret_enc, totp_enabled, created_at) VALUES (?1, ?2, ?3, ?4, 1, 1)')
-    .bind(crypto.randomUUID(), email, await hashPassword(password), await encryptStr(env, secret)).run();
+  await insertUserRow(env, {
+    id: crypto.randomUUID(), email, pwHash: await hashPassword(password),
+    totpSecretEnc: await encryptStr(env, secret), totpEnabled: 1,
+  });
   return { email, password, secret };
 }
 // Simulates a public edge request (request.cf set), where Cloudflare writes CF-Connecting-IP.

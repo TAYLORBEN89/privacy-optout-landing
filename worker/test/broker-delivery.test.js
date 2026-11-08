@@ -5,6 +5,7 @@ import { buildList, saveList, ingestStatus, sha256HexOf } from '../src/hashEngin
 import { issueCredential, revokeCredential, authenticateBroker, monthlyLists, brokerPurge, periodOf, loadSignupRecords, credentialKeyReport, finishSignups } from '../src/brokerDelivery.js';
 import { purge } from '../src/app.js';
 import { encryptPii } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 
 const DAY = 86400;
 const NOW = () => Math.floor(Date.now() / 1000);
@@ -180,7 +181,7 @@ describe('monthly scheduler', () => {
   it('default loader decrypts signup payloads in memory and skips already-listed requests', async () => {
     await addBroker('ld-a', 'email');
     const t = NOW();
-    await env.DB.prepare("INSERT INTO users (id, email, pw_hash, created_at) VALUES ('ld-user', 'ld-owner@ld.example', 'x', ?1)").bind(t).run().catch(() => {});
+    await insertUserRow(env, { id: 'ld-user', email: 'ld-owner@ld.example', pwHash: 'x', createdAt: t }).catch(() => {});
     const u = await env.DB.prepare("SELECT id FROM users WHERE id = 'ld-user'").first();
     expect(u).not.toBeNull();
     const id = 'ld-req-1';

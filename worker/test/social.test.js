@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vites
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { authenticator } from 'otplib';
 import { hashPassword, encryptStr, sha256Hex, encryptPii, unb64 } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 import { clearOauthCookie } from '../src/oauth.js';
 import { auditMeta, purge } from '../src/app.js';
 import { signInternal, canonical, loadInternalKeys, verifyInternal } from '../src/internalAuth.js';
@@ -167,6 +168,10 @@ describe('social login happy paths', () => {
       const row = await env.DB.prepare('SELECT * FROM user_identities').first();
       expect(row.provider).toBe(p);
       expect(row.email).not.toContain('@example.test'); // encrypted at rest
+      const account = await env.DB.prepare('SELECT email, email_enc, email_placeholder FROM users').first();
+      expect(account.email_placeholder).toBe(1);
+      expect(account.email).not.toContain('@');
+      expect(account.email_enc).not.toContain('@');
       // provider tokens are never stored anywhere
       const dump = JSON.stringify((await env.DB.prepare('SELECT * FROM sessions').all()).results) + JSON.stringify(row);
       expect(dump).not.toContain('provider-access-token');
@@ -747,8 +752,10 @@ describe('password + TOTP fallback', () => {
   async function pwUser() {
     const id = crypto.randomUUID();
     const secret = authenticator.generateSecret(20);
-    await env.DB.prepare('INSERT INTO users (id, email, pw_hash, totp_secret_enc, totp_enabled, created_at) VALUES (?1, ?2, ?3, ?4, 1, 1)')
-      .bind(id, 'pw@example.test', await hashPassword('correct horse battery'), await encryptStr(env, secret)).run();
+    await insertUserRow(env, {
+      id, email: 'pw@example.test', pwHash: await hashPassword('correct horse battery'),
+      totpSecretEnc: await encryptStr(env, secret), totpEnabled: 1,
+    });
     return secret;
   }
   it('works same-origin under /api/auth/* and can step up with password + TOTP', async () => {
@@ -766,9 +773,12 @@ describe('password + TOTP fallback', () => {
   });
   it('social-only users can never log in with a password', async () => {
     await socialLogin('google');
-    const u = await env.DB.prepare('SELECT email FROM users').first();
-    const r = await api('POST', '/api/auth/login', {}, { email: u.email, password: '!' });
+    const u = await env.DB.prepare('SELECT id, email, email_enc FROM users').first();
+    expect(u.email).not.toContain('@users.invalid');
+    expect(u.email_enc).not.toContain('@users.invalid');
+    const r = await api('POST', '/api/auth/login', {}, { email: `${u.id}@users.invalid`, password: '!' });
     expect(r.status).toBe(401);
+    expect(await r.text()).toBe('{"error":"invalid credentials"}');
   });
 });
 

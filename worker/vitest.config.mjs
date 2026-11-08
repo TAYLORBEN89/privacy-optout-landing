@@ -23,6 +23,7 @@ export default defineWorkersConfig(async () => {
               BROKER_CRED_ACTIVE_KID: 't1',
               TOTP_ENC_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
               PII_ENC_KEY: 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
+              EMAIL_HMAC_KEY: 'AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=', // test-only; distinct from the AES keys
               ADMIN_BOOTSTRAP_TOKEN: 'test-bootstrap-token-0123456789abcdef',
               // Fake OAuth config for tests (provider endpoints are mocked in test/social.test.js).
               GOOGLE_CLIENT_ID: 'test-google-client', GOOGLE_CLIENT_SECRET: 'test-google-secret',

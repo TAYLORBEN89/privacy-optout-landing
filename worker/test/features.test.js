@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { authenticator } from 'otplib';
 import worker from '../src/index.js';
 import { hashPassword, encryptStr, encryptPii, decryptPii } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 import { purge, inactiveAccounts } from '../src/app.js';
 
 const ORIGIN = 'http://localhost:5173';
@@ -13,8 +14,10 @@ let IP; let n = 0;
 async function makeUser({ email = 'owner@example.test', password = 'correct horse battery', totp = true } = {}) {
   const id = crypto.randomUUID();
   const secret = authenticator.generateSecret(20);
-  await env.DB.prepare('INSERT INTO users (id, email, pw_hash, totp_secret_enc, totp_enabled, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
-    .bind(id, email, await hashPassword(password), totp ? await encryptStr(env, secret) : null, totp ? 1 : 0, 1).run();
+  await insertUserRow(env, {
+    id, email, pwHash: await hashPassword(password),
+    totpSecretEnc: totp ? await encryptStr(env, secret) : null, totpEnabled: totp,
+  });
   return { id, email, password, secret };
 }
 const req = (method, path, body, headers = {}) => SELF.fetch(BASE + path, {
@@ -253,6 +256,11 @@ describe('first-user bootstrap', () => {
     expect((await boot({ email: 'owner@example.test', password: 'short' })).status).toBe(400);
     const r = await boot({ email: 'Owner@Example.test', password: 'a-long-enough-password' });
     expect(r.status).toBe(201);
+    const stored = await env.DB.prepare('SELECT email, email_hmac, email_enc, email_key_version FROM users').first();
+    expect(stored.email).toMatch(/^[0-9a-f]{64}$/);
+    expect(stored.email).toBe(stored.email_hmac);
+    expect(stored.email_enc).not.toContain('@');
+    expect(stored.email_key_version).toBe(1);
     expect((await boot({ email: 'x@example.test', password: 'a-long-enough-password' })).status).toBe(404);
     const login = await req('POST', '/auth/login', { email: 'owner@example.test', password: 'a-long-enough-password' });
     expect((await login.json()).totp_enrollment_required).toBe(true);

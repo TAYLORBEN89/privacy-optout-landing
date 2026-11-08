@@ -2,8 +2,9 @@
 import { authenticator } from 'otplib';
 import {
   randomToken, sha256Hex, timingSafeEqual, verifyPassword, dummyVerify, encryptStr, decryptStr,
-  encryptPii, decryptPii, hashPassword,
+  encryptPii, decryptPii, hashPassword, normalizeEmail, isPlaceholderEmail,
 } from './crypto.js';
+import { findUserByEmail, readUserEmail, sealStoredEmail, userEmailFields } from './userEmail.js';
 import { readSignupPayload } from './signupPayload.js';
 import { reserve, refund, clientIp, retryHeaders, purgeRateLimitsStmt } from './ratelimit.js';
 import { TX_TO_DB, txSubStatus, toClient, epochOfDate } from './txmap.js';
@@ -140,15 +141,13 @@ const STEP_UP_REQUIRED = (ctx) => json(ctx, { error: 'step_up_required', code: '
 // ---------- handlers ----------
 async function login(ctx) {
   const body = await readJson(ctx.req);
-  const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase().slice(0, 254) : '';
+  const email = normalizeEmail(body?.email);
   const password = typeof body?.password === 'string' ? body.password.slice(0, 1024) : '';
   const rlId = `${clientIp(ctx.req)}|${email}`;
   const rlRes = await reserve(ctx.env, 'login', rlId);
   if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
 
-  const user = email
-    ? await ctx.env.DB.prepare('SELECT id, pw_hash, totp_enabled FROM users WHERE email = ?1').bind(email).first()
-    : null;
+  const user = email ? await findUserByEmail(ctx.env, email) : null;
   // Social-only users have the sentinel pw_hash '!' and can never pass password login.
   const ok = user && user.pw_hash !== '!' ? await verifyPassword(password, user.pw_hash) : await dummyVerify(password);
   if (!ok || !password) return INVALID(ctx);
@@ -233,10 +232,13 @@ async function totpVerify(ctx) {
   if (!pre) return INVALID(ctx);
   const preHash = await sha256Hex(pre);
   const p = await ctx.env.DB.prepare(
-    "SELECT s.user_id, s.expires_at, s.revoked, u.email, u.totp_secret_enc, u.totp_last_step FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ?1 AND s.stage = 'preauth'",
+    `SELECT s.user_id, s.expires_at, s.revoked, u.email, u.email_enc, u.email_key_version, u.totp_secret_enc, u.totp_last_step
+     FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ?1 AND s.stage = 'preauth'`,
   ).bind(preHash).first();
   if (!p || p.revoked || now() >= p.expires_at || !p.totp_secret_enc) return INVALID(ctx);
-  const rlId = `${clientIp(ctx.req)}|${p.email}`;
+  // Same account key the password step used (normalized address), so the two steps share one counter.
+  const account = await readUserEmail(ctx.env, { id: p.user_id, email: p.email, email_enc: p.email_enc, email_key_version: p.email_key_version });
+  const rlId = `${clientIp(ctx.req)}|${account || ''}`;
   const rlRes = await reserve(ctx.env, 'login', rlId);
   if (rlRes.limited) return json(ctx, { error: 'too many attempts' }, 429, retryHeaders(rlRes.limited));
 
@@ -262,14 +264,17 @@ async function totpVerify(ctx) {
 }
 
 async function totpEnroll(ctx, cur) {
-  const u = await ctx.env.DB.prepare('SELECT email, totp_enabled FROM users WHERE id = ?1').bind(cur.session.user_id).first();
+  const u = await ctx.env.DB.prepare(
+    'SELECT id, email, email_enc, email_key_version, totp_enabled FROM users WHERE id = ?1',
+  ).bind(cur.session.user_id).first();
   // Re-enrolling an already-enabled factor requires an MFA session.
   if (u.totp_enabled && !cur.session.mfa) return UNAUTH(ctx);
   const secret = authenticator.generateSecret(20);
   await ctx.env.DB.prepare('UPDATE users SET totp_pending_enc = ?1 WHERE id = ?2')
     .bind(await encryptStr(ctx.env, secret), cur.session.user_id).run();
   await audit(ctx, cur.session.user_id, 'totp.enroll_start');
-  return json(ctx, { secret, otpauth_url: authenticator.keyuri(u.email, 'Privacy Dashboard', secret) });
+  const email = await readUserEmail(ctx.env, u);
+  return json(ctx, { secret, otpauth_url: authenticator.keyuri(email, 'Privacy Dashboard', secret) });
 }
 
 async function totpConfirm(ctx, cur) {
@@ -300,8 +305,11 @@ async function logout(ctx, cur) {
 }
 
 async function me(ctx, cur) {
-  const u = await ctx.env.DB.prepare('SELECT id, email, totp_enabled FROM users WHERE id = ?1').bind(cur.session.user_id).first();
-  return json(ctx, { ...u, mfa: !!cur.session.mfa, csrf_token: cur.session.csrf });
+  const u = await ctx.env.DB.prepare(
+    'SELECT id, email, email_enc, email_key_version, totp_enabled FROM users WHERE id = ?1',
+  ).bind(cur.session.user_id).first();
+  const email = await readUserEmail(ctx.env, u);
+  return json(ctx, { id: u.id, email, totp_enabled: u.totp_enabled, mfa: !!cur.session.mfa, csrf_token: cur.session.csrf });
 }
 
 const STATUSES = ['queued', 'submitted', 'in_progress', 'pending', 'confirmed', 'denied', 'reverify'];
@@ -527,9 +535,12 @@ async function bootstrap(ctx) {
   if (password.length < 12 || password.length > 1024) return json(ctx, { error: 'password must be 12-1024 characters' }, 400);
   const id = crypto.randomUUID();
   const t = now();
+  // Keys are required before the insert. A missing or reused key throws and nothing is written.
+  const fields = await userEmailFields(ctx.env, id, email);
   const r = await ctx.env.DB.prepare(
-    'INSERT INTO users (id, email, pw_hash, created_at, last_active_at) SELECT ?1, ?2, ?3, ?4, ?4 WHERE NOT EXISTS (SELECT 1 FROM users)',
-  ).bind(id, email, await hashPassword(password), t).run();
+    `INSERT INTO users (id, email, email_hmac, email_enc, email_key_version, email_placeholder, pw_hash, created_at, last_active_at)
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8 WHERE NOT EXISTS (SELECT 1 FROM users)`,
+  ).bind(id, fields.stored, fields.hmac, fields.blob, fields.version, fields.placeholder, await hashPassword(password), t).run();
   if (r.meta.changes !== 1) return json(ctx, { error: 'not found' }, 404);
   await audit(ctx, id, 'user.bootstrap');
   return json(ctx, { ok: true, user_id: id, next: 'log in, then enroll TOTP' }, 201);
@@ -686,14 +697,26 @@ export async function inactiveAccounts(env, at = now()) {
   if (env.MAILER && env.MAIL_FROM) {
     const due = await env.DB.prepare(
       // LIMIT 100 per run: a backlog drains over later daily runs; notice is counted from each account's own warning.
-      // Social-only accounts have a placeholder address (<id>@users.invalid); skip them until real-address mail exists.
-      "SELECT id, email, COALESCE(last_active_at, created_at) AS last_seen FROM users WHERE COALESCE(last_active_at, created_at) < ?1 AND inactivity_warned_at IS NULL AND email NOT LIKE '%@users.invalid' LIMIT 100",
+      // Social-only placeholders are email_placeholder = 1 once sealed. Until then the address suffix still excludes them.
+      `SELECT id, email, email_enc, email_key_version, email_placeholder, COALESCE(last_active_at, created_at) AS last_seen
+       FROM users WHERE COALESCE(last_active_at, created_at) < ?1 AND inactivity_warned_at IS NULL
+         AND email_placeholder = 0 AND (email_enc IS NOT NULL OR email NOT LIKE '%@users.invalid') LIMIT 100`,
     ).bind(at - warnDays * day).all();
     for (const u of due.results) {
+      let to;
+      try {
+        to = await readUserEmail(env, u);
+        if (to && isPlaceholderEmail(to)) {
+          await env.DB.prepare('UPDATE users SET email_placeholder = 1 WHERE id = ?1 AND email_placeholder = 0').bind(u.id).run();
+          continue;
+        }
+        if (!to || !to.includes('@')) continue;
+        if (!u.email_enc) await sealStoredEmail(env, u.id, u.email);
+      } catch (e) { logError('inactive_warn', e, { job: 'inactive_accounts' }); continue; } // error name only: no address/PII
       try {
         await env.MAILER.send({
           from: env.MAIL_FROM,
-          to: u.email,
+          to,
           subject: 'Your DropTexas account will be deleted for inactivity',
           text: inactivityWarningText(u.last_seen, at, delDays, notice),
         });

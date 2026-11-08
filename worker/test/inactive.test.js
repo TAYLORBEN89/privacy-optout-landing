@@ -2,13 +2,15 @@ import { env } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { inactiveAccounts } from '../src/app.js';
 import { hashPassword } from '../src/crypto.js';
+import { insertUserRow } from './userFixture.js';
 
 const DAY = 86400;
 const T = 2_000_000_000;
 async function user(email, lastActive, warnedAt = null) {
   const id = crypto.randomUUID();
-  await env.DB.prepare('INSERT INTO users (id, email, pw_hash, created_at, last_active_at, inactivity_warned_at) VALUES (?1, ?2, ?3, 1, ?4, ?5)')
-    .bind(id, email, await hashPassword('x'), lastActive, warnedAt).run();
+  await insertUserRow(env, {
+    id, email, pwHash: await hashPassword('x'), createdAt: 1, lastActiveAt: lastActive, inactivityWarnedAt: warnedAt,
+  });
   return id;
 }
 const exists = async (id) => !!(await env.DB.prepare('SELECT 1 FROM users WHERE id = ?1').bind(id).first());
@@ -98,12 +100,12 @@ describe('inactive accounts', () => {
 describe('scheduled handler', () => {
   it('runs purge, audit expiry and inactive accounts in one handler; a failing job does not stop the others', async () => {
     const { SCHEDULED_JOBS, runScheduled } = await import('../src/index.js');
-    expect(SCHEDULED_JOBS.map(([n]) => n)).toEqual(['purge', 'audit_expiry', 'inactive_accounts', 'signup_finish', 'broker_purge']);
+    expect(SCHEDULED_JOBS.map(([n]) => n)).toEqual(['purge', 'audit_expiry', 'user_email_backfill', 'inactive_accounts', 'signup_finish', 'broker_purge']);
     const nowS = Math.floor(Date.now() / 1000); // runScheduled uses the real clock
     const id = await user('sched@example.test', nowS - 900 * DAY, nowS - 30 * DAY); // warned long ago, past 24 months
     const broken = { ...env, DB: new Proxy(env.DB, { get: (t, k) => (k === 'batch' ? () => Promise.reject(new Error('x')) : (typeof t[k] === 'function' ? t[k].bind(t) : t[k])) }) };
     const r = await runScheduled(broken);
-    expect(r.map((x) => x.status)).toEqual(['rejected', 'rejected', 'fulfilled', 'fulfilled', 'rejected']); // purge, audit expiry and broker purge use batch; signup_finish is one UPDATE
+    expect(r.map((x) => x.status)).toEqual(['rejected', 'rejected', 'fulfilled', 'fulfilled', 'fulfilled', 'rejected']); // purge, audit expiry and broker purge use batch; backfill, inactive and signup_finish do not
     expect(await exists(id)).toBe(false); // inactive_accounts still ran
   });
 });
